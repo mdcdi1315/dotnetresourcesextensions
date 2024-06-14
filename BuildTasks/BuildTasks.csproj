@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net472</TargetFrameworks>
+	<RootNamespace>DotNetResourcesExtensions.BuildTasks</RootNamespace>
+	<AssemblyName>$(RootNamespace)</AssemblyName>
+	<LangVersion>10.0</LangVersion>
+	<GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="BuildTasks.cs" />
+    <Compile Include="KVPResourcesReader.cs" />
+    <Compile Include="StronglyTypedResourceGenerator.cs" />
+	<Compile Include="..\Source\Internal\DotNetCoreImports.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Framework" Version="17.10.4" />
+    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.10.4" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.10.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+	  <ProjectReference Include="..\Source\DotNetResourcesExtensions.csproj">
+		  <Aliases>DRESEXT</Aliases>
+	  </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms">
+      <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\System.Windows.Forms.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

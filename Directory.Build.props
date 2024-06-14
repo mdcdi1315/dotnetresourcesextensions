@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+	<PropertyGroup>
+		<EnableDefaultCompileItems>False</EnableDefaultCompileItems>
+		<EnableDefaultEmbeddedResourceItems>False</EnableDefaultEmbeddedResourceItems>
+		<NetFrameworkIdentifier>net472</NetFrameworkIdentifier>
+		<NetCoreIdentifier>net7.0</NetCoreIdentifier>
+		<NetCoreWindowsIdentifier>net7.0-windows10.0.19041.0</NetCoreWindowsIdentifier>
+		<MDCFRNetFrameworkIdentifier>net48</MDCFRNetFrameworkIdentifier>
+	</PropertyGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+﻿<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>$(NetCoreIdentifier);$(NetCoreWindowsIdentifier);netstandard2.0;$(NetFrameworkIdentifier)</TargetFrameworks>
+	</PropertyGroup>
+	
+	<Import Project="$(MSBuildThisFilePath)DotNetResourcesExtensions.baseproj" />
+
+	<ItemGroup>
+	  <PackageReference Include="System.Text.Json" Version="8.0.3" />
+	</ItemGroup>
+	
+</Project>
