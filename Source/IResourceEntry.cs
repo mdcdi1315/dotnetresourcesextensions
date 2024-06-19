@@ -464,6 +464,40 @@ namespace DotNetResourcesExtensions
         /// <returns>A new <see cref="DefaultSimpleResourceEnumerator"/> that wraps the contents of <see cref="IResourceEnumerable.GetSimpleResourceEnumerator"/> method.</returns>
         public static DefaultSimpleResourceEnumerator GetDefaultSimpleResourceEnumerator(this ISimpleResourceEnumerator en)
             => new DefaultSimpleResourceEnumerator(en);
+
+        /// <summary>
+        /// Gets the first resource entry of the current resource enumerable.
+        /// </summary>
+        /// <param name="re">The resource enumerable to search.</param>
+        /// <returns>The first resource , if at least one resource exist; otherwise , <see langword="null"/>.</returns>
+        [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+        public static IResourceEntry FirstResource(this IResourceEnumerable re)
+        {
+            var inst = re.GetAdvancedResourceEnumerator();
+            try {
+                if (inst?.MoveNext() == true) {
+                    return inst.Current;
+                } else {
+                    return null;
+                }
+            } finally { inst?.Dispose(); }
+        }
+
+        /// <summary>
+        /// Gets the last resource entry of the current resource enumerable.
+        /// </summary>
+        /// <param name="re">The resource enumerable to search.</param>
+        /// <returns>The last resource , if at least one resource exist; otherwise , <see langword="null"/>.</returns>
+        [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+        public static IResourceEntry LastResource(this IResourceEnumerable re)
+        {
+            var inst = re.GetAdvancedResourceEnumerator();
+            IResourceEntry entry = null;
+            try {
+                while (inst?.MoveNext() == true) { entry = inst.Current; }
+                return entry;
+            } finally { inst?.Dispose(); }
+        }
     }
 
     /// <summary>
@@ -471,6 +505,7 @@ namespace DotNetResourcesExtensions
     /// </summary>
     public static class IResourceEntryExtensions
     {
+        // Default wrapped entry class implementation to use in the IResourceEntry extensions.
         private class DefaultResourceEntry : IResourceEntry
         {
             private System.String name;
@@ -526,6 +561,8 @@ namespace DotNetResourcesExtensions
             }
         }
 
+        // A typed resource loader to get resources from IResourceLoader that 
+        // these extension methods define.
         private sealed class TypedResourcesLoader : IResourceLoader
         {
             private List<IResourceEntry> resources;
@@ -535,10 +572,7 @@ namespace DotNetResourcesExtensions
             public TypedResourcesLoader(params IResourceEntry[] resources)
             {
                 this.resources = new();
-                foreach (var resource in resources)
-                {
-                    this.resources.Add(resource);
-                }
+                this.resources.AddRange(resources);
             }
 
             public void Dispose() { resources?.Clear(); resources = null; }

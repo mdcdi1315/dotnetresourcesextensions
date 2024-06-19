@@ -58,7 +58,7 @@ namespace DotNetResourcesExtensions.Internal
         public static System.String Decode(System.String enc)
         {
             System.String decoded = System.String.Empty , dc;
-            if (enc.Length > 0 && enc[0] == '\"' && enc[enc.Length - 1] == '\"') 
+            if (enc.Length > 0 && enc[0] == '\"' && enc[enc.Length - 1] == '\"')
             {
                 dc = enc.Substring(1);
                 dc = dc.Remove(dc.Length - 1);

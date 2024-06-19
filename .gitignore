@@ -126,3 +126,5 @@ publish/
 MDCFRRef/
 # Additionally , ignore .git to be sure that git contents are not kept in the repo
 .git/
+# Ignore the related DotNetResourcesExtensions for MDCFR project. Will be included in a later time
+Source/DotNetResourcesExtensions-MDCFR.csproj

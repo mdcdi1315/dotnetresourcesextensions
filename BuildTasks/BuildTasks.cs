@@ -35,20 +35,15 @@ namespace DotNetResourcesExtensions.BuildTasks
         public override bool Execute()
         {
             System.Boolean val = false;
-            try
-            {
+            try {
                 val = UnsafeExecute();
             } catch (Exception ex) {
-                Log.LogError("", "DNTRESEXT0000", "", "", "<Non-Existent>", 0, 0, 0, 0, 
-                    $"Unknown error occured during execution: \n{ex}");
+                ProduceError("DNTRESEXT0000", $"Unknown error occured during execution: \n{ex}");
                 return false;
             }
             transferer?.Dispose();
             target?.Dispose();
-            for (System.Int32 I = 0; I < streams.Length;I++)
-            {
-                streams[I]?.Dispose();
-            }
+            for (System.Int32 I = 0; I < streams.Length; I++) { streams[I]?.Dispose(); }
             return val;
         }
 
@@ -98,22 +93,18 @@ namespace DotNetResourcesExtensions.BuildTasks
                 {
                     transferer = new AbstractResourceTransferer(dd , target);
                     transferer.TransferAll();
-                }
-                else
-                {
+                } else {
                     DictionaryEntry d;
                     IDictionaryEnumerator de = dd.GetEnumerator();
-                    while (de.MoveNext()) 
+                    while (de.MoveNext())
                     {
                         d = de.Entry;
-                        if (d.Value is String ab)
-                        {
+                        // The casts might even be redundant , but we do not care since this is done at compile-time.
+                        if (d.Value is String ab) {
                             transferer.AddResource((System.String)d.Key, ab);
-                        } else if (d.Value is System.Byte[] bytep)
-                        {
+                        } else if (d.Value is System.Byte[] bytep) {
                             transferer.AddResource((System.String)d.Key, bytep);
-                        } else
-                        {
+                        } else {
                             transferer.AddResource((System.String)d.Key, d.Value);
                         }
                     }
@@ -139,6 +130,11 @@ namespace DotNetResourcesExtensions.BuildTasks
                     ProduceWarning("DNTRESEXT0006", "The strongly typed-class language was not specified. Presuming that it is \'CSharp\'.");
                     StronglyTypedClassLanguage = "CSharp";
                 }
+                if (String.IsNullOrWhiteSpace(StronglyTypedClassName))
+                {
+                    ProduceWarning("DNTRESEXT0009", $"The strongly typed-class .NET name was not specified. Presuming that it is the manifest name: \"{StronglyTypedClassManifestName}\"");
+                    StronglyTypedClassName = StronglyTypedClassManifestName;
+                }
                 GenerateStrTypedClass();
             }
             return true;
@@ -149,22 +145,15 @@ namespace DotNetResourcesExtensions.BuildTasks
             target?.Close();
             target?.Dispose();
             IResourceLoader loader = null;
-            try
-            {
-                if (restype == OutputResourceType.Resources)
-                {
+            try {
+                if (restype == OutputResourceType.Resources) {
                     loader = new DotNetResourceLoader(OutputFilePath.ItemSpec);
-                }
-                else if (restype == OutputResourceType.CustomBinary)
-                {
+                } else if (restype == OutputResourceType.CustomBinary) {
                     loader = new CustomDataResourcesLoader(OutputFilePath.ItemSpec);
-                }
-                else if (restype == OutputResourceType.JSON)
-                {
+                } else if (restype == OutputResourceType.JSON) {
                     loader = new JSONResourcesLoader(OutputFilePath.ItemSpec);
                 }
-                switch (StronglyTypedClassLanguage.ToLower())
-                {
+                switch (StronglyTypedClassLanguage.ToLower()) {
                     case "csharp":
                     case "c#":
                         StronglyTypedCodeProviderBuilder.WithCSharp(loader , StronglyTypedClassManifestName , StronglyTypedClassName , StronglyTypedClassOutPath , ResourceClassVisibilty.Internal);
@@ -186,8 +175,7 @@ namespace DotNetResourcesExtensions.BuildTasks
             Log.LogMessage(DefaultImportance , "Getting resource reader for file {0} ..." , path);
             System.IO.FileInfo FI = null;
             System.Resources.IResourceReader rdr = null; 
-            try
-            {
+            try {
                 FI = new(path);
                 streams[strindex] = FI.OpenRead();
                 switch (FI.Extension)
@@ -235,12 +223,12 @@ namespace DotNetResourcesExtensions.BuildTasks
         public System.String OutputFileType { 
             get => restype.ToString();
             set {
-                try
-                {
+                try {
                     restype = (OutputResourceType)System.Enum.Parse(typeof(OutputResourceType), value);
-                } catch (ArgumentException e) 
-                {
+                } catch (ArgumentException e) {
                     ProduceWarning("DNTRESEXT0007", $"The value specified , {value} was not accepted because of \n {e} .");
+                    ProduceWarning("DNTRESEXT0008", "Setting the OutputFileType back to Resources due to an error. See above for more information.");
+                    restype = OutputResourceType.Resources;
                 }
             }
         }
