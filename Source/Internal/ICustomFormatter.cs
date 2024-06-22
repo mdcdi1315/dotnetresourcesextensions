@@ -52,7 +52,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
         /// object for which the serialization/deserialization requested. <br />
         /// If you do not want to provide a type or you did not found one if you listen to this event , return <see langword="null"/>.
         /// </summary>
-        event TypeNotFoundEventHandler OnTypeNotFound;
+        public event TypeNotFoundEventHandler OnTypeNotFound;
     }
 
     /// <summary>

@@ -13,7 +13,7 @@ namespace DotNetResourcesExtensions
         /// Creates a new instance of <see cref="AbstractResourceTransferer"/> class with the specified reader and writer.
         /// </summary>
         /// <param name="read">The reader to read resources from.</param>
-        /// <param name="write">The writer to write resources.</param>
+        /// <param name="write">The writer to write resources to.</param>
         public AbstractResourceTransferer(System.Resources.IResourceReader read , System.Resources.IResourceWriter write) : base() 
         {
             reader = read; writer = write;
@@ -102,5 +102,38 @@ namespace DotNetResourcesExtensions
             new XMLResourcesReader(input),
             new System.Resources.Extensions.PreserializedResourceWriter(targetstream))
         { }
+    }
+
+    /// <summary>
+    /// Transfers custom MS-INI resources built with <see cref="MsIniResourcesWriter"/> and writes them to 
+    /// the preserialized .NET <see cref="System.Resources.Extensions.PreserializedResourceWriter"/> format.
+    /// </summary>
+    public sealed class CustomMsIniToBinaryTransferer : DefaultResourcesTransferer
+    {
+        /// <summary>
+        /// Create a new instance of <see cref="CustomMsIniToBinaryTransferer"/> from the specified 
+        /// input and target file paths.
+        /// </summary>
+        /// <param name="Input">The file path to get the resources from.</param>
+        /// <param name="Output">The file path to write the resources to.</param>
+        public CustomMsIniToBinaryTransferer(System.String Input , System.String Output) : base()
+        {
+            reader = new MsIniResourcesReader(Input);
+            writer = new System.Resources.Extensions.PreserializedResourceWriter(Output);
+            PrepareInstance();
+        }
+
+        /// <summary>
+        /// Create a new instance of <see cref="CustomMsIniToBinaryTransferer"/> from the specified 
+        /// input and target streams.
+        /// </summary>
+        /// <param name="input">The input stream to get the resources from.</param>
+        /// <param name="targetstream">The target stream to write the resources to.</param>
+        public CustomMsIniToBinaryTransferer(System.IO.Stream input , System.IO.Stream targetstream) : base()
+        {
+            reader = new MsIniResourcesReader(input);
+            writer = new System.Resources.Extensions.PreserializedResourceWriter(targetstream);
+            PrepareInstance();
+        }
     }
 }

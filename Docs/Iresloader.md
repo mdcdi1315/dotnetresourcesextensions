@@ -90,7 +90,69 @@ a new class and add proper constructor methods that will pass to their `read` fi
 new instance of your reader class.
 
 It is not recommended to directly implement the `IResourceLoader` interface 
-due to the fact that someone must implement a lot of stuff that someone might not even
-have knowledge for-so leave everything to `DefaultResourceLoader` if possible!
+due to the fact that someone must implement a lot of stuff that requires 
+advanced knowledge of .NET-so leave everything to `DefaultResourceLoader` if possible!
 
+Usage Example:
 
+This example presumes:
+
+- Your custom resources reader can be named at any way. 
+For the needs of the example , it will be named `AResourceReader`.
+
+- That you have correctly created a new .NET MSBuild project.
+
+- That you had first correctly referenced the `DotNetResourcesExtensions` package.
+
+- That you are writing the code in C#/.NET .
+
+Step 1: Place a import directive on top of the source file.
+
+On a (Possibly new) source file place a import directive on the top of your source file:
+~~~C#
+using DotNetResourcesExtensions;
+~~~
+
+Step 2: Create a class that inherits the `OptimizedResourceLoader` class:
+
+~~~C#
+public class AnyClassName : OptimizedResourceLoader
+~~~
+
+Step 3: Add constructors and feed during construction your custom reader to the `read` field.
+~~~C#
+{
+	public AnyClassName(System.IO.Stream streamifaccepts) : base()
+	{
+		read = new AResourceReader(streamifaccepts);
+	}
+}
+~~~
+
+Do not forget to call the `OptimizedResourceLoader` constructor using the
+the base class constructor invoke convention. For C# it is the `: base()` convention.
+
+Be noted that your class constructor might be different than that presented now. 
+You can add actually any number of different arguments. 
+Your reader constructor might not even accept a `System.IO.Stream` as a constructor argument.
+
+But this is at your own side of what arguments you have declared in your constructors.
+
+Another good technique is to declare all constructors exactly as you defined them in your resource reader class.
+This can facilitate you by being familiar with these constructors (Or you just export such reader through a 
+library or package and you want it's constructor signatures to be fully exposed in the resource loader too.)
+
+Full example code:
+~~~C#
+using DotNetResourcesExtensions;
+
+public class AnyClassName : OptimizedResourceLoader
+{
+	public AnyClassName(System.IO.Stream streamifaccepts) : base()
+	{
+		read = new AResourceReader(streamifaccepts);
+	}
+}
+~~~
+
+[Back to Index](https://github.com/mdcdi1315/dotnettesourcesextensions/blob/master/Docs/Main.md)

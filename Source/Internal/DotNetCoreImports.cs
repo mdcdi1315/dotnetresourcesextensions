@@ -357,7 +357,7 @@ namespace System.Diagnostics.CodeAnalysis
         public string MemberSignature { get; }
 
         /// <summary>
-        /// Gets the <see cref="T:System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes" /> which specifies the type
+        /// Gets the <see cref="DynamicallyAccessedMemberTypes" /> which specifies the type
         /// of members depended on.
         /// </summary>
         /// <remarks>
@@ -398,7 +398,7 @@ namespace System.Diagnostics.CodeAnalysis
         public string Condition { get; set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:System.Diagnostics.CodeAnalysis.DynamicDependencyAttribute" /> class
+        /// Initializes a new instance of the <see cref="DynamicDependencyAttribute" /> class
         /// with the specified signature of a member on the same type as the consumer.
         /// </summary>
         /// <param name="memberSignature">The signature of the member depended on.</param>
@@ -408,11 +408,11 @@ namespace System.Diagnostics.CodeAnalysis
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:System.Diagnostics.CodeAnalysis.DynamicDependencyAttribute" /> class
-        /// with the specified signature of a member on a <see cref="T:System.Type" />.
+        /// Initializes a new instance of the <see cref="DynamicDependencyAttribute" /> class
+        /// with the specified signature of a member on a <see cref="System.Type" />.
         /// </summary>
         /// <param name="memberSignature">The signature of the member depended on.</param>
-        /// <param name="type">The <see cref="T:System.Type" /> containing <paramref name="memberSignature" />.</param>
+        /// <param name="type">The <see cref="System.Type" /> containing <paramref name="memberSignature" />.</param>
         public DynamicDependencyAttribute(string memberSignature, Type type)
         {
             MemberSignature = memberSignature;
@@ -420,7 +420,7 @@ namespace System.Diagnostics.CodeAnalysis
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:System.Diagnostics.CodeAnalysis.DynamicDependencyAttribute" /> class
+        /// Initializes a new instance of the <see cref="DynamicDependencyAttribute" /> class
         /// with the specified signature of a member on a type in an assembly.
         /// </summary>
         /// <param name="memberSignature">The signature of the member depended on.</param>
@@ -434,7 +434,7 @@ namespace System.Diagnostics.CodeAnalysis
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:System.Diagnostics.CodeAnalysis.DynamicDependencyAttribute" /> class
+        /// Initializes a new instance of the <see cref="DynamicDependencyAttribute" /> class
         /// with the specified types of members on a <see cref="T:System.Type" />.
         /// </summary>
         /// <param name="memberTypes">The types of members depended on.</param>
@@ -446,7 +446,7 @@ namespace System.Diagnostics.CodeAnalysis
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:System.Diagnostics.CodeAnalysis.DynamicDependencyAttribute" /> class
+        /// Initializes a new instance of the <see cref="DynamicDependencyAttribute" /> class
         /// with the specified types of members on a type in an assembly.
         /// </summary>
         /// <param name="memberTypes">The types of members depended on.</param>
@@ -482,7 +482,7 @@ namespace System.Diagnostics.CodeAnalysis
         public string Url { get; set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute" /> class
+        /// Initializes a new instance of the <see cref="RequiresDynamicCodeAttribute" /> class
         /// with the specified message.
         /// </summary>
         /// <param name="message">
@@ -540,7 +540,7 @@ namespace System.Diagnostics.CodeAnalysis
         /// <summary>Optional arguments associated with the specific syntax employed.</summary>
         public object[] Arguments { get; }
 
-        /// <summary>Initializes the <see cref="T:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute" /> with the identifier of the syntax used.</summary>
+        /// <summary>Initializes the <see cref="StringSyntaxAttribute" /> with the identifier of the syntax used.</summary>
         /// <param name="syntax">The syntax identifier.</param>
         public StringSyntaxAttribute(string syntax)
         {
@@ -548,7 +548,7 @@ namespace System.Diagnostics.CodeAnalysis
             Arguments = Array.Empty<object>();
         }
 
-        /// <summary>Initializes the <see cref="T:System.Diagnostics.CodeAnalysis.StringSyntaxAttribute" /> with the identifier of the syntax used.</summary>
+        /// <summary>Initializes the <see cref="StringSyntaxAttribute" /> with the identifier of the syntax used.</summary>
         /// <param name="syntax">The syntax identifier.</param>
         /// <param name="arguments">Optional arguments associated with the specific syntax employed.</param>
         public StringSyntaxAttribute(string syntax, params object[] arguments)

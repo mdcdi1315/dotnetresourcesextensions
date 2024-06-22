@@ -35,7 +35,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
                 typeof(System.Boolean).AssemblyQualifiedName,
                 typeof(System.Uri).AssemblyQualifiedName,
                 typeof(System.ApplicationId).AssemblyQualifiedName,
-#if WINDOWS10_0_17763_0_OR_GREATER || NET471_OR_GREATER
+#if WINDOWS10_0_17763_0_OR_GREATER || NET471_OR_GREATER // .NET Framework & .NET Windows Desktop representations
                 typeof(System.Drawing.Color).AssemblyQualifiedName,
                 typeof(System.Drawing.Point).AssemblyQualifiedName,
                 typeof(System.Drawing.PointF).AssemblyQualifiedName,
@@ -46,6 +46,12 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
                 typeof(System.Drawing.Size).AssemblyQualifiedName,
                 typeof(System.Drawing.SizeF).AssemblyQualifiedName,
                 typeof(System.Drawing.StringFormat).AssemblyQualifiedName,
+#endif
+#if NET7_0_OR_GREATER // For all .NET Core flavors only
+                typeof(System.DateOnly).AssemblyQualifiedName,
+                typeof(System.Half).AssemblyQualifiedName,
+                typeof(System.UInt128).AssemblyQualifiedName,
+                typeof(System.Int128).AssemblyQualifiedName,
 #endif
             };
         }

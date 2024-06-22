@@ -188,21 +188,21 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
         {
             System.Byte[] Method(System.DateTime datetime)
             {
-                // For serializing and getting the original DateTime , we are required to just serialize 
-                // the ticks field. This is enough for all DateTime family classes.
-                return System.BitConverter.GetBytes(datetime.Ticks);
+                // For serializing and getting the original DateTime , we need to call the ToBinary method.
+                // This is enough to encode all required data to represent this structure to bytes.
+                return System.BitConverter.GetBytes(datetime.ToBinary());
             }
             return Method;
         }
 
         public override Converter<byte[], DateTime> GetUntransformMethod()
         {
-            System.DateTime Method(System.Byte[] bytes)
+            System.DateTime Method(System.Byte[] bytes) 
             {
-                // The ticks field is just a long , we need a length of 8 bytes , so.
+                // The binary data is just a long , we need a length of 8 bytes , so.
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8 bytes." , nameof(bytes)); }
-                return new(System.BitConverter.ToInt64(bytes, 0));
+                return System.DateTime.FromBinary(System.BitConverter.ToInt64(bytes, 0));
             }
             return Method;
         }
@@ -362,7 +362,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             // If boolean is true , stores 1 in the byte array.
             // If boolean is false , stores 0 in the byte array.
             System.Byte[] Method(System.Boolean boolean) => 
-                new System.Byte[1] { (System.Byte)(boolean == true ? 1 : 0) };
+                new System.Byte[1] { (System.Byte)(boolean ? 1 : 0) };
             return Method;
         }
 
@@ -422,7 +422,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             {
                 // To decode the object , we have a small issue:
                 // If any of encoded Build or Revision numbers are -1 , then we must call the appropriate constructor for that..
-                if (bytes is null) { throw new ArgumentNullException("bytes"); }
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != LENGTH) { throw new ArgumentException($"Array length must be exactly {LENGTH} bytes.", nameof(bytes)); }
                 System.Int32 VMJ, VMI, VB, VR;
                 VMJ = System.BitConverter.ToInt32(bytes, 0);
@@ -585,6 +585,149 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             return Method;
         }
     }
+
+#if NET7_0_OR_GREATER // Array representations built for CoreCLR
+
+    internal sealed class HalfRepresentation : DefaultArrayRepresentation<System.Half>
+    {
+        public override Converter<Half, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(System.Half half) => System.BitConverter.GetBytes(half);
+            return Method;
+        }
+
+        public override Converter<byte[], Half> GetUntransformMethod()
+        {
+            System.Half Method(System.Byte[] bytes) => System.BitConverter.ToHalf(bytes , 0);
+            return Method;
+        }
+    }
+
+    internal sealed class Int128Representation : DefaultArrayRepresentation<System.Int128>
+    {
+        private const System.Int32 DigitLength = 40 + 1; // 40 are the most characters produced by a negative Int128 number , plus it's minus sign , plus 1 for counting the number of digits.
+
+        public override Converter<Int128, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(System.Int128 largeint)
+            {
+                // We cannot just extract the Int128 plainly. We will use , instead , the ToString method , 
+                // we will encode each one digit as a byte and we will save one byte for number sign and another one for the digit count.
+                System.String i128 = largeint.ToString();
+                System.Byte[] result = new System.Byte[DigitLength];
+                System.Byte sign = (System.Byte)((i128.Length == 1 && i128[0] == '0') ? 0 : 2); // 2 to indicate positive number , 1 to indicate a negative and 0 to indicate the number zero.
+                // If zero , return zero.
+                if (sign == 0) { return result; }
+                sign = (System.Byte)((i128.Length > 0 && i128[0] == '-') ? 1 : sign); // Check for negative number
+                result[1] = (System.Byte)((sign == 1) ? (i128.Length - 1) : i128.Length); // Write the number of digits.
+                System.Int32 J = 2;
+                // Proper conditions for negative Int128's
+                System.Int32 len = (sign == 1) ? DigitLength : DigitLength - 1;
+                for (System.Int32 I = (sign == 1) ? 1 : 0; I < len && I < i128.Length; I++)
+                {
+                    result[J] = (System.Byte)(i128[I] - 48); J++; // ch-48 is the formula for accessing a number as a character , for example '0' - 48 would give 0.
+                }
+                i128 = null; // Destroy the allocated string
+                result[0] = sign; // Include the final sign value
+                return result;
+            }
+            return Method;
+        }
+
+        public override Converter<byte[], Int128> GetUntransformMethod()
+        {
+            Int128 Method(System.Byte[] bytes)
+            {
+                if (bytes.LongLength != DigitLength) { throw new ArgumentException($"The array length must be exactly {DigitLength} bytes."); }
+                Int128 result = 0, prg = 1;
+                if (bytes[0] == 0) { return result; } // If zero return as it is
+                for (System.Int32 I = bytes[1] + 1; I > 1; I--) { // bytes[1] contain the number of digits , +1 to access the associated index
+                    result += bytes[I] * prg;
+                    prg *= 10;
+                }
+                if (bytes[0] == 1) { result = -result; } // When negative convert it to negative value.
+                return result;
+            }
+            return Method;
+        }
+    }
+
+    internal sealed class UInt128Representation : DefaultArrayRepresentation<System.UInt128>
+    {
+        private const System.Int32 DigitLength = 39 + 1; // 39 are the most characters produced by a UInt128 number , plus 1 for counting the number of digits.
+
+        public override Converter<UInt128, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(System.UInt128 number) 
+            {
+                // Neither the BitConverter provide an overload for UInt128 , do it just like the Int128 way , 
+                // just we do not need a sign byte , and thus , less complexity is actually required.
+                System.Byte[] result = new System.Byte[DigitLength];
+                System.String u128 = number.ToString();
+                result[0] = (System.Byte)u128.Length; // we can directly set the result since we are not being bothered by signs.
+                if (number == 0) { return result; } // If our number is zero just plainly return the array in it's current state.
+                for (System.Int32 I = 0 , J = 1; I < u128.Length; I++)
+                {
+                    result[J] = (System.Byte)(u128[I] - 48); // Again the same transform formula
+                    J++;
+                }
+                u128 = null;
+                return result;
+            }
+            return Method;
+        }
+
+        public override Converter<byte[], UInt128> GetUntransformMethod()
+        {
+            System.UInt128 Method(System.Byte[] bytes)
+            {
+                if (bytes.LongLength != DigitLength) { throw new ArgumentException($"The array length must be exactly {DigitLength} bytes."); }
+                UInt128 result = 0 , prg = 1;
+                for (System.Int32 I = bytes[0]; I > 0; I--) {
+                    result += bytes[I] * prg;
+                    prg *= 10;
+                }
+                return result; // Even if it would be zero , zero it will return.
+            }
+            return Method;
+        }
+    }
+
+    internal sealed class DateOnlyRepresentation : DefaultArrayRepresentation<System.DateOnly>
+    {
+        private const System.Int32 Size = 6;
+
+        public override Converter<DateOnly, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(System.DateOnly dt)
+            {
+                // To encode the DateOnly , I will use three fields to represent it to a byte array and the reverse.
+                // The Day is a number from 1 to 31 at most so it can be encoded to a byte.
+                // The Month is a number from 1 to 12 at most so it can be encoded to a byte.
+                // The Year has a range (let's say) from 1 to System.Int32.MaxValue ,so the BitConverter will be called for it.
+                // Total serialized size: 6 bytes.
+                System.Byte[] result = new System.Byte[Size];
+                result[0] = (System.Byte)(dt.Day); // Encode the day
+                result[1] = (System.Byte)(dt.Month); // Encode the month
+                System.Byte[] temp = System.BitConverter.GetBytes(dt.Year); // Get the year to bytes
+                System.Array.ConstrainedCopy(temp, 0, result, 2, 4); // Copy it to the final array
+                return result;
+            }
+            return Method;
+        }
+
+        public override Converter<byte[], DateOnly> GetUntransformMethod()
+        {
+            DateOnly Method(System.Byte[] bytes)
+            {
+                if (bytes.LongLength != Size) { throw new ArgumentException($"The array length must be exactly {Size} bytes."); }
+                return new(System.BitConverter.ToInt32(bytes, 2), bytes[1] , bytes[0]);
+            }
+            return Method;
+        }
+    }
+
+#endif
 
 #if WINDOWS10_0_17763_0_OR_GREATER || NET471_OR_GREATER
 

@@ -90,6 +90,21 @@ namespace DotNetResourcesExtensions
     }
 
     /// <summary>
+    /// Compares two resource entries by their name. <br />
+    /// Usually the name is enough to infer that two resource entries are equal.
+    /// </summary>
+    public class ResourceEntryComparer : Comparer<IResourceEntry>
+    {
+        /// <summary>
+        /// Compares two <see cref="IResourceEntry"/> instances.
+        /// </summary>
+        /// <param name="x">The first entry to compare.</param>
+        /// <param name="y">The second entry to compare.</param>
+        /// <returns><inheritdoc cref="Comparer{T}.Compare(T, T)"/></returns>
+        public override int Compare(IResourceEntry x, IResourceEntry y) => x.Name.CompareTo(y.Name);
+    }
+
+    /// <summary>
     /// Defines common extension methods for the <see cref="IResourceEnumerable"/> interface.
     /// </summary>
     public static class IResourceEnumerableExtensions
@@ -438,7 +453,7 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="en">The original enumerator</param>
         /// <returns>The constructed default enumerator.</returns>
-        public static DefaultFullResourceEnumerator AsDefaultFullEnumerator(this IFullResourceEnumerator en)
+        public static DefaultFullResourceEnumerator AsDefaultEnumerator(this IFullResourceEnumerator en)
             => new DefaultFullResourceEnumerator(en);
 
         /// <summary>
@@ -563,7 +578,7 @@ namespace DotNetResourcesExtensions
 
         // A typed resource loader to get resources from IResourceLoader that 
         // these extension methods define.
-        private sealed class TypedResourcesLoader : IResourceLoader
+        private sealed class TypedResourcesLoader : IResourceLoader , ICollection<IResourceEntry>
         {
             private List<IResourceEntry> resources;
 
@@ -579,7 +594,23 @@ namespace DotNetResourcesExtensions
 
             public void Add(IResourceEntry ent) => resources.Add(ent);
 
-            public ValueTask DisposeAsync() => new ValueTask(Task.Run(Dispose));
+            public System.Boolean Remove(IResourceEntry ent) => resources.Remove(ent);
+
+            public void Clear() => resources.Clear();
+
+            public System.Boolean Contains(IResourceEntry entry) => resources.Contains(entry);
+
+            public void CopyTo(IResourceEntry[] array, int arrayIndex) => resources.CopyTo(array, arrayIndex);
+
+            public System.Int32 Count => resources.Count;
+
+            public System.Boolean IsReadOnly => false;
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            IEnumerator<IResourceEntry> IEnumerable<IResourceEntry>.GetEnumerator() => GetEnumerator();
+
+            public ValueTask DisposeAsync() => new(Task.Run(Dispose));
 
             public IAdvancedResourceEnumerator GetAdvancedResourceEnumerator()
                 => new IResourceEnumerableExtensions.DefaultAdvancedResourceEnumerator(resources.GetEnumerator());
@@ -720,6 +751,22 @@ namespace DotNetResourcesExtensions
         public static System.Boolean IsRealResourceEntry(this IResourceEntry entry) => entry is not DefaultResourceEntry;
     
         /// <summary>
+        /// Determines whether this resource entry name is equal to another resource entry name.
+        /// </summary>
+        /// <param name="entry">The first entry to test.</param>
+        /// <param name="other">The second entry to test.</param>
+        /// <returns><see langword="true"/> if their names are equal; otherwise <see langword="false"/>.</returns>
+        public static System.Boolean IsEqualTo(this IResourceEntry entry , IResourceEntry other) => CompareTo(entry, other) == 0;
+
+        /// <summary>
+        /// Compares this resource entry name to another resource entry name.
+        /// </summary>
+        /// <param name="entry">The first entry to compare.</param>
+        /// <param name="other">The second entry to compare.</param>
+        /// <returns>A signed integer that indicates their compared relationship.</returns>
+        public static System.Int32 CompareTo(this IResourceEntry entry, IResourceEntry other) => new ResourceEntryComparer().Compare(entry, other);
+
+        /// <summary>
         /// Gets a new instance of the <see cref="IResourceLoader"/> interface from the specified entries.
         /// </summary>
         /// <param name="entries">The entries to create the loader instance from.</param>
@@ -737,7 +784,19 @@ namespace DotNetResourcesExtensions
         /// <param name="entries">The entries to create the loader instance from.</param>
         /// <returns>A new object that implements the <see cref="IResourceLoader"/> behavior.</returns>
         public static IResourceLoader GetLoaderFromEntries(this IResourceEntry[] entries) => new TypedResourcesLoader(entries);
-        
+
+        /// <summary>
+        /// Returns the loader resource entries in a new , reususable collection.
+        /// </summary>
+        /// <param name="loader">The loader to get the entries from.</param>
+        /// <returns>An object that implements the <see cref="ICollection{T}"/> interface.</returns>
+        public static ICollection<IResourceEntry> AsCollection(this IResourceLoader loader)
+        {
+            if (loader is TypedResourcesLoader ld) { return ld; }
+            List<IResourceEntry> entries = new();
+            foreach (IResourceEntry ent in loader) { entries.Add(ent); }
+            return entries;
+        }
     }
 
 }

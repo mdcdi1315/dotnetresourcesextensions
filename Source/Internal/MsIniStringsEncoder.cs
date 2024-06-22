@@ -12,9 +12,7 @@ namespace DotNetResourcesExtensions.Internal
     /// </summary>
     public static class MsIniStringsEncoder
     {
-        private static System.Char[] InvalidChars = new System.Char[] {
-            '\"' , ',' , '=' , '[' , ']' , '\'' , ';'
-        };
+        private static System.Char[] InvalidChars = new System.Char[] { '\"' , ',' , '=' , '[' , ']' , '\'' , ';' };
 
         /// <summary>
         /// Encodes the specified string to a custom but valid MS-INI string. <br />

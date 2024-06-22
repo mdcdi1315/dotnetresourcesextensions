@@ -90,14 +90,30 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
             return apr.GetUntransformMethod()(typedarray);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Registers the specified type resolver to the formatter instance. <br />
+        /// <see cref="BaseFormatter"/> can have more than one type resolvers!
+        /// </summary>
+        /// <param name="resolver">The resolver instance to bind to the formatter.</param>
+        /// <exception cref="Exceptions.InvalidResolverLayoutException">The specified resolver does not satisfy the minimum required criteria.</exception>
+        /// <exception cref="Exceptions.ConfilctingConverterException">The resolver defines a converter that has already defined by another resolver.</exception>
         public void RegisterTypeResolver(ITypeResolver resolver)
         {
-            System.String[] strings = resolver.RegisteredQualifiedTypeNames.ToArray();
+            List<System.String> strings = new();
+            foreach (System.String s in resolver.RegisteredQualifiedTypeNames)
+            {
+                if (System.Type.GetType(s, false, false) == null)
+                {
+                    throw new Exceptions.InvalidResolverLayoutException("All types defined within the resolver must be existing statically-defined types.");
+                }
+                strings.Add(s);
+            }
+            if (strings.Count == 0) { throw new Exceptions.InvalidResolverLayoutException("The current resolver does not have registered any supported types."); }
+            System.String[] qfnstrings;
             foreach (ITypeResolver resv in Resolvers)
             {
-                System.String[] qfnstrings = resv.RegisteredQualifiedTypeNames.ToArray();
-                for (System.Int32 I = 0; I < strings.Length && I < qfnstrings.Length; I++)
+                qfnstrings = resv.RegisteredQualifiedTypeNames.ToArray();
+                for (System.Int32 I = 0; I < strings.Count && I < qfnstrings.Length; I++)
                 {
                     if (qfnstrings[I] == strings[I])
                     {
@@ -108,6 +124,8 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
                     }
                 }
             }
+            strings.Clear();
+            strings = null;
             Resolvers.Add(resolver);
         }
 
@@ -129,7 +147,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
 #if DEBUG == false
         [System.Diagnostics.DebuggerStepThrough] // Stepping through the code is required for Release builds so as to not generate long stack traces.
 #endif
-        public abstract IArrayRepresentation<T> Resolve<T>();
+        protected abstract IArrayRepresentation<T> Resolve<T>();
 
         /// <summary>
         /// Disposes the <see cref="BaseFormatter"/> instance. NOTE: You must call this last if you override this method! <br />

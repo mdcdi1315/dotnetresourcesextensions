@@ -121,13 +121,25 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
         /// <see cref="ExtensibleFormatter"/> can have more than one type resolvers!
         /// </summary>
         /// <param name="resolver">The resolver instance to bind to the formatter.</param>
+        /// <exception cref="Exceptions.InvalidResolverLayoutException">The specified resolver does not satisfy the minimum required criteria.</exception>
+        /// <exception cref="Exceptions.ConfilctingConverterException">The resolver defines a converter that has already defined by another resolver.</exception>
         public void RegisterTypeResolver(ITypeResolver resolver)
         {
-            System.String[] strings = resolver.RegisteredQualifiedTypeNames.ToArray();
+            List<System.String> strings = new();
+            foreach (System.String s in resolver.RegisteredQualifiedTypeNames)
+            {
+                if (System.Type.GetType(s , false , false) == null)
+                {
+                    throw new Exceptions.InvalidResolverLayoutException("All types defined within the resolver must be existing static types.");
+                }
+                strings.Add(s);
+            }
+            if (strings.Count == 0) { throw new Exceptions.InvalidResolverLayoutException("The current resolver does not have registered any supported types."); }
+            System.String[] qfnstrings;
             foreach (ITypeResolver resv in resolvers)
             {
-                System.String[] qfnstrings = resv.RegisteredQualifiedTypeNames.ToArray();
-                for (System.Int32 I = 0; I < strings.Length && I < qfnstrings.Length; I++)
+                qfnstrings = resv.RegisteredQualifiedTypeNames.ToArray();
+                for (System.Int32 I = 0; I < strings.Count && I < qfnstrings.Length; I++)
                 {
                     if (qfnstrings[I] == strings[I])
                     {
@@ -138,6 +150,8 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
                     }
                 }
             }
+            strings.Clear();
+            strings = null;
             resolvers.Add(resolver);
         }
 

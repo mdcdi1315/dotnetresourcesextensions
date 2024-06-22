@@ -126,4 +126,30 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Exceptions
             $"Search String: {srcstring}";
     }
 
+    /// <summary>
+    /// Thrown when attempted to register a resolver that does not meet some specified criteria. <br />
+    /// This specific issue can be learned from the exception message.
+    /// </summary>
+    public sealed class InvalidResolverLayoutException : BaseException 
+    {
+        /// <summary>
+        /// Creates a new and default instance of the <see cref="InvalidResolverLayoutException"/> class.
+        /// </summary>
+        public InvalidResolverLayoutException() : base("The specified type resolver does not have a requirement and was rejected.") { }
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="InvalidResolverLayoutException"/> class with the specified message to show to the user.
+        /// </summary>
+        /// <param name="msg">The exception-specific message.</param>
+        public InvalidResolverLayoutException(System.String msg) : base(msg) { }
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="InvalidResolverLayoutException"/> class with the specified message to show to the user , and
+        /// the exception that is the root cause of this exception.
+        /// </summary>
+        /// <param name="msg">The exception-specific message.</param>
+        /// <param name="inner">The exception that caused this exception to occur.</param>
+        public InvalidResolverLayoutException(System.String msg , System.Exception inner) : base(msg, inner) { }
+    }
+
 }
