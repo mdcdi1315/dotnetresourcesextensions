@@ -1,5 +1,3 @@
-namespace System.Resources.Extensions;
+namespace DotNetResourcesExtensions.Internal.DotNetResources;
 
-internal sealed class UnknownType
-{
-}
+internal sealed class UnknownType { }

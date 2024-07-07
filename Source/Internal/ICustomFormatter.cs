@@ -18,7 +18,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
     ///     <item>Can have many de/serializers , based on the type resolvers that it has available.</item>
     /// </list>
     /// </summary>
-    public interface ICustomFormatter : System.IDisposable
+    public interface ICustomFormatter : IUsingCustomFormatter , System.IDisposable
     {
         /// <summary>
         /// Gets the serialized byte array for the specified object.
@@ -35,15 +35,6 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
         /// <param name="typedarray">The byte array to get the serialized data from.</param>
         /// <returns>The deserialized object.</returns>
         public TD GetObject<TD>(System.Byte[] typedarray) where TD : notnull;
-
-        /// <summary>
-        /// Registers the specified type resolver to the formatter instance. <br />
-        /// Formatter instances can have more than one type resolvers!
-        /// </summary>
-        /// <param name="resolver">The resolver instance to bind to the formatter.</param>
-        /// <exception cref="Exceptions.ConfilctingConverterException">A converter was about to be registered 
-        /// although that another registered resolver can convert the specified type.</exception>
-        public void RegisterTypeResolver(ITypeResolver resolver);
 
         /// <summary>
         /// This event is raised when the registered type resolvers did not had any converters
@@ -66,6 +57,24 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
     /// <remarks>When you want to specify that you did not found a type , return <see langword="null"/> instead of throwing any exceptions.<br />
     /// Throwing exceptions from this <see langword="delegate"/> should throw <see cref="System.AggregateException"/> back to the caller.</remarks>
     public delegate System.Type TypeNotFoundEventHandler(System.Type RequestedType);
+
+    /// <summary>
+    /// Represents an object that uses the <see cref="ICustomFormatter"/> interface in a field
+    /// and uses an instance of this interface. <br />
+    /// Useful for cases that you need to provide custom type resolvers but you cannot do that due to the access modifiers. <br />
+    /// Also used by the <see cref="ICustomFormatter"/> interface.
+    /// </summary>
+    public interface IUsingCustomFormatter
+    {
+        /// <summary>
+        /// Registers the specified type resolver to the internal formatter instance. <br />
+        /// Formatter instances can have more than one type resolvers!
+        /// </summary>
+        /// <param name="resolver">The resolver instance to bind to the formatter.</param>
+        /// <exception cref="Exceptions.ConfilctingConverterException">A converter was about to be registered 
+        /// although that another registered resolver can convert the specified type.</exception>
+        public void RegisterTypeResolver(ITypeResolver resolver);
+    }
 
     /// <summary>
     /// Provides extension methods for the <see cref="ICustomFormatter"/> interface.

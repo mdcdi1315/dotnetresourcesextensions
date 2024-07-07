@@ -70,9 +70,7 @@ namespace DotNetResourcesExtensions
                 result.Value = brp.RawData;
             } else if (brp.BinaryResourceType == BinaryRESTypes.Object)
             {
-                ExtensibleFormatter EF = new();
-                result.Value = EF.GetObjectFromBytes(brp.RawData , brp.ResourceType);
-                EF = null;
+                result.Value = reader.exf.GetObjectFromBytes(brp.RawData , brp.ResourceType);
             }
             return result;
         }
@@ -122,10 +120,11 @@ namespace DotNetResourcesExtensions
     /// the <see cref="CustomBinaryResourceWriter"/> class. This format is the first custom for this library. <br />
     /// This class cannot be inherited.
     /// </summary>
-    public sealed class CustomBinaryResourceReader : System.Resources.IResourceReader , IStreamOwnerBase
+    public sealed class CustomBinaryResourceReader : IDotNetResourcesExtensionsReader
     {
         internal System.IO.Stream targetstream;
         private System.Boolean isstreamowner , verified;
+        internal ExtensibleFormatter exf;
         internal System.Int64 resourcesposition;
         internal BinaryRESTypes supportedresmask;
         internal System.UInt16 supportedheaderversion;
@@ -139,6 +138,7 @@ namespace DotNetResourcesExtensions
 
         private CustomBinaryResourceReader() 
         {
+            exf = new();
             resourcesposition = 0;
             targetstream = null;
             isstreamowner = false;
@@ -260,6 +260,14 @@ namespace DotNetResourcesExtensions
         public void Dispose()
         {
             if (isstreamowner) { targetstream.Dispose(); }
+            exf?.Dispose();
+            exf = null;
+        }
+
+        /// <inheritdoc />
+        public void RegisterTypeResolver(ITypeResolver resolver)
+        {
+            exf.RegisterTypeResolver(resolver);
         }
     }
 }

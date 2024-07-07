@@ -12,7 +12,7 @@ namespace DotNetResourcesExtensions
     /// It uses valid (As most as possible) MS-INI syntax semantics , and writes out all the required information for later retrieving the resources. <br />
     /// It works very well and fast with small input , such as string or small object resources.
     /// </summary>
-    public sealed class MsIniResourcesWriter : System.Resources.IResourceWriter , IStreamOwnerBase
+    public sealed class MsIniResourcesWriter : IDotNetResourcesExtensionsWriter
     {
         private System.IO.Stream stream;
         private System.Boolean strmown , gen;
@@ -236,6 +236,12 @@ namespace DotNetResourcesExtensions
             fmt?.Dispose();
             fmt = null;
             encoding = null;
+        }
+
+        /// <inheritdoc />
+        public void RegisterTypeResolver(ITypeResolver resolver)
+        {
+            fmt.RegisterTypeResolver(resolver);
         }
     }
 }

@@ -62,12 +62,14 @@ namespace DotNetResourcesExtensions
     /// </summary>
     public sealed class MsIniResourcesEnumerator : IDictionaryEnumerator
     {
+        private Internal.CustomFormatter.ICustomFormatter fmt;
         private System.String[,] entdata;
         private System.Int32 idx, idx2;
         private System.Int32 count;
 
-        internal MsIniResourcesEnumerator(System.String[,] entitydata)
+        internal MsIniResourcesEnumerator(System.String[,] entitydata , Internal.CustomFormatter.ICustomFormatter inst)
         {
+            fmt = inst;
             idx = idx2 = -1;
             entdata = entitydata;
             count = entdata.Length / 4;
@@ -104,37 +106,31 @@ namespace DotNetResourcesExtensions
             {
                 // We have a problen here. We cannot know if the string contains \n or \r characters which break the implementation.
                 // For that reason , we will create an encoder/decoder that will encode-decode the data strings properly.
-                ExtensibleFormatter EF = null;
-                try
+                if (ent.ResourceType != null && ent.Length != -3)
                 {
-                    if (ent.ResourceType != null && ent.Length != -3)
+                    System.String dec = Internal.MsIniStringsEncoder.Decode(entdata[idx + 3, 1]);
+                    if (ent.ResourceType.FullName == "System.String")
                     {
-                        System.String dec = Internal.MsIniStringsEncoder.Decode(entdata[idx + 3, 1]);
-                        if (ent.ResourceType.FullName == "System.String")
-                        {
-                            // It is an encoded string , return it plainly
-                            ent.Data = dec;
-                        } else 
-                        {
-                            // Directly decode base64 data , we will need them in both cases.
-                            ent.Data = System.Convert.FromBase64String(dec);
-                            if (ent.ResourceType.FullName == "System.Byte[]")
-                            {
-                                // It is a byte array , return it decoded as base64
-                                return ent;
-                            }
-                            // This is an object encoded using the ExtensibleFormatter.
-                            EF = ExtensibleFormatter.Create();
-                            ent.Data = EF.GetObjectFromBytes((System.Byte[])ent.Data, ent.ResourceType);
-                        }
-                    } else
-                    {
-                        // Cannot do nothing here!
-                        throw new MSINIFormatException("Cannot parse the resource because impartial data were retrieved." , ParserErrorType.Deserialization);
+                        // It is an encoded string , return it plainly
+                        ent.Data = dec;
                     }
-                } finally
+                    else
+                    {
+                        // Directly decode base64 data , we will need them in both cases.
+                        ent.Data = System.Convert.FromBase64String(dec);
+                        if (ent.ResourceType.FullName == "System.Byte[]")
+                        {
+                            // It is a byte array , return it decoded as base64
+                            return ent;
+                        }
+                        // This is an object encoded using the ExtensibleFormatter.
+                        ent.Data = fmt.GetObjectFromBytes((System.Byte[])ent.Data, ent.ResourceType);
+                    }
+                }
+                else
                 {
-                    EF?.Dispose();
+                    // Cannot do nothing here!
+                    throw new MSINIFormatException("Cannot parse the resource because impartial data were retrieved.", ParserErrorType.Deserialization);
                 }
             }
             return ent;
@@ -184,15 +180,17 @@ namespace DotNetResourcesExtensions
     /// <see cref="MsIniResourcesWriter"/> class. <br /> Note that the file format is specific for 
     /// the current class , so any second thoughts about not being the defined format will be immediately caught.
     /// </summary>
-    public sealed class MsIniResourcesReader : System.Resources.IResourceReader , IStreamOwnerBase
+    public sealed class MsIniResourcesReader : IDotNetResourcesExtensionsReader
     {
         private System.IO.Stream stream;
         private System.Text.Encoding encoding;
         private System.Boolean strmown;
         private System.Int32 ver, sppmask;
+        private ExtensibleFormatter formatter;
 
         private MsIniResourcesReader()
         {
+            formatter = ExtensibleFormatter.Create();
             stream = null;
             encoding = System.Text.Encoding.UTF8;
             strmown = false;
@@ -364,7 +362,7 @@ namespace DotNetResourcesExtensions
         }
 
         /// <inheritdoc />
-        public IDictionaryEnumerator GetEnumerator() => new MsIniResourcesEnumerator(FetchEntityWithName("ResourceIndex"));
+        public IDictionaryEnumerator GetEnumerator() => new MsIniResourcesEnumerator(FetchEntityWithName("ResourceIndex") , formatter);
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -390,6 +388,12 @@ namespace DotNetResourcesExtensions
                 stream = null;
             }
             encoding = null;
+        }
+
+        /// <inheritdoc />
+        public void RegisterTypeResolver(ITypeResolver resolver)
+        {
+            formatter.RegisterTypeResolver(resolver);
         }
     }
 

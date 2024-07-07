@@ -99,10 +99,8 @@ namespace DotNetResourcesExtensions
         /// <inheritdoc />
         public void Dispose()
         {
-            reader?.Dispose();
-            writer?.Dispose();
-            writer = null;
-            reader = null;
+            try { reader?.Dispose(); reader = null; } catch { }
+            try { writer?.Dispose(); writer = null; } catch { }
         }
 
         /// <inheritdoc />

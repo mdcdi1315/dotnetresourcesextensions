@@ -85,7 +85,7 @@ namespace DotNetResourcesExtensions
 #endif
 
     /// <summary>
-    /// This class loads and uses resources loaded from .NET <see cref="System.Resources.Extensions.DeserializingResourceReader"/> class. <br />
+    /// This class loads and uses resources loaded from .NET <see cref="T:System.Resources.Extensions.DeserializingResourceReader"/> class. <br />
     /// This class cannot be inherited.
     /// </summary>
     public sealed class DotNetResourceLoader : OptimizedResourceLoader
@@ -96,7 +96,7 @@ namespace DotNetResourcesExtensions
         /// <param name="Path">The path to the .resources file.</param>
         public DotNetResourceLoader(System.String Path) : base()
         {
-            read = new System.Resources.Extensions.DeserializingResourceReader(Path);
+            read = new Internal.DotNetResources.DeserializingResourceReader(Path);
         }
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace DotNetResourcesExtensions
         /// <param name="str">The stream that contains resource data.</param>
         public DotNetResourceLoader(System.IO.Stream str) : base()
         {
-            read = new System.Resources.Extensions.DeserializingResourceReader(str);
+            read = new Internal.DotNetResources.DeserializingResourceReader(str);
         }
     }
 

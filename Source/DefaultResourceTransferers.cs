@@ -23,7 +23,7 @@ namespace DotNetResourcesExtensions
 
     /// <summary>
     /// Transfers custom ResX resources built with <see cref="Internal.ResX.ResXResourceWriter"/> and writes them to 
-    /// the preserialized .NET <see cref="System.Resources.Extensions.PreserializedResourceWriter"/> format.
+    /// the preserialized .NET <see cref="T:System.Resources.Extensions.PreserializedResourceWriter"/> format.
     /// </summary>
     public sealed class CustomResXToBinaryTransferer : DefaultResourcesTransferer
     {
@@ -35,7 +35,7 @@ namespace DotNetResourcesExtensions
         /// <param name="targetstream">The target stream to write the resources to.</param>
         public CustomResXToBinaryTransferer(System.IO.Stream inputstream , System.IO.Stream targetstream) 
             : base(new Internal.ResX.ResXResourceReader(inputstream) , 
-                  new System.Resources.Extensions.PreserializedResourceWriter(targetstream)) { }
+                  new Internal.DotNetResources.PreserializedResourceWriter(targetstream)) { }
 
         /// <summary>
         /// Create a new instance of <see cref="CustomResXToBinaryTransferer"/> from the specified 
@@ -45,12 +45,12 @@ namespace DotNetResourcesExtensions
         /// <param name="targetpath">The file path to write the resources to.</param>
         public CustomResXToBinaryTransferer(System.String inputpath, System.String targetpath)
          : base(new Internal.ResX.ResXResourceReader(inputpath),
-                  new System.Resources.Extensions.PreserializedResourceWriter(targetpath)) { }
+                  new Internal.DotNetResources.PreserializedResourceWriter(targetpath)) { }
     }
 
     /// <summary>
     /// Transfers custom JSON resources built with <see cref="JSONResourcesWriter"/> and writes them to 
-    /// the preserialized .NET <see cref="System.Resources.Extensions.PreserializedResourceWriter"/> format.
+    /// the preserialized .NET <see cref="T:System.Resources.Extensions.PreserializedResourceWriter"/> format.
     /// </summary>
     public sealed class CustomJSONToBinaryTransferer : DefaultResourcesTransferer
     {
@@ -62,7 +62,7 @@ namespace DotNetResourcesExtensions
         /// <param name="outpath">The file path to write the resources to.</param>
         public CustomJSONToBinaryTransferer(System.String inputpath , System.String outpath) : base(
             new JSONResourcesReader(inputpath) , 
-            new System.Resources.Extensions.PreserializedResourceWriter(outpath)) { }
+            new Internal.DotNetResources.PreserializedResourceWriter(outpath)) { }
 
         /// <summary>
         /// Create a new instance of <see cref="CustomJSONToBinaryTransferer"/> from the specified 
@@ -72,12 +72,12 @@ namespace DotNetResourcesExtensions
         /// <param name="targetstream">The target stream to write the resources to.</param>
         public CustomJSONToBinaryTransferer(System.IO.Stream input , System.IO.Stream targetstream) : base(
             new JSONResourcesReader(input) ,
-            new System.Resources.Extensions.PreserializedResourceWriter(targetstream)) { }
+            new Internal.DotNetResources.PreserializedResourceWriter(targetstream)) { }
     }
 
     /// <summary>
     /// Transfers custom XML resources built with <see cref="XMLResourcesWriter"/> and writes them to 
-    /// the preserialized .NET <see cref="System.Resources.Extensions.PreserializedResourceWriter"/> format.
+    /// the preserialized .NET <see cref="T:System.Resources.Extensions.PreserializedResourceWriter"/> format.
     /// </summary>
     public sealed class CustomXMLToBinaryTransferer : DefaultResourcesTransferer
     {
@@ -89,7 +89,7 @@ namespace DotNetResourcesExtensions
         /// <param name="outpath">The file path to write the resources to.</param>
         public CustomXMLToBinaryTransferer(System.String inputpath, System.String outpath) : base(
             new XMLResourcesReader(inputpath),
-            new System.Resources.Extensions.PreserializedResourceWriter(outpath))
+            new Internal.DotNetResources.PreserializedResourceWriter(outpath))
         { }
 
         /// <summary>
@@ -100,13 +100,13 @@ namespace DotNetResourcesExtensions
         /// <param name="targetstream">The target stream to write the resources to.</param>
         public CustomXMLToBinaryTransferer(System.IO.Stream input, System.IO.Stream targetstream) : base(
             new XMLResourcesReader(input),
-            new System.Resources.Extensions.PreserializedResourceWriter(targetstream))
+            new Internal.DotNetResources.PreserializedResourceWriter(targetstream))
         { }
     }
 
     /// <summary>
     /// Transfers custom MS-INI resources built with <see cref="MsIniResourcesWriter"/> and writes them to 
-    /// the preserialized .NET <see cref="System.Resources.Extensions.PreserializedResourceWriter"/> format.
+    /// the preserialized .NET <see cref="T:System.Resources.Extensions.PreserializedResourceWriter"/> format.
     /// </summary>
     public sealed class CustomMsIniToBinaryTransferer : DefaultResourcesTransferer
     {
@@ -119,7 +119,7 @@ namespace DotNetResourcesExtensions
         public CustomMsIniToBinaryTransferer(System.String Input , System.String Output) : base()
         {
             reader = new MsIniResourcesReader(Input);
-            writer = new System.Resources.Extensions.PreserializedResourceWriter(Output);
+            writer = new Internal.DotNetResources.PreserializedResourceWriter(Output);
             PrepareInstance();
         }
 
@@ -132,7 +132,7 @@ namespace DotNetResourcesExtensions
         public CustomMsIniToBinaryTransferer(System.IO.Stream input , System.IO.Stream targetstream) : base()
         {
             reader = new MsIniResourcesReader(input);
-            writer = new System.Resources.Extensions.PreserializedResourceWriter(targetstream);
+            writer = new Internal.DotNetResources.PreserializedResourceWriter(targetstream);
             PrepareInstance();
         }
     }

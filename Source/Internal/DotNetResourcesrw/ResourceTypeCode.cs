@@ -1,4 +1,4 @@
-namespace System.Resources;
+namespace DotNetResourcesExtensions.Internal;
 
 internal enum ResourceTypeCode
 {
@@ -22,5 +22,6 @@ internal enum ResourceTypeCode
 	LastPrimitive = 16,
 	ByteArray = 32,
 	Stream = 33,
-	StartOfUserTypes = 64
+    SerializedWithCustomFormatter = 63,
+    StartOfUserTypes = 64,
 }

@@ -1,9 +1,10 @@
-using System.Collections.Generic;
-using System.Numerics.Hashing;
+using System;
 using System.Reflection;
+using System.Numerics.Hashing;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace System.Resources.Extensions;
+namespace DotNetResourcesExtensions.Internal.DotNetResources;
 
 internal sealed class TypeNameComparer : IEqualityComparer<string>
 {
@@ -15,7 +16,7 @@ internal sealed class TypeNameComparer : IEqualityComparer<string>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static System.ReadOnlySpan<char> ReadTypeName(System.ReadOnlySpan<char> assemblyQualifiedTypeName)
 	{
-		int num = MemoryExtensions.IndexOf<char>(assemblyQualifiedTypeName, ',');
+		int num = MemoryExtensions.IndexOf(assemblyQualifiedTypeName, ',');
 		if (num != -1)
 		{
 			return assemblyQualifiedTypeName.Slice(0, num);
@@ -26,7 +27,7 @@ internal sealed class TypeNameComparer : IEqualityComparer<string>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static System.ReadOnlySpan<char> ReadAssemblySimpleName(System.ReadOnlySpan<char> assemblyName)
 	{
-		int num = MemoryExtensions.IndexOf<char>(assemblyName, ',');
+		int num = MemoryExtensions.IndexOf(assemblyName, ',');
 		if (num != -1)
 		{
 			return MemoryExtensions.TrimEnd(assemblyName.Slice(0, num), s_whiteSpaceChars);

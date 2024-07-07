@@ -744,9 +744,18 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 MemoryStream MS = new();
                 try
                 {
-                    bitmap.Save(MS, bitmap.RawFormat);
-                    MS.Position = 0;
-                    return ParserHelpers.ReadBuffered(MS, MS.Length);
+                    // If this image is a bitmap , then it must be saved to PNG.
+                    // Skipping this step will have you ended up with an ExternalException
+                    // due to the fact that the bitmap is a lossy format , and I noticed out that 
+                    // between serializations the format becomes corrupted.
+                    if (bitmap.RawFormat.Guid == System.Drawing.Imaging.ImageFormat.Bmp.Guid)
+                    {
+                        bitmap.Save(MS, System.Drawing.Imaging.ImageFormat.Png);
+                    } else
+                    {
+                        bitmap.Save(MS, bitmap.RawFormat);
+                    }
+                    return MS.ToArray();
                 } finally { MS?.Dispose(); }
             }
             return Method;
@@ -761,10 +770,8 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 MemoryStream MS = new(bytes);
                 try
                 {
-                    MS.Position = 0;
                     result = new(MS);
                 } finally { MS?.Dispose(); }
-                bytes = null;
                 return result;
             }
             return Method;
@@ -782,8 +789,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 try
                 {
                     bitmap.Save(MS);
-                    MS.Position = 0;
-                    return ParserHelpers.ReadBuffered(MS, MS.Length);
+                    return MS.ToArray();
                 } finally { MS?.Dispose(); }
             }
             return Method;
@@ -802,7 +808,6 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                     result = new(MS);
                 }
                 finally { MS?.Dispose(); }
-                bytes = null;
                 return result;
             }
             return Method;

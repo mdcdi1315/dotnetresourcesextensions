@@ -7,6 +7,7 @@ namespace DotNetResourcesExtensions
 {
     using Internal;
     using System.Collections;
+    using Internal.CustomFormatter;
 
     /// <summary>
     /// The XML Resources Enumerator is used only with the <see cref="XMLResourcesReader"/> class. <br />
@@ -16,20 +17,18 @@ namespace DotNetResourcesExtensions
     public sealed class XMLResourcesEnumerator : IDictionaryEnumerator
     {
         private DictionaryEntry current;
+        private XMLResourcesReader reader;
         private System.Xml.Linq.XElement[] resources;
         private System.Int64 elementcount;
         private System.Int64 currentindex;
-        private XMLRESResourceType supportedformatsmask;
-        private System.UInt16 supportedheaderversion;
         private System.Boolean readresource;
 
         private XMLResourcesEnumerator() { readresource = false; current = default; resources = null; elementcount = 0; currentindex = -1; }
 
-        internal XMLResourcesEnumerator(System.Xml.Linq.XElement data , XMLRESResourceType mask , System.UInt16 maxver) : this()
+        internal XMLResourcesEnumerator(XMLResourcesReader rd) : this()
         {
-            resources = data.Elements().ToArray();
-            supportedformatsmask = mask;
-            supportedheaderversion = maxver;
+            reader = rd;
+            resources = rd.baseresnode.Elements().ToArray();
             elementcount = resources.LongLength;
         }
 
@@ -42,7 +41,7 @@ namespace DotNetResourcesExtensions
             // To determine what to decode , we must get first the header version.
             System.UInt16 ver = (System.UInt16)(uint)GetChildElement("HeaderVersion");
             // Throw exception if the read header has bigger version than the allowed
-            if (ver > supportedheaderversion)
+            if (ver > reader.supportedheaderversion)
             {
                 throw new FormatException(
                 $"This header cannot be read with this version of the class. Please use a reader that supports header version {ver} or higher.");
@@ -63,8 +62,7 @@ namespace DotNetResourcesExtensions
             DictionaryEntry result = new();
             result.Key = resources[currentindex].Name.LocalName;
             XMLRESResourceType tpp = (XMLRESResourceType)(System.Int32)GetChildElement("ResourceType");
-            if (tpp > supportedformatsmask)
-            {
+            if (tpp > reader.supportedformatsmask) {
                 throw new XMLFormatException($"This resource object type is not supported in version 1: {tpp}" , ParserErrorType.Deserialization);
             }
             switch (tpp)
@@ -76,36 +74,14 @@ namespace DotNetResourcesExtensions
                     result.Value = System.Convert.FromBase64String((System.String)GetChildElement("Value_0"));
                     break;
                 case XMLRESResourceType.Object:
-                    System.Xml.Linq.XElement obj = null;
-                    System.Type dotnettype = null;
-                    // Using the below temp loop we find the .NET type to deserialise , and 
-                    // the remaining element is our element to be deserialised.
-                    foreach (var si in resources[currentindex].Elements())
-                    {
-                        switch (si.Name.LocalName)
-                        {
-                            case "HeaderVersion":
-                            case "ResourceType":
-                                break;
-                            case "DotnetType":
-                                dotnettype = System.Type.GetType(si.Value);
-                                break;
-                            default:
-                                obj = si;
-                                break;
-                        }
-                    }
-                    if (obj == null) { throw new XMLFormatException("The resource object did not had a declared deserializer.", ParserErrorType.Deserialization); }
-                    System.Runtime.Serialization.DataContractSerializer dcs = new(dotnettype);
-                    try
-                    {
-                        result.Value = dcs.ReadObject(obj.CreateReader(), true);
-                    } catch (System.Runtime.Serialization.SerializationException e)
-                    {
+                    // We will not use the DataContractSerializer. Instead , we will depend on ExtensibleFormatter.
+                    // Why? To avoid complexity and having XML and code transparency.
+                    System.Type dotnettype = System.Type.GetType((System.String)GetChildElement("DotnetType"));
+                    try {
+                        result.Value = reader.exf.GetObjectFromBytes(System.Convert.FromBase64String((System.String)GetChildElement("Value_0")), dotnettype);
+                    } catch (Internal.CustomFormatter.Exceptions.ConverterNotFoundException e) {
                         throw new XMLFormatException("A resource object deserialization error occured.", e.Message, ParserErrorType.Deserialization);
                     }
-                    obj = null;
-                    dcs = null;
                     break;
             }
             return result;
@@ -150,19 +126,21 @@ namespace DotNetResourcesExtensions
     /// You can use it so as to read such data. <br />
     /// This class cannot be inherited.
     /// </summary>
-    public sealed class XMLResourcesReader : System.Resources.IResourceReader , IStreamOwnerBase
+    public sealed class XMLResourcesReader : IDotNetResourcesExtensionsReader
     {
         private System.IO.Stream targetstream;
         private System.Xml.XmlReader reader;
         private System.Boolean isstreamowner;
         private StreamMixedClassManagement mgmt;
-        private XMLRESResourceType supportedformatsmask;
-        private System.UInt16 supportedheaderversion;
+        internal XMLRESResourceType supportedformatsmask;
+        internal System.UInt16 supportedheaderversion;
+        internal Internal.CustomFormatter.ExtensibleFormatter exf;
         private System.Xml.Linq.XDocument xdoc;
-        private System.Xml.Linq.XElement baseresnode;
+        internal System.Xml.Linq.XElement baseresnode;
         
         private XMLResourcesReader() 
-        { 
+        {
+            exf = new();
             xdoc = null; 
             reader = null; 
             isstreamowner = false; 
@@ -280,9 +258,15 @@ namespace DotNetResourcesExtensions
         }
 
         /// <inheritdoc />
-        public IDictionaryEnumerator GetEnumerator() => new XMLResourcesEnumerator(baseresnode, supportedformatsmask, supportedheaderversion);
+        public IDictionaryEnumerator GetEnumerator() => new XMLResourcesEnumerator(this);
         
         /// <inheritdoc />
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        /// <inheritdoc />
+        public void RegisterTypeResolver(ITypeResolver resolver)
+        {
+            exf.RegisterTypeResolver(resolver);
+        }
     }
 }

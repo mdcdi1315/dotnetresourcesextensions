@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace DotNetResourcesExtensions
 {
@@ -93,7 +94,7 @@ namespace DotNetResourcesExtensions
     /// Compares two resource entries by their name. <br />
     /// Usually the name is enough to infer that two resource entries are equal.
     /// </summary>
-    public class ResourceEntryComparer : Comparer<IResourceEntry>
+    public sealed class ResourceEntryComparer : Comparer<IResourceEntry>
     {
         /// <summary>
         /// Compares two <see cref="IResourceEntry"/> instances.
@@ -486,7 +487,7 @@ namespace DotNetResourcesExtensions
         /// <param name="re">The resource enumerable to search.</param>
         /// <returns>The first resource , if at least one resource exist; otherwise , <see langword="null"/>.</returns>
         [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-        public static IResourceEntry FirstResource(this IResourceEnumerable re)
+        public static IResourceEntry First(this IResourceEnumerable re)
         {
             var inst = re.GetAdvancedResourceEnumerator();
             try {
@@ -504,7 +505,7 @@ namespace DotNetResourcesExtensions
         /// <param name="re">The resource enumerable to search.</param>
         /// <returns>The last resource , if at least one resource exist; otherwise , <see langword="null"/>.</returns>
         [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-        public static IResourceEntry LastResource(this IResourceEnumerable re)
+        public static IResourceEntry Last(this IResourceEnumerable re)
         {
             var inst = re.GetAdvancedResourceEnumerator();
             IResourceEntry entry = null;
@@ -512,6 +513,72 @@ namespace DotNetResourcesExtensions
                 while (inst?.MoveNext() == true) { entry = inst.Current; }
                 return entry;
             } finally { inst?.Dispose(); }
+        }
+        
+        /// <summary>
+        /// Returns the only one resource entry found in the resource enumerable. <br />
+        /// If more than one or no elements were found , it throws <see cref="InvalidOperationException"/>.
+        /// </summary>
+        /// <param name="re">The resource enumerable to check.</param>
+        /// <returns>The single element in this resource enumerable.</returns>
+        /// <exception cref="InvalidOperationException">See the summary of how this exception occurs.</exception>
+        public static IResourceEntry Single(this IResourceEnumerable re)
+        {
+            var inst = re.GetAdvancedResourceEnumerator();
+            if (inst?.MoveNext() == true)
+            {
+                if (inst?.MoveNext() == true) { goto g_rf; }
+                return inst.Current;
+            }
+            g_rf:
+                inst?.Dispose();
+                throw new InvalidOperationException("This method presumes that only ONE element is found in the collection.");
+        }
+
+        /// <summary>
+        /// Returns an array that represents the found resources of this <see cref="IResourceEnumerable"/>.
+        /// </summary>
+        /// <param name="re">The resource enumerable to get the array from.</param>
+        /// <returns>An array of resource entries.</returns>
+        public static IResourceEntry[] ToArray(this IResourceEnumerable re) => ToList(re).ToArray();
+
+        /// <summary>
+        /// Returns a list that represents the found resources of this <see cref="IResourceEnumerable"/>.
+        /// </summary>
+        /// <param name="re">The resource enumerable to get the array from.</param>
+        /// <returns>A list of resource entries.</returns>
+        public static List<IResourceEntry> ToList(this IResourceEnumerable re)
+        {
+            var inst = re.GetAdvancedResourceEnumerator();
+            List<IResourceEntry> entries = new();
+            while (inst?.MoveNext() == true) { entries.Add(inst.Current); }
+            return entries;
+        }
+        
+        /// <summary>
+        /// Gets the number of resources that are contained into the current resource enumerable.
+        /// </summary>
+        /// <param name="re">The resource enumerable to use.</param>
+        /// <returns>The number of resources contained into this resource enumerable.</returns>
+        public static System.Int64 LongCount(this IResourceEnumerable re)
+        {
+            var inst = re.GetAdvancedResourceEnumerator();
+            System.Int64 count = 0;
+            while (inst?.MoveNext() == true && count < System.Int64.MaxValue) { count++; }
+            return count;
+        }
+
+        /// <summary>
+        /// Gets the number of resources that are contained into the current resource enumerable.
+        /// </summary>
+        /// <param name="re">The resource enumerable to use.</param>
+        /// <returns>The number of resources contained into this resource enumerable.</returns>
+        public static System.Int32 Count(this IResourceEnumerable re)
+        {
+            var inst = re.GetAdvancedResourceEnumerator();
+            System.Int32 count = 0;
+            while (inst?.MoveNext() == true && count < System.Int32.MaxValue) { count++; }
+            return count;
         }
     }
 
@@ -521,6 +588,7 @@ namespace DotNetResourcesExtensions
     public static class IResourceEntryExtensions
     {
         // Default wrapped entry class implementation to use in the IResourceEntry extensions.
+        [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
         private class DefaultResourceEntry : IResourceEntry
         {
             private System.String name;
@@ -574,6 +642,10 @@ namespace DotNetResourcesExtensions
                 Name = name;
                 Value = value;
             }
+
+            private string GetDebuggerDisplay() => ToString();
+
+            public override string ToString() => $"{nameof(IResourceEntry)}: {{ Name = {name} , Value = {value} }}";
         }
 
         // A typed resource loader to get resources from IResourceLoader that 

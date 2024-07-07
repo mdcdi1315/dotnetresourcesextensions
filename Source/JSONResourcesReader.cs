@@ -7,6 +7,7 @@ using System.Collections.Generic;
 namespace DotNetResourcesExtensions
 {
     using Internal;
+    using Internal.CustomFormatter;
 
     /// <summary>
     /// The JSON Resources Enumerator is used only with the <see cref="JSONResourcesReader"/> class. <br />
@@ -15,11 +16,9 @@ namespace DotNetResourcesExtensions
     /// </summary>
     public sealed class JSONResourcesEnumerator : IDictionaryEnumerator, IEnumerator
     {
-        private System.Text.Json.JsonElement info;
+        private JSONResourcesReader reader;
         private System.Int32 ElementsCount;
         private System.Int32 CurrentIndex;
-        private JSONRESResourceType CurrentActiveMask;
-        private System.UInt16 CurrentHeaderVersion;
         private DictionaryEntry cachedresource;
         private System.Boolean resourceread;
 
@@ -29,28 +28,19 @@ namespace DotNetResourcesExtensions
             resourceread = false;
             CurrentIndex = -1;
             ElementsCount = 0;
-            info = default;
-            CurrentActiveMask = JSONRESResourceType.String;
-            CurrentHeaderVersion = 0;
         }
 
-        internal JSONResourcesEnumerator(System.Text.Json.JsonElement data,
-            JSONRESResourceType mask, System.UInt16 hv) : this()
-        { info = data; CurrentActiveMask = mask; CurrentHeaderVersion = hv; CreateAndStart(); }
-
-        private void CreateAndStart()
-        {
-            ElementsCount = info.GetProperty("Data").GetArrayLength();
-        }
+        internal JSONResourcesEnumerator(JSONResourcesReader rd) : this()
+        { reader = rd; ElementsCount = reader.JE.GetProperty("Data").GetArrayLength(); }
 
         private DictionaryEntry GetResource()
         {
-            var jdt = info.GetProperty("Data")[CurrentIndex];
+            var jdt = reader.JE.GetProperty("Data")[CurrentIndex];
             DictionaryEntry result;
             // To determine what to decode , we must get first the header version.
             System.UInt16 ver = jdt.GetProperty("HeaderVersion").GetUInt16();
             // Throw exception if the read header has bigger version than the allowed
-            if (ver > CurrentHeaderVersion)
+            if (ver > reader.CurrentHeaderVersion)
             {
                 throw new JSONFormatException(
                 $"This header cannot be read with this version of the class. Please use a reader that supports header version {ver} or higher." ,
@@ -82,7 +72,7 @@ namespace DotNetResourcesExtensions
             }
             // For first stage , get the resource type to read.
             JSONRESResourceType type = (JSONRESResourceType)JE.GetProperty("ResourceType").GetUInt16();
-            if (type > CurrentActiveMask) { throw new FormatException($"The type {type} is not currently supported in the reader."); }
+            if (type > reader.CurrentActiveMask) { throw new FormatException($"The type {type} is not currently supported in the reader."); }
             DictionaryEntry result = new();
             result.Key = JE.GetProperty("ResourceName").GetString();
             switch (type)
@@ -94,12 +84,13 @@ namespace DotNetResourcesExtensions
                     result.Value = GetByteArrayResource();
                     break;
                 case JSONRESResourceType.Object:
-                    // We have a serialised object. Deserialise it using the System.Text.Json rules.
+                    // We have a serialised object. Deserialise it using the CustomFormatter.
                     // Get the type for the object to return.
                     System.String ObjType = JE.GetProperty("DotnetType").GetString();
                     // Get the object itself.
-                    result.Value = System.Text.Json.JsonSerializer.Deserialize(JE.GetProperty("Value[0]"), 
-                        System.Type.GetType(ObjType), JSONRESOURCESCONSTANTS.ObjectSerializerOptions);
+                    result.Value = reader.exf.GetObjectFromBytes(
+                        JE.GetProperty("Value[0]").GetBytesFromBase64()
+                        , System.Type.GetType(ObjType));
                     break;
             }
             return result;
@@ -142,18 +133,24 @@ namespace DotNetResourcesExtensions
     /// You can use it so as to read such data. <br />
     /// This class cannot be inherited.
     /// </summary>
-    public sealed class JSONResourcesReader : System.Resources.IResourceReader
+    public sealed class JSONResourcesReader : IDotNetResourcesExtensionsReader
     {
         private System.Text.Json.JsonDocument JDT;
-        private System.Text.Json.JsonElement JE;
-        private JSONRESResourceType CurrentActiveMask;
-        private System.UInt16 CurrentHeaderVersion;
+        internal ExtensibleFormatter exf;
+        internal System.Text.Json.JsonElement JE;
+        internal JSONRESResourceType CurrentActiveMask;
+        internal System.UInt16 CurrentHeaderVersion;
+
+        private JSONResourcesReader()
+        {
+            exf = new();
+        }
 
         /// <summary>
         /// Creates a new instance of <see cref="JSONResourcesReader"/> from the specified data stream.
         /// </summary>
         /// <param name="data">The data stream to read resources from.</param>
-        public JSONResourcesReader(System.IO.Stream data)
+        public JSONResourcesReader(System.IO.Stream data) : this()
         {
             JDT = System.Text.Json.JsonDocument.Parse(data, JSONRESOURCESCONSTANTS.JsonReaderOptions);
             JE = JDT.RootElement;
@@ -164,7 +161,7 @@ namespace DotNetResourcesExtensions
         /// Creates a new instance of <see cref="JSONResourcesReader"/> from the specified file.
         /// </summary>
         /// <param name="path">The path of the file to read. The file must have been written using the <see cref="JSONResourcesWriter"/> class.</param>
-        public JSONResourcesReader(System.String path)
+        public JSONResourcesReader(System.String path) : this()
         {
             System.IO.FileStream FS = new(path, System.IO.FileMode.Open);
             JDT = System.Text.Json.JsonDocument.Parse(FS, JSONRESOURCESCONSTANTS.JsonReaderOptions);
@@ -209,9 +206,17 @@ namespace DotNetResourcesExtensions
         public void Dispose() { JE = default; JDT?.Dispose(); }
         
         /// <inheritdoc />
-        public IDictionaryEnumerator GetEnumerator() => new JSONResourcesEnumerator(JE, CurrentActiveMask, CurrentHeaderVersion);
+        public IDictionaryEnumerator GetEnumerator() => new JSONResourcesEnumerator(this);
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        /// <inheritdoc />
+        public void RegisterTypeResolver(ITypeResolver resolver)
+        {
+            exf.RegisterTypeResolver(resolver);
+        }
+
+        System.Boolean IStreamOwnerBase.IsStreamOwner { get; set; }
     }
 
 }

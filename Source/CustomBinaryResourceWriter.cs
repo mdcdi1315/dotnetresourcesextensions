@@ -9,19 +9,21 @@ namespace DotNetResourcesExtensions
 
     /// <summary>
     /// The <see cref="CustomBinaryResourceWriter"/> class defines a new resource format that depends solely on binary data ,  <br />
-    /// just like the <see cref="System.Resources.Extensions.PreserializedResourceWriter"/> does. <br />
+    /// just like the <see cref="T:System.Resources.Extensions.PreserializedResourceWriter"/> does. <br />
     /// This is it's writer counterpart. <br />
     /// This class cannot be inherited.
     /// </summary>
-    public sealed class CustomBinaryResourceWriter : System.Resources.IResourceWriter,IStreamOwnerBase
+    public sealed class CustomBinaryResourceWriter : IDotNetResourcesExtensionsWriter
     {
         private System.IO.FileStream temporary;
         private System.IO.Stream targetstream;
         private System.Boolean isstreamowner , generated;
         private List<System.Int64> representations;
+        private ExtensibleFormatter exf;
 
         private CustomBinaryResourceWriter() 
         {
+            exf = new();
             representations = new();
             generated = false;
             isstreamowner = false;
@@ -83,11 +85,9 @@ namespace DotNetResourcesExtensions
         public void AddResource(System.String name , System.Object value) 
         {
             ParserHelpers.ValidateName(name);
-            ExtensibleFormatter EF = new();
             BinaryResourceRepresentation brp = new(name, 
-                EF.GetBytesFromObject(value), value.GetType(), 
+                exf.GetBytesFromObject(value), value.GetType(), 
                 BinaryRESTypes.Object);
-            EF = null;
             temporary.Write(brp.FinalBytes.ToArray(), 0, brp.FinalBytes.Count);
             representations.Add(brp.FinalBytes.Count);
             brp = null;
@@ -135,6 +135,8 @@ namespace DotNetResourcesExtensions
             Close();
             if (isstreamowner) { targetstream?.Dispose(); }
             representations?.Clear();
+            exf?.Dispose();
+            exf = null;
             if (temporary != null) 
             {
                 System.String fp = temporary.Name;
@@ -144,6 +146,12 @@ namespace DotNetResourcesExtensions
             }
             representations = null;
             targetstream = null;
+        }
+
+        /// <inheritdoc /> 
+        public void RegisterTypeResolver(ITypeResolver resolver)
+        {
+            exf.RegisterTypeResolver(resolver);
         }
     }
 }

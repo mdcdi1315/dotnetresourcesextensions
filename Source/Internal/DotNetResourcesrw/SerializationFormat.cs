@@ -1,4 +1,4 @@
-namespace System.Resources.Extensions;
+namespace DotNetResourcesExtensions.Internal.DotNetResources;
 
 internal enum SerializationFormat
 {

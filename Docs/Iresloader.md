@@ -155,4 +155,4 @@ public class AnyClassName : OptimizedResourceLoader
 }
 ~~~
 
-[Back to Index](https://github.com/mdcdi1315/dotnettesourcesextensions/blob/master/Docs/Main.md)
+[Back to Index](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md)

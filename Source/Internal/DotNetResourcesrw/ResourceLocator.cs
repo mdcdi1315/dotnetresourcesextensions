@@ -1,4 +1,4 @@
-namespace System.Resources.Extensions;
+namespace DotNetResourcesExtensions.Internal.DotNetResources;
 
 internal readonly struct ResourceLocator
 {
@@ -12,8 +12,8 @@ internal readonly struct ResourceLocator
 		Value = value;
 	}
 
-	internal static bool CanCache(System.Resources.ResourceTypeCode value)
+	internal static bool CanCache(ResourceTypeCode value)
 	{
-		return value <= System.Resources.ResourceTypeCode.TimeSpan;
+		return value <= ResourceTypeCode.TimeSpan;
 	}
 }

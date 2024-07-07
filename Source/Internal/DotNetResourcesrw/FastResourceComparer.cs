@@ -2,11 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace System.Resources;
+namespace DotNetResourcesExtensions.Internal;
 
 internal sealed class FastResourceComparer : IComparer, IEqualityComparer, IComparer<string>, IEqualityComparer<string>
 {
-	internal static readonly System.Resources.FastResourceComparer Default = new System.Resources.FastResourceComparer();
+	internal static readonly FastResourceComparer Default = new FastResourceComparer();
 
 	public int GetHashCode(object key)
 	{

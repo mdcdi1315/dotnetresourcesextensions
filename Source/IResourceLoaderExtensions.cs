@@ -29,6 +29,26 @@ namespace DotNetResourcesExtensions
         /// <exception cref="ResourceNotFoundException">The specified resource was not found.</exception>
         public static System.Drawing.Bitmap GetBitmapResource(this IResourceLoader ldr, System.String Name)
             => ldr.GetResource<System.Drawing.Bitmap>(Name);
+
+        /// <summary>
+        /// Gets an image resource. The image provided can be any valid image object that is either <see cref="System.Drawing.Icon"/> , 
+        /// <see cref="System.Drawing.Bitmap"/> , or <see cref="System.Drawing.Imaging.Metafile"/> .
+        /// </summary>
+        /// <param name="ldr">The resource loader to get the resource from.</param>
+        /// <param name="Name">The resource name to look up.</param>
+        /// <returns>The image resource defined by <paramref name="Name"/>.</returns>
+        /// <exception cref="ResourceTypeMismatchException">The specified image was not any of 
+        /// <see cref="System.Drawing.Icon"/> , <see cref="System.Drawing.Bitmap"/> or  <see cref="System.Drawing.Imaging.Metafile"/>.</exception>
+        /// <exception cref="ResourceNotFoundException">The specified resource was not found.</exception>
+        public static System.Drawing.Image GetImageResource(this IResourceLoader ldr , System.String Name)
+        {
+            System.Object obj = ldr.GetResource(Name);
+            if (obj is System.Drawing.Bitmap || obj is System.Drawing.Icon || obj is System.Drawing.Imaging.Metafile) 
+            {
+               return obj as System.Drawing.Image;
+            }
+            throw new ResourceTypeMismatchException(obj.GetType(), typeof(System.Drawing.Image), Name);
+        }
 #endif
 
         /// <summary>

@@ -72,7 +72,7 @@ namespace DotNetResourcesExtensions.BuildTasks
             }
             if (restype == OutputResourceType.Resources)
             {
-                target = new DRESEXT::System.Resources.Extensions.PreserializedResourceWriter(OutputFilePath.ItemSpec);
+                target = new DRESEXT::DotNetResourcesExtensions.Internal.DotNetResources.PreserializedResourceWriter(OutputFilePath.ItemSpec);
             } else if (restype == OutputResourceType.CustomBinary)
             {
                 target = new CustomBinaryResourceWriter(OutputFilePath.ItemSpec);

@@ -34,7 +34,7 @@ Also this project includes a build task to use for MSBuild projects for resource
 through the `DotNetResourcesExtensions` project. See the `BuildTasks` project for more info.
 
 Currently , the implementation is fairly enough stable.
-For now , documentation is underway and soon it will be uploaded.
+You can see the usage documentation [here](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md).
 
 Please report any bugs you have found out during the project usage.
 

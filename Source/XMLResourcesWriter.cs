@@ -4,20 +4,21 @@ using System;
 namespace DotNetResourcesExtensions
 {
     using Internal;
-    using System.Xml.Linq;
+    using Internal.CustomFormatter;
 
     /// <summary>
     /// The <see cref="XMLResourcesWriter"/> writes a custom resources format based on structuralized XML. <br />
     /// This class cannot be inherited.
     /// </summary>
-    public sealed class XMLResourcesWriter : System.Resources.IResourceWriter , IStreamOwnerBase
+    public sealed class XMLResourcesWriter : IDotNetResourcesExtensionsWriter
     {
         private System.IO.Stream targetstream;
+        private ExtensibleFormatter formatter;
         private System.Xml.XmlWriter writer;
         private System.Boolean isstreamowner;
         private StreamMixedClassManagement mgmt;
 
-        private XMLResourcesWriter() { targetstream = null; writer = null; isstreamowner = false; mgmt = StreamMixedClassManagement.None; }
+        private XMLResourcesWriter() { formatter = new(); targetstream = null; writer = null; isstreamowner = false; mgmt = StreamMixedClassManagement.None; }
 
         /// <summary>
         /// Gets or sets a value whether this class controls the lifetime of the underlying stream.
@@ -109,9 +110,11 @@ namespace DotNetResourcesExtensions
             writer.WriteElementString("HeaderVersion", XMLResourcesConstants.HeaderVersion.ToString());
             writer.WriteElementString("ResourceType", ((System.Byte)XMLRESResourceType.Object).ToString());
             writer.WriteElementString("DotnetType", value.GetType().AssemblyQualifiedName);
-            System.Runtime.Serialization.DataContractSerializer dcs = new(value.GetType());
-            dcs.WriteObject(writer, value);
-            dcs = null;
+            writer.WriteStartElement("Value_0");
+            System.Byte[] data = formatter.GetBytesFromObject(value);
+            writer.WriteBase64(data, 0, data.Length);
+            writer.WriteEndElement();
+            writer.WriteElementString("TotalLength", data.LongLength.ToString());
             writer.WriteEndElement();
         }
 
@@ -159,12 +162,20 @@ namespace DotNetResourcesExtensions
                 }
             } catch (ObjectDisposedException) { }
             writer = null;
+            formatter?.Dispose();
+            formatter = null;
         }
 
         /// <summary>
         /// Writes (Flushes actually) all the current written resources to the target file or stream.
         /// </summary>
         public void Generate() { writer.Flush(); }
+
+        /// <inheritdoc />
+        public void RegisterTypeResolver(ITypeResolver resolver)
+        {
+            formatter.RegisterTypeResolver(resolver);
+        }
     }
 
 }

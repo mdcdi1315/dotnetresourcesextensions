@@ -10,14 +10,15 @@ namespace DotNetResourcesExtensions
     /// The <see cref="JSONResourcesWriter"/> writes a custom resources format based on structuralized JSON. <br />
     /// This class cannot be inherited.
     /// </summary>
-    public sealed class JSONResourcesWriter : System.Resources.IResourceWriter , IStreamOwnerBase
+    public sealed class JSONResourcesWriter : IDotNetResourcesExtensionsWriter
     {
+        private ExtensibleFormatter exf;
         private System.IO.Stream targetstream;
         private System.Text.Json.Utf8JsonWriter writer;
         private System.Boolean isstreamowner;
         private StreamMixedClassManagement mgmt;
 
-        private JSONResourcesWriter() { writer = null; targetstream = null; isstreamowner = false; mgmt = StreamMixedClassManagement.None; }
+        private JSONResourcesWriter() { exf = ExtensibleFormatter.Create(); writer = null; targetstream = null; isstreamowner = false; mgmt = StreamMixedClassManagement.None; }
 
         /// <summary>
         /// Creates a new instance of <see cref="JSONResourcesWriter"/> with the specified stream as the data output.
@@ -82,28 +83,20 @@ namespace DotNetResourcesExtensions
 
         private void WriteObjectResource(System.String Name, System.Object value)
         {
-            System.String t;
+            System.Byte[] t;
             try
             {
-                t = System.Text.Json.JsonSerializer.Serialize(value, value.GetType(), JSONRESOURCESCONSTANTS.ObjectSerializerOptions);
-            } catch (NotSupportedException eo) // It means here that a proper serializer was not found , use the ExtensibleFormatter instead
+               t = exf.GetBytesFromObject(value);
+            } catch (Internal.CustomFormatter.Exceptions.ConverterNotFoundException e)
             {
-                var de = ExtensibleFormatter.Create();
-                try
-                {
-                    t = System.Text.Encoding.UTF8.GetString(de.GetBytesFromObject(value));
-                } catch (Internal.CustomFormatter.Exceptions.ConverterNotFoundException e) {
-                    throw new FormatException("Could not serialize the given object. Error occured.", new Exception(e.Message , eo));
-                } finally {
-                    de?.Dispose();
-                }
+                throw new FormatException("Could not serialize the given object. Error occured.", e);
             }
             writer.WriteStartObject();
             writer.WriteNumber("HeaderVersion", JSONRESOURCESCONSTANTS.HeaderVersion);
             writer.WriteString("ResourceName", Name);
             writer.WriteNumber("ResourceType", (System.UInt16)JSONRESResourceType.Object);
             writer.WriteString("DotnetType" , value.GetType().AssemblyQualifiedName);
-            writer.WriteString("Value[0]", t);
+            writer.WriteBase64String("Value[0]", t);
             writer.WriteEndObject();
         }
 
@@ -170,6 +163,14 @@ namespace DotNetResourcesExtensions
             try { if (isstreamowner && mgmt == StreamMixedClassManagement.InitialisedWithStream)
                 { targetstream?.Dispose(); } } catch (System.ObjectDisposedException) { }
             if (targetstream != null) { targetstream = null; }
+            exf?.Dispose();
+            exf = null;
+        }
+
+        /// <inheritdoc/>
+        public void RegisterTypeResolver(ITypeResolver resolver)
+        {
+            exf.RegisterTypeResolver(resolver);
         }
     }
 

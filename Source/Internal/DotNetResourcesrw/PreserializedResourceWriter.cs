@@ -1,12 +1,17 @@
-using System.Collections.Generic;
-using System.ComponentModel;
+using System;
 using System.IO;
 using System.Text;
+using System.Resources;
+using System.ComponentModel;
+using System.Collections.Generic;
 
-namespace System.Resources.Extensions;
+namespace DotNetResourcesExtensions.Internal.DotNetResources;
 
-/// <summary>Provides APIs similar to <see cref="T:System.Resources.ResourceWriter" /> that can write pre-serialized resource data.</summary>
-public sealed class PreserializedResourceWriter : IResourceWriter, IDisposable
+/// <summary>
+/// Provides APIs similar to <see cref="System.Resources.ResourceWriter" /> that can write pre-serialized resource data. <br />
+/// MDCDI1315 NOTE: This class has been modified for the needs of <see cref="DotNetResourcesExtensions"/> project. See the docs for more information.
+/// </summary>
+public sealed class PreserializedResourceWriter : IDotNetResourcesExtensionsWriter
 {
 	private sealed class PrecannedResource
 	{
@@ -148,9 +153,9 @@ public sealed class PreserializedResourceWriter : IResourceWriter, IDisposable
 		{
 			if (!_requiresDeserializingResourceReader)
 			{
-				return "System.Resources.ResourceReader, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089";
+				return ResourceReaderFullyQualifiedName;
 			}
-			return "System.Resources.Extensions.DeserializingResourceReader, System.Resources.Extensions, Version=4.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51";
+			return DeserializingResourceReaderFullyQualifiedName;
 		}
 	}
 
@@ -160,11 +165,21 @@ public sealed class PreserializedResourceWriter : IResourceWriter, IDisposable
 		{
 			if (!_requiresDeserializingResourceReader)
 			{
-				return "System.Resources.RuntimeResourceSet";
+				return ResSetTypeName;
 			}
-			return "System.Resources.Extensions.RuntimeResourceSet, System.Resources.Extensions, Version=4.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51";
+			return RuntimeResourceSetFullyQualifiedName;
 		}
 	}
+
+	private CustomFormatter.ICustomFormatter formatter;
+
+	/// <inheritdoc />
+	public void RegisterTypeResolver(CustomFormatter.ITypeResolver resolver)
+	{
+		formatter.RegisterTypeResolver(resolver);
+	}
+
+	System.Boolean IStreamOwnerBase.IsStreamOwner { get; set; }
 
 	/// <summary>Initializes a new instance of the <see cref="T:System.Resources.Extensions.PreserializedResourceWriter" /> class that writes the resources to the specified file.</summary>
 	/// <param name="fileName">The output file name.</param>
@@ -175,8 +190,9 @@ public sealed class PreserializedResourceWriter : IResourceWriter, IDisposable
 		{
 			throw new ArgumentNullException("fileName");
 		}
+		formatter = new CustomFormatter.ExtensibleFormatter();
 		_output = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None);
-		_resourceList = new SortedDictionary<string, object>(System.Resources.FastResourceComparer.Default);
+		_resourceList = new SortedDictionary<string, object>(FastResourceComparer.Default);
 		_caseInsensitiveDups = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 	}
 
@@ -197,7 +213,8 @@ public sealed class PreserializedResourceWriter : IResourceWriter, IDisposable
 			throw new ArgumentException(DotNetResourcesExtensions.Properties.Resources.Argument_StreamNotWritable);
 		}
 		_output = stream;
-		_resourceList = new SortedDictionary<string, object>(System.Resources.FastResourceComparer.Default);
+        formatter = new CustomFormatter.ExtensibleFormatter();
+        _resourceList = new SortedDictionary<string, object>(FastResourceComparer.Default);
 		_caseInsensitiveDups = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 	}
 
@@ -306,7 +323,7 @@ public sealed class PreserializedResourceWriter : IResourceWriter, IDisposable
 		_caseInsensitiveDups.Add(name, null);
 		if (_preserializedData == null)
 		{
-			_preserializedData = new Dictionary<string, PrecannedResource>(System.Resources.FastResourceComparer.Default);
+			_preserializedData = new Dictionary<string, PrecannedResource>(FastResourceComparer.Default);
 		}
 		_preserializedData.Add(name, new PrecannedResource(typeName, data));
 	}
@@ -330,7 +347,9 @@ public sealed class PreserializedResourceWriter : IResourceWriter, IDisposable
 		}
 		_output = null;
 		_caseInsensitiveDups = null;
-	}
+        formatter?.Dispose();
+        formatter = null;
+    }
 
 	/// <summary>Calls <see cref="M:System.Resources.Extensions.PreserializedResourceWriter.Generate" /> to write out all resources to the output stream in the system default format.</summary>
 	/// <exception cref="T:System.InvalidOperationException">The resource list is <see langword="null" />.</exception>
@@ -384,12 +403,12 @@ public sealed class PreserializedResourceWriter : IResourceWriter, IDisposable
 			}
 			foreach (KeyValuePair<string, object> resource in _resourceList)
 			{
-				array[num2] = System.Resources.FastResourceComparer.HashFunction(resource.Key);
+				array[num2] = FastResourceComparer.HashFunction(resource.Key);
 				array2[num2++] = (int)binaryWriter3.Seek(0, SeekOrigin.Current);
 				binaryWriter3.Write(resource.Key);
 				binaryWriter3.Write((int)binaryWriter4.Seek(0, SeekOrigin.Current));
 				object value = resource.Value;
-				System.Resources.ResourceTypeCode resourceTypeCode = FindTypeCode(value, list);
+				ResourceTypeCode resourceTypeCode = FindTypeCode(value, list);
 				binaryWriter4.Write7BitEncodedInt((int)resourceTypeCode);
 				if (value is PrecannedResource precannedResource)
 				{
@@ -445,204 +464,171 @@ public sealed class PreserializedResourceWriter : IResourceWriter, IDisposable
 		_resourceList = null;
 	}
 
-	private static System.Resources.ResourceTypeCode FindTypeCode(object value, List<string> types)
+	private static ResourceTypeCode FindTypeCode(object value, List<string> types)
 	{
-		if (value == null)
+		switch (value)
 		{
-			return System.Resources.ResourceTypeCode.Null;
-		}
-		Type type = value.GetType();
-		if (type == typeof(string))
-		{
-			return System.Resources.ResourceTypeCode.String;
-		}
-		if (type == typeof(int))
-		{
-			return System.Resources.ResourceTypeCode.Int32;
-		}
-		if (type == typeof(bool))
-		{
-			return System.Resources.ResourceTypeCode.Boolean;
-		}
-		if (type == typeof(char))
-		{
-			return System.Resources.ResourceTypeCode.Char;
-		}
-		if (type == typeof(byte))
-		{
-			return System.Resources.ResourceTypeCode.Byte;
-		}
-		if (type == typeof(sbyte))
-		{
-			return System.Resources.ResourceTypeCode.SByte;
-		}
-		if (type == typeof(short))
-		{
-			return System.Resources.ResourceTypeCode.Int16;
-		}
-		if (type == typeof(long))
-		{
-			return System.Resources.ResourceTypeCode.Int64;
-		}
-		if (type == typeof(ushort))
-		{
-			return System.Resources.ResourceTypeCode.UInt16;
-		}
-		if (type == typeof(uint))
-		{
-			return System.Resources.ResourceTypeCode.UInt32;
-		}
-		if (type == typeof(ulong))
-		{
-			return System.Resources.ResourceTypeCode.UInt64;
-		}
-		if (type == typeof(float))
-		{
-			return System.Resources.ResourceTypeCode.Single;
-		}
-		if (type == typeof(double))
-		{
-			return System.Resources.ResourceTypeCode.Double;
-		}
-		if (type == typeof(decimal))
-		{
-			return System.Resources.ResourceTypeCode.Decimal;
-		}
-		if (type == typeof(DateTime))
-		{
-			return System.Resources.ResourceTypeCode.DateTime;
-		}
-		if (type == typeof(TimeSpan))
-		{
-			return System.Resources.ResourceTypeCode.TimeSpan;
-		}
-		if (type == typeof(byte[]))
-		{
-			return System.Resources.ResourceTypeCode.ByteArray;
-		}
-		if (type == typeof(StreamWrapper))
-		{
-			return System.Resources.ResourceTypeCode.Stream;
-		}
-		if (type == typeof(PrecannedResource))
-		{
-			string typeName = ((PrecannedResource)value).TypeName;
-			if (typeName.StartsWith("ResourceTypeCode.", StringComparison.Ordinal))
-			{
-				typeName = typeName.Substring(17);
-				return (System.Resources.ResourceTypeCode)Enum.Parse(typeof(System.Resources.ResourceTypeCode), typeName);
-			}
-			int num = types.IndexOf(typeName);
-			if (num == -1)
-			{
-				num = types.Count;
-				types.Add(typeName);
-			}
-			return (System.Resources.ResourceTypeCode)(num + 64);
-		}
-		throw new PlatformNotSupportedException(DotNetResourcesExtensions.Properties.Resources.NotSupported_BinarySerializedResources);
+			case null:
+                return ResourceTypeCode.Null;
+            case System.String:
+                return ResourceTypeCode.String;
+            case System.Int16: 
+				return ResourceTypeCode.Int16;
+			case System.Int32:
+				return ResourceTypeCode.Int32;
+			case System.Int64:
+				return ResourceTypeCode.Int64;
+			case System.UInt16:
+				return ResourceTypeCode.UInt16;
+			case System.UInt32:
+				return ResourceTypeCode.UInt32;
+			case System.UInt64:
+				return ResourceTypeCode.UInt64;
+			case System.Single:
+				return ResourceTypeCode.Single;
+			case System.Double:
+				return ResourceTypeCode.Double;
+			case System.Decimal:
+				return ResourceTypeCode.Decimal;
+			case System.Byte:
+				return ResourceTypeCode.Byte;
+			case System.Char:
+				return ResourceTypeCode.Char;
+			case System.Boolean:
+				return ResourceTypeCode.Boolean;
+			case System.DateTime:
+				return ResourceTypeCode.DateTime;
+			case System.TimeSpan:
+				return ResourceTypeCode.TimeSpan;
+			case System.SByte:
+				return ResourceTypeCode.SByte;
+			case System.Byte[]:
+				return ResourceTypeCode.ByteArray;
+			case StreamWrapper:
+				return ResourceTypeCode.Stream;
+			case PrecannedResource pr:
+                string typeName = pr.TypeName;
+                if (typeName.StartsWith("ResourceTypeCode.", StringComparison.Ordinal))
+                {
+                    typeName = typeName.Substring(17);
+                    return (ResourceTypeCode)Enum.Parse(typeof(ResourceTypeCode), typeName);
+                }
+                int num = types.IndexOf(typeName);
+                if (num == -1)
+                {
+                    num = types.Count;
+                    types.Add(typeName);
+                }
+                return (ResourceTypeCode)(num + 64);
+			default:
+                return ResourceTypeCode.SerializedWithCustomFormatter;
+        }
 	}
 
-	private static void WriteValue(System.Resources.ResourceTypeCode typeCode, object value, BinaryWriter writer)
+	private void WriteValue(ResourceTypeCode typeCode, object value, BinaryWriter writer)
 	{
 		switch (typeCode)
 		{
-		case System.Resources.ResourceTypeCode.String:
-			writer.Write((string)value);
-			break;
-		case System.Resources.ResourceTypeCode.Boolean:
-			writer.Write((bool)value);
-			break;
-		case System.Resources.ResourceTypeCode.Char:
-			writer.Write((ushort)(char)value);
-			break;
-		case System.Resources.ResourceTypeCode.Byte:
-			writer.Write((byte)value);
-			break;
-		case System.Resources.ResourceTypeCode.SByte:
-			writer.Write((sbyte)value);
-			break;
-		case System.Resources.ResourceTypeCode.Int16:
-			writer.Write((short)value);
-			break;
-		case System.Resources.ResourceTypeCode.UInt16:
-			writer.Write((ushort)value);
-			break;
-		case System.Resources.ResourceTypeCode.Int32:
-			writer.Write((int)value);
-			break;
-		case System.Resources.ResourceTypeCode.UInt32:
-			writer.Write((uint)value);
-			break;
-		case System.Resources.ResourceTypeCode.Int64:
-			writer.Write((long)value);
-			break;
-		case System.Resources.ResourceTypeCode.UInt64:
-			writer.Write((ulong)value);
-			break;
-		case System.Resources.ResourceTypeCode.Single:
-			writer.Write((float)value);
-			break;
-		case System.Resources.ResourceTypeCode.Double:
-			writer.Write((double)value);
-			break;
-		case System.Resources.ResourceTypeCode.Decimal:
-			writer.Write((decimal)value);
-			break;
-		case System.Resources.ResourceTypeCode.DateTime:
-		{
-			long value2 = ((DateTime)value).ToBinary();
-			writer.Write(value2);
-			break;
-		}
-		case System.Resources.ResourceTypeCode.TimeSpan:
-			writer.Write(((TimeSpan)value).Ticks);
-			break;
-		case System.Resources.ResourceTypeCode.ByteArray:
-		{
-			byte[] array3 = (byte[])value;
-			writer.Write(array3.Length);
-			writer.Write(array3, 0, array3.Length);
-			break;
-		}
-		case System.Resources.ResourceTypeCode.Stream:
-		{
-			StreamWrapper streamWrapper = (StreamWrapper)value;
-			if (streamWrapper.Stream.GetType() == typeof(MemoryStream))
+			case ResourceTypeCode.String:
+				writer.Write((string)value);
+				break;
+			case ResourceTypeCode.Boolean:
+				writer.Write((bool)value);
+				break;
+			case ResourceTypeCode.Char:
+				writer.Write((ushort)(char)value);
+				break;
+			case ResourceTypeCode.Byte:
+				writer.Write((byte)value);
+				break;
+			case ResourceTypeCode.SByte:
+				writer.Write((sbyte)value);
+				break;
+			case ResourceTypeCode.Int16:
+				writer.Write((short)value);
+				break;
+			case ResourceTypeCode.UInt16:
+				writer.Write((ushort)value);
+				break;
+			case ResourceTypeCode.Int32:
+				writer.Write((int)value);
+				break;
+			case ResourceTypeCode.UInt32:
+				writer.Write((uint)value);
+				break;
+			case ResourceTypeCode.Int64:
+				writer.Write((long)value);
+				break;
+			case ResourceTypeCode.UInt64:
+				writer.Write((ulong)value);
+				break;
+			case ResourceTypeCode.Single:
+				writer.Write((float)value);
+				break;
+			case ResourceTypeCode.Double:
+				writer.Write((double)value);
+				break;
+			case ResourceTypeCode.Decimal:
+				writer.Write((decimal)value);
+				break;
+			case ResourceTypeCode.DateTime:
 			{
-				MemoryStream memoryStream = (MemoryStream)streamWrapper.Stream;
-				if (memoryStream.Length > int.MaxValue)
+				long value2 = ((DateTime)value).ToBinary();
+				writer.Write(value2);
+				break;
+			}
+			case ResourceTypeCode.TimeSpan:
+				writer.Write(((TimeSpan)value).Ticks);
+				break;
+			case ResourceTypeCode.ByteArray:
+			{
+				byte[] array3 = (byte[])value;
+				writer.Write(array3.Length);
+				writer.Write(array3, 0, array3.Length);
+				break;
+			}
+			case ResourceTypeCode.Stream: {
+				StreamWrapper streamWrapper = (StreamWrapper)value;
+				if (streamWrapper.Stream.GetType() == typeof(MemoryStream))
+				{
+					MemoryStream memoryStream = (MemoryStream)streamWrapper.Stream;
+					if (memoryStream.Length > int.MaxValue)
+					{
+						throw new ArgumentException(DotNetResourcesExtensions.Properties.Resources.ArgumentOutOfRange_StreamLength);
+					}
+					byte[] array = memoryStream.ToArray();
+					writer.Write(array.Length);
+					writer.Write(array, 0, array.Length);
+					break;
+				}
+				Stream stream = streamWrapper.Stream;
+				if (stream.Length > int.MaxValue)
 				{
 					throw new ArgumentException(DotNetResourcesExtensions.Properties.Resources.ArgumentOutOfRange_StreamLength);
 				}
-				byte[] array = memoryStream.ToArray();
-				writer.Write(array.Length);
-				writer.Write(array, 0, array.Length);
+				stream.Position = 0L;
+				writer.Write((int)stream.Length);
+				byte[] array2 = new byte[4096];
+				int count;
+				while ((count = stream.Read(array2, 0, array2.Length)) != 0)
+				{
+					writer.Write(array2, 0, count);
+				}
+				if (streamWrapper.CloseAfterWrite)
+				{
+					stream.Close();
+				}
 				break;
 			}
-			Stream stream = streamWrapper.Stream;
-			if (stream.Length > int.MaxValue)
-			{
-				throw new ArgumentException(DotNetResourcesExtensions.Properties.Resources.ArgumentOutOfRange_StreamLength);
-			}
-			stream.Position = 0L;
-			writer.Write((int)stream.Length);
-			byte[] array2 = new byte[4096];
-			int count;
-			while ((count = stream.Read(array2, 0, array2.Length)) != 0)
-			{
-				writer.Write(array2, 0, count);
-			}
-			if (streamWrapper.CloseAfterWrite)
-			{
-				stream.Close();
-			}
-			break;
-		}
-		default:
-			throw new PlatformNotSupportedException(DotNetResourcesExtensions.Properties.Resources.NotSupported_BinarySerializedResources);
-		case System.Resources.ResourceTypeCode.Null:
-			break;
+			case ResourceTypeCode.SerializedWithCustomFormatter:
+				System.Byte[] data = ResourceInterchargeFormat.GetFromObject(formatter, value);
+				writer.Write(data.Length);
+				writer.Write(data, 0, data.Length);
+				// Requires the Deserializing Resource Reader , at any formatted object.
+				_requiresDeserializingResourceReader = true;
+				break;
+			case ResourceTypeCode.Null:
+				break;
 		}
 	}
 

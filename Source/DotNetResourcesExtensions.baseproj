@@ -13,10 +13,10 @@
 	<AssemblyVersion>1.0.0.1</AssemblyVersion>
 	<ProductName>$(_ProjName)</ProductName>
 	<Product>$(_ProjName) is a project that defines new possiblities on handling resources of a .NET application.
-Additionally , it defines new types for doing resource serializations not ever thought of.
+Additionally , it defines new types for doing resource serializations never thought of.
 	</Product>
 	<ProductVersion>1.0.0.0-initial</ProductVersion>
-	<Company>© MDCDI1315. http://github.com/mdcdi1315</Company>
+	<Company>© MDCDI1315. http://github.com/mdcdi1315/dotnetresourcesextensions</Company>
 	<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 	<Authors>mdcdi1315</Authors>
@@ -26,14 +26,16 @@ Additionally , it defines new types for doing resource serializations not ever t
   </PropertyGroup>
 
   <ItemGroup>
+	<Compile Include="Properties\AssemblyInfo.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\*.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\Internal\*.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\Internal\CustomResX\*.cs" />
-	<PackageReference Include="System.Resources.Extensions" Version="8.0.*" Condition="'$(TargetFramework)' == '$(NetCoreIdentifier)'" />
-	<!-- The System.Resources.Extensions code is built out only for .NET Framework or .NET Standard -->
-	<Compile Include="$(MSBuildThisFileDirectory)\Internal\DotNetResourcesrw\*.cs" 
-		Condition="'$(TargetFramework)' == 'netstandard2.0' OR '$(NetFrameworkIdentifier)' == '$(TargetFramework)'" />
-	<None Include="Pkg-Readme.md" Pack="true" PackagePath="\" />
+	<!-- The System.Resources.Extensions code is built for all plaforms and will be hosted in a DotNetResourcesExtensions namespace. -->
+	<Compile Include="$(MSBuildThisFileDirectory)\Internal\DotNetResourcesrw\*.cs" />
+	<None Include="Pkg-Readme.md" Pack="true" PackagePath="/" />
+	<None Include="$(MSBuildThisFileDirectory)/../BuildTasks/bin/Release/net472/DotNetResourcesExtensions.targets" Pack="true" PackagePath="/buildTransitive/" />
+	<None Include="$(MSBuildThisFileDirectory)/../BuildTasks/bin/Release/net472/DotNetResourcesExtensions*.dll" Pack="true" PackagePath="/tools/net472/" />
+	<None Include="$(MSBuildThisFileDirectory)/../BuildTasks/bin/Release/netstandard2.0/DotNetResourcesExtensions*.dll" Pack="true" PackagePath="/tools/netstandard2.0/" />
   </ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == '$(NetFrameworkIdentifier)' OR '$(TargetFramework)' == '$(MDCFRNetFrameworkIdentifier)'">
@@ -62,6 +64,12 @@ Additionally , it defines new types for doing resource serializations not ever t
 	<Target Name="DI_start" BeforeTargets="Restore">
 		<RemoveDir Directories="bin" />
 		<RemoveDir Directories="obj" />
+	</Target>
+	
+	<Target Name="DD_PackAdditional" BeforeTargets="Pack">
+		<MSBuild Projects="$(MSBuildThisFileDirectory)/../BuildTasks/BuildTasks.csproj"
+			BuildInParallel="false" Properties="Configuration=Release" Targets="Restore;Build" 
+			UseResultsCache="true" />
 	</Target>
 
 </Project>

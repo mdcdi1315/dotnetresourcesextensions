@@ -19,19 +19,37 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Framework" Version="17.10.4" />
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.10.4" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.10.4" />
-  </ItemGroup>
-
-  <ItemGroup>
-	  <ProjectReference Include="..\Source\DotNetResourcesExtensions.csproj">
-		  <Aliases>DRESEXT</Aliases>
-	  </ProjectReference>
-  </ItemGroup>
-
-  <ItemGroup>
+	<PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.10.4" />
+	<ProjectReference Include="..\Source\DotNetResourcesExtensions.csproj">
+	  <Aliases>DRESEXT</Aliases>
+	</ProjectReference>
     <Reference Include="System.Windows.Forms">
       <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\System.Windows.Forms.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+	<Target Name="GenerateTargetsFile" BeforeTargets="BeforeBuild">
+		<PropertyGroup>
+			<TargetsFileContents>
+			<![CDATA[<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current">
+	<!-- Imports and prepares the DotNetResourcesExtensions.BuildTasks assembly. -->
+	
+	<PropertyGroup>
+		<TFIdentifier Condition="'%24%28TargetFramework.Contains%28`net7.0`%29%29' == 'true'">netstandard2.0</TFIdentifier>
+		<TFIdentifier Condition="'%24%28TargetFramework.Contains%28`net8.0`%29%29' == 'true'">netstandard2.0</TFIdentifier>
+		<TFIdentifier Condition="'%24%28TargetFramework.Contains%28`netstandard`%29%29' == 'true'">netstandard2.0</TFIdentifier>
+		<TFIdentifier Condition="'%24%28TargetFramework.Contains%28`net4`%29%29' == 'true'">net472</TFIdentifier>
+		<DNRSPath>%24%28MSBuildThisFilePath%29/../tools/%24%28TFIdentifier%29/DotNetResourcesExtensions.BuildTasks.dll</DNRSPath>
+	</PropertyGroup>
+	
+	<!-- Import the MSBuild task -->
+	<UsingTask TaskName="DotNetResourcesExtensions.BuildTasks.DotNetResExtGenerator" AssemblyFile="%24%28DNRSPath%29" />
+	
+	<!-- Done! -->
+</Project>]]></TargetsFileContents>
+		</PropertyGroup>
+		<WriteLinesToFile File="$(OutputPath)/DotNetResourcesExtensions.targets" Lines="$(TargetsFileContents)" WriteOnlyWhenDifferent="true" Overwrite="true" />
+	</Target>
 
 </Project>

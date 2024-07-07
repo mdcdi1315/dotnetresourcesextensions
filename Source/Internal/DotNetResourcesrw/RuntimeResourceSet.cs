@@ -1,7 +1,10 @@
+
+using System;
 using System.Collections;
+using System.Resources;
 using System.Collections.Generic;
 
-namespace System.Resources.Extensions;
+namespace DotNetResourcesExtensions.Internal.DotNetResources;
 
 internal sealed class RuntimeResourceSet : ResourceSet, IEnumerable
 {
@@ -19,7 +22,7 @@ internal sealed class RuntimeResourceSet : ResourceSet, IEnumerable
 		}
 		_defaultReader = (reader as DeserializingResourceReader) ?? throw new ArgumentException(String.Format(
 			DotNetResourcesExtensions.Properties.Resources.NotSupported_WrongResourceReader_Type, reader.GetType()), "reader");
-		_resCache = new Dictionary<string, ResourceLocator>(System.Resources.FastResourceComparer.Default);
+		_resCache = new Dictionary<string, ResourceLocator>(FastResourceComparer.Default);
 		_defaultReader._resCache = _resCache;
 	}
 
@@ -53,7 +56,7 @@ internal sealed class RuntimeResourceSet : ResourceSet, IEnumerable
 		DeserializingResourceReader defaultReader = _defaultReader;
 		if (defaultReader == null)
 		{
-			throw new ObjectDisposedException(null, DotNetResourcesExtensions.Properties.Resources.ObjectDisposed_ResourceSet);
+			throw new System.ObjectDisposedException(null, DotNetResourcesExtensions.Properties.Resources.ObjectDisposed_ResourceSet);
 		}
 		return defaultReader.GetEnumerator();
 	}
@@ -159,11 +162,11 @@ internal sealed class RuntimeResourceSet : ResourceSet, IEnumerable
 	private static object ReadValue(DeserializingResourceReader reader, int dataPos, bool isString, out ResourceLocator locator)
 	{
 		object obj;
-		System.Resources.ResourceTypeCode typeCode;
+		ResourceTypeCode typeCode;
 		if (isString)
 		{
 			obj = reader.LoadString(dataPos);
-			typeCode = System.Resources.ResourceTypeCode.String;
+			typeCode = ResourceTypeCode.String;
 		}
 		else
 		{

@@ -406,16 +406,14 @@ public class ResXResourceWriter : IResourceWriter
             case byte[] bytes:
                 AddDataRow(elementName, name, bytes);
                 break;
-            case ResXFileRef fileRef:
-                {
+            case ResXFileRef fileRef: {
                     ResXDataNode node = new ResXDataNode(name, fileRef, _typeNameConverter);
                     DataNodeInfo info = node.GetDataNodeInfo();
                     AddDataRow(elementName, info.Name, info.ValueData, info.TypeName, info.MimeType, info.Comment);
                     break;
                 }
 
-            default:
-                {
+            default: {
                     ResXDataNode node = new ResXDataNode(name, value, _typeNameConverter);
                     DataNodeInfo info = node.GetDataNodeInfo();
                     AddDataRow(elementName, info.Name, info.ValueData, info.TypeName, info.MimeType, info.Comment);
