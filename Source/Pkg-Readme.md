@@ -59,7 +59,7 @@ You can use this simple example to get and read resources.
 
 Except from defining the `IResourceLoader` interface itself , it defines new resource format alternatives.
 
-The first one writes a custom format using JSON.
+Currently , Custom ResX , JSON , Custom XML and the Custom Binary Resource Format are some of the formats that this library currently holds.
 
 All readers and writers of course are always implementing the 
 `System.Resources.IResourceReader` and
@@ -70,11 +70,12 @@ that are implementing the `IResourceLoader` interface.
 
 Such as:
 
--> `DotNetResourceLoader`  , which loads and gets resources using the `System.Resources.Extensions`
-package.
+-> `DotNetResourceLoader`  , which loads and gets resources using modified copies of `System.Resources.Extensions` classes.
 
 -> `ResXResourceLoader` , which loads and gets resources from even an arbitrary .resx XML file.
 
 -> `DotNetOldResourceLoader` , which loads and gets resources from the old .resources format.
+
+-> `CustomDataResourcesLoader` , which loads and gets resources from the custom resource stream format.
 
 Note that not all loaders are supported on all platforms and .NET flavors.

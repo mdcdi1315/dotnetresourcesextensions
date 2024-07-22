@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current">
+	<!-- Imports and prepares the DotNetResourcesExtensions.BuildTasks assembly. -->
+	
+	<PropertyGroup>
+		<TFIdentifier Condition="$(TargetFramework.Contains(`net7.0`))' == 'true'">netstandard2.0</TFIdentifier>
+		<TFIdentifier Condition="$(TargetFramework.Contains(`net8.0`))' == 'true'">netstandard2.0</TFIdentifier>
+		<TFIdentifier Condition="'$(TargetFramework.Contains(`netstandard`))' == 'true'">netstandard2.0</TFIdentifier>
+		<TFIdentifier Condition="$(TargetFramework.Contains(`net4`)' == 'true'">net472</TFIdentifier>
+		<DNRSPath>$(MSBuildThisFilePath)/../tools/$(TFIdentifier)/DotNetResourcesExtensions.BuildTasks.dll</DNRSPath>
+	</PropertyGroup>
+	
+	<!-- Import the MSBuild tasks -->
+	<UsingTask TaskName="DotNetResourcesExtensions.BuildTasks.DotNetResExtGenerator" AssemblyFile="$(DNRSPath)" />
+	<UsingTask TaskName="DotNetResourcesExtensions.BuildTasks.DependenciesResolver" AssemblyFile="$(DNRSPath)" />
+
+	<Target Name="DG_Resolve" BeforeTargets="BeforeBuild">
+		<DependenciesResolver PackageRoot="$(NuGetPackageRoot)" RunningFramework="$(TFIdentifier)" />
+	</Target>
+
+	<!-- Done! -->
+</Project>

@@ -11,7 +11,7 @@ namespace DotNetResourcesExtensions.Collections
     /// It is a collection class that is based on <see cref="Memory{T}"/> API's for better resource pooling 
     /// and defines methods for writing the resources to resource writers.
     /// </summary>
-    public sealed class ResourceCollection : ICollection<IResourceEntry>
+    public sealed class ResourceCollection : ICollection<IResourceEntry> , IResourceEntryEnumerable
     {
         private System.Int32 _index;
         private IComparer<IResourceEntry> _comparer;
@@ -97,7 +97,7 @@ namespace DotNetResourcesExtensions.Collections
         }
 
         /// <inheritdoc />
-        public int Count => entries.Length;
+        public int Count => _index == 0 ? 0 : entries.Length;
 
         /// <inheritdoc />
         public bool IsReadOnly => false;
@@ -128,11 +128,20 @@ namespace DotNetResourcesExtensions.Collections
 
         private void Recreate()
         {
-            List<IResourceEntry> enttemp = new();
-            foreach (IResourceEntry ent in entries.Span) { if (ent != null) { enttemp.Add(ent); } }
-            entries = new(enttemp.ToArray(), 0, enttemp.Count);
-            enttemp.Clear();
-            enttemp = null;
+            IResourceEntry temp;
+            IResourceEntry[] tents = new IResourceEntry[entries.Length];
+            System.Int32 I = 0, J = 0;
+            for (; I < tents.Length; I++)
+            {
+                temp = entries.Span[I];
+                if (temp != null)
+                {
+                    tents[J] = temp;
+                    J++;
+                }
+            }
+            entries = new(tents, 0, J);
+            tents = null;
         }
 
         /// <inheritdoc />
@@ -151,11 +160,26 @@ namespace DotNetResourcesExtensions.Collections
         public void Add(System.String Name , System.Object Value)
             => Add(IResourceEntryExtensions.Create(Name, Value));
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Clears the contents of this <see cref="ResourceCollection"/>. <br />
+        /// Note that this method does not completely invalidate the internal array; it just
+        /// clears the saved data within. <br /> To ensure that the internal array
+        /// is completely invalidated , use the <see cref="FullClear"/> method.
+        /// </summary>
         public void Clear()
         {
             entries.Span.Clear();
             _index = 0;
+        }
+
+        /// <summary>
+        /// Clears the contents of this <see cref="ResourceCollection"/> , but also
+        /// invalidates the internal array for less memory impact as possible.
+        /// </summary>
+        public void FullClear()
+        {
+            Clear();
+            entries = System.Memory<IResourceEntry>.Empty;
         }
 
         /// <inheritdoc />
@@ -164,11 +188,12 @@ namespace DotNetResourcesExtensions.Collections
         /// <inheritdoc />
         public void CopyTo(IResourceEntry[] array, int arrayIndex)
         {
-            System.Int32 I = 0 , J = arrayIndex;
-            while (I < entries.Length)
+            if (array == null) { throw new ArgumentNullException(nameof(array)); }
+            if (arrayIndex < 0) { throw new ArgumentOutOfRangeException(nameof(arrayIndex) , "The array index must be greater or equal to zero."); }
+            if (array.Length - (arrayIndex + 1) < Count) { throw new ArgumentException("Given the current array situation and the given array index, the source array is not large enough to fit all the elements contained in this ResourceCollection." , nameof(array)); }
+            for (System.Int32 I = 0, J = arrayIndex; I < entries.Length; I++ , J++)
             {
                 array[J] = entries.Span[I];
-                J++; I++;
             }
         }
 
@@ -211,7 +236,23 @@ namespace DotNetResourcesExtensions.Collections
             return pos != -1;
         }
 
+        /// <summary>
+        /// Removes the first occurence of the specified resource name and value from the <see cref="ICollection{T}"/>. <br />
+        /// The resource name and value given must exist inside the collection as an <see cref="IResourceEntry"/>; otherwise , 
+        /// this method will fail.
+        /// </summary>
+        /// <param name="Name">The resource name which is to be removed.</param>
+        /// <param name="obj">The resource value which is to be removed.</param>
+        /// <returns><see langword="true"/> if the specified resource name and value were successfully removed from the <see cref="ResourceCollection"/>;
+        /// otherwise, <see langword="false"/>. This method also returns <see langword="false"/> if the specified resource name and value is not found in the
+        /// original <see cref="ResourceCollection"/>.</returns>
+        public System.Boolean Remove(System.String Name, System.Object obj)
+            => Remove(IResourceEntryExtensions.Create(Name, obj));
+
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        /// <inheritdoc />
+        public IResourceEntryEnumerator GetResourceEntryEnumerator() => new ResourceEntryEnumerator(GetEnumerator());
 
         /// <summary>
         /// Gets or sets the resource entry at the specified index pointed by the <paramref name="index"/> parameter.

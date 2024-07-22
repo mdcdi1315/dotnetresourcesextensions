@@ -77,14 +77,14 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
         }
 
         /// <inheritdoc />
-        public byte[] GetBytes<T>(T obj) where T : notnull
+        public virtual byte[] GetBytes<T>(T obj) where T : notnull
         {
             IArrayRepresentation<T> apr = ResolveInternal<T>();
             return apr.GetTransformMethod()(obj);
         }
 
         /// <inheritdoc />
-        public T GetObject<T>(byte[] typedarray) where T : notnull
+        public virtual T GetObject<T>(byte[] typedarray) where T : notnull
         {
             IArrayRepresentation<T> apr = ResolveInternal<T>();
             return apr.GetUntransformMethod()(typedarray);

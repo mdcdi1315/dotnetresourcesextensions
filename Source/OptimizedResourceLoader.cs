@@ -67,7 +67,7 @@ namespace DotNetResourcesExtensions
                     { throw GetResourceIncorrectType(Name, typeof(System.String), D.Value.GetType()); }
                     // Because the size of strings is small , create a fast random-access
                     // in-memory dictionary that contains all the hit occurences.
-                    CommonSessionStrings.Add(D.Key.ToString(), D.Value.ToString());
+                    try { CommonSessionStrings.Add(D.Key.ToString(), D.Value.ToString()); } catch (ArgumentException) { }
                     return D.Value.ToString();
                 }
             }

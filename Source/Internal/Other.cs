@@ -133,6 +133,26 @@ namespace DotNetResourcesExtensions.Internal
             return Contents;
         }
 
+        public static void WriteBuffered(System.IO.Stream stream , System.Byte[] data)
+        {
+            // Abstract: Writes bytes to a stream with a 'buffered' method.
+            // Calculate the blocks that will be raw-copied. 
+            // Also , calculate the remaining data that will be plainly passed.
+            System.Int64 blocks = data.LongLength / BUFSIZE , 
+                c = data.LongLength % BUFSIZE;
+            System.Int32 pos = 0;
+            // Copy all data to the stream
+            while (blocks > 0) {
+                stream.Write(data, pos, BUFSIZE);
+                pos += BUFSIZE;
+                blocks--;
+            }
+            // If the input array size is not exactly a multiple of BUFSIZE , the rest data will be copied as-it-is.
+            // This even works for cases that data.LongLength < BUFSIZE because the while loop
+            // will never be entered.
+            if (c > 0) { stream.Write(data, pos, (System.Int32)c); }
+        }
+
         public static void BlockCopy(System.IO.Stream input, System.IO.Stream output)
         {
             System.Byte[] buffer = new System.Byte[BUFSIZE];
@@ -347,11 +367,10 @@ namespace DotNetResourcesExtensions.Internal
             // Skip the 4 read bytes read previously.
             I += SIZEIDLEN;
             // Return the object.
-            return formatter.GetObjectFromBytes(ParserHelpers.GetBytes(bytes: bytes , I , len) , System.Type.GetType(typestring , false , true));
+            return formatter.GetObjectFromBytes(ParserHelpers.GetBytes(bytes: bytes , I , len) , System.Type.GetType(typestring , true , true));
         }
 
     }
-
 }
 
 namespace System.Numerics.Hashing

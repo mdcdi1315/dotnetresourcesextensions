@@ -1,13 +1,90 @@
-﻿<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Sdk="Microsoft.NET.Sdk">
 
-	<Import Project="$(MSBuildThisFilePath)DotNetResourcesExtensions.baseproj" />
-		
 	<PropertyGroup>
 		<TargetFrameworks>$(NetCoreIdentifier);$(NetCoreWindowsIdentifier);netstandard2.0;$(NetFrameworkIdentifier)</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="System.Text.Json" Version="8.0.3" />
+	  <PackageReference Include="System.Text.Json" Version="8.0.4" />
 	</ItemGroup>
+	
+	<PropertyGroup>
+		<_ProjName>DotNetResourcesExtensions</_ProjName>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>annotations</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<LangVersion>11</LangVersion>
+		<PackageId>$(_ProjName)</PackageId>
+		<IsPackable>True</IsPackable>
+		<AssemblyName>$(_ProjName)</AssemblyName>
+		<AssemblyVersion>1.0.0.1</AssemblyVersion>
+		<ProductName>$(_ProjName)</ProductName>
+		<Product>$(_ProjName) is a project that defines new possibilities on handling resources of a .NET application.
+Additionally , it defines new types for doing resource serializations never thought of.
+		</Product>
+		<ProductVersion>1.0.0.1-initial</ProductVersion>
+		<Company>© MDCDI1315. $(PackageProjectUrl)</Company>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageVersion>1.0.0-alpha</PackageVersion>
+		<PackageTags>resources</PackageTags>
+		<RepositoryUrl>$(PackageProjectUrl)</RepositoryUrl>
+		<PackageReleaseNotes>Initial Test version of DotNetResourcesExtensions as a NuGet package</PackageReleaseNotes>
+		<PackageProjectUrl>http://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
+		<Authors>mdcdi1315</Authors>
+		<DebugType Condition="'$(Configuration)' == 'Debug'">Full</DebugType>
+		<AssemblyOriginatorKeyFile>..\ProjectKey.snk</AssemblyOriginatorKeyFile>
+		<SignAssembly>True</SignAssembly>
+		<UseWPF Condition="'$(TargetFramework)' == '$(NetFrameworkIdentifier)' OR '$(TargetFramework)' == '$(NetCoreWindowsIdentifier)'">True</UseWPF>
+	</PropertyGroup>
+
+  <ItemGroup>
+	<Compile Include="Properties\AssemblyInfo.cs" />
+	<Compile Include="$(MSBuildThisFileDirectory)\*.cs" />
+	<Compile Include="$(MSBuildThisFileDirectory)\Internal\*.cs" />
+	<Compile Include="$(MSBuildThisFileDirectory)\Internal\CustomResX\*.cs" />
+	<!-- The System.Resources.Extensions code is built for all plaforms and will be hosted in a DotNetResourcesExtensions namespace. -->
+	<Compile Include="$(MSBuildThisFileDirectory)\Internal\DotNetResourcesrw\*.cs" />
+	<None Include="Pkg-Readme.md" Pack="true" PackagePath="/" />
+	<None Include="$(MSBuildThisFileDirectory)/../BuildTasks/bin/Release/net472/DotNetResourcesExtensions.targets" Pack="true" PackagePath="/buildTransitive/" />
+	<None Include="$(MSBuildThisFileDirectory)/../BuildTasks/bin/Release/net472/DotNetResourcesExtensions*.dll" Pack="true" PackagePath="/tools/net472/" />
+	<None Include="$(MSBuildThisFileDirectory)/../BuildTasks/bin/Release/netstandard2.0/DotNetResourcesExtensions*.dll" Pack="true" PackagePath="/tools/netstandard2.0/" />
+	<None Include="$(MSBuildThisFileDirectory)/../LICENSE.txt" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == '$(NetFrameworkIdentifier)' OR '$(TargetFramework)' == '$(MDCFRNetFrameworkIdentifier)'">
+		<Reference Include="System.Windows.Forms" />
+	</ItemGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == '$(NetCoreWindowsIdentifier)'">
+		<UseWindowsForms>true</UseWindowsForms>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Update="Properties\Resources.resx">
+	    <SubType>Designer</SubType>
+	  </EmbeddedResource>
+	  <Compile Include="Properties\Resources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Resources.resx</DependentUpon>
+	  </Compile>
+	  <EmbeddedResource Include="Properties\Resources.resx" LogicalName="DotNetResourcesExtensions.Properties.Resources.resources">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	</ItemGroup>
+
+	<Target Name="DI_start" BeforeTargets="Build">
+		<Message Importance="High" Text="The build will use as a package restore path the $(NuGetPackageRoot)." />
+	</Target>
+	
+	<Target Name="DD_PackAdditional" BeforeTargets="Pack">
+		<MSBuild Projects="$(MSBuildThisFileDirectory)/../BuildTasks/BuildTasks.csproj"
+			BuildInParallel="false" Properties="Configuration=Release" Targets="Restore;Build" 
+			UseResultsCache="true" />
+	</Target>
 	
 </Project>

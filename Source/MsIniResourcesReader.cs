@@ -60,7 +60,7 @@ namespace DotNetResourcesExtensions
     /// This is the enumerator implementation that the <see cref="MsIniResourcesReader"/> currently uses. <br />
     /// You cannot create an instance of this class; Instead , use the <see cref="MsIniResourcesReader.GetEnumerator"/> method , then cast to this type.
     /// </summary>
-    public sealed class MsIniResourcesEnumerator : IDictionaryEnumerator
+    public sealed class MsIniResourcesEnumerator : Collections.IResourceEntryEnumerator
     {
         private Internal.CustomFormatter.ICustomFormatter fmt;
         private System.String[,] entdata;
@@ -151,6 +151,11 @@ namespace DotNetResourcesExtensions
         /// Gets the current entry as a instance of the <see cref="MsIniEntry"/> structure.
         /// </summary>
         public MsIniEntry AsMsIniEntry => GetEntry();
+
+        /// <summary>
+        /// Gets the current entry as a instance of the <see cref="IResourceEntry"/> interface.
+        /// </summary>
+        public IResourceEntry ResourceEntry => GetEntry();
 
         /// <summary>
         /// Gets the resource name of the current entry.

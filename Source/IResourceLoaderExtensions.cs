@@ -43,11 +43,43 @@ namespace DotNetResourcesExtensions
         public static System.Drawing.Image GetImageResource(this IResourceLoader ldr , System.String Name)
         {
             System.Object obj = ldr.GetResource(Name);
-            if (obj is System.Drawing.Bitmap || obj is System.Drawing.Icon || obj is System.Drawing.Imaging.Metafile) 
-            {
-               return obj as System.Drawing.Image;
+            if (obj is System.Drawing.Bitmap || obj is System.Drawing.Imaging.Metafile) {
+               return (System.Drawing.Image)obj;
+            }
+            if (obj is System.Drawing.Icon ic) {
+                return ic.ToBitmap();
             }
             throw new ResourceTypeMismatchException(obj.GetType(), typeof(System.Drawing.Image), Name);
+        }
+
+        /// <summary>
+        /// Gets an image resource specified by <paramref name="Name"/> parameter and converts the image
+        /// to a suitable XAML image for loading it and using it in a WPF application environment.
+        /// </summary>
+        /// <param name="ldr">The resource loader to get the resource from.</param>
+        /// <param name="Name">The resource name to look up.</param>
+        /// <returns></returns>
+        /// <exception cref = "ResourceTypeMismatchException" > The specified image was not any of
+        /// <see cref="System.Drawing.Icon"/> , <see cref="System.Drawing.Bitmap"/> or  <see cref="System.Drawing.Imaging.Metafile"/>.</exception>
+        /// <exception cref="ResourceNotFoundException">The specified resource was not found.</exception>
+        public static System.Windows.Media.Imaging.BitmapImage GetImageResourceAsWPF(this IResourceLoader ldr , System.String Name)
+        {
+            System.Drawing.Image img = GetImageResource(ldr, Name);
+            System.IO.Stream STR = new System.IO.MemoryStream();
+            System.Windows.Media.Imaging.BitmapImage IMG = new();
+            try {
+                img.Save(STR, img.RawFormat);
+            } catch (ArgumentNullException) {
+                img.Save(STR, System.Drawing.Imaging.ImageFormat.Bmp);
+            }
+            STR.Position = 0;
+            IMG.BeginInit();
+            IMG.StreamSource = STR;
+            IMG.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            IMG.CreateOptions = System.Windows.Media.Imaging.BitmapCreateOptions.DelayCreation;
+            IMG.EndInit();
+            IMG.Freeze();
+            return IMG;
         }
 #endif
 

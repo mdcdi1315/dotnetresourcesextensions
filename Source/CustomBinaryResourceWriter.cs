@@ -53,12 +53,12 @@ namespace DotNetResourcesExtensions
 
         private void GenerateHeader()
         {
-            BinaryHeaderReaderWriter br = new();
-            br.CreateNew(representations.ToArray());
             targetstream.Position = 0;
             targetstream.SetLength(0);
-            targetstream.Write(br.Result.ToArray(), 0, (System.Int32)br.HeaderLength);
-            br = null;
+            CustomBinaryHeaderBlob blob = CustomBinaryHeaderBlob.Default;
+            CustomBinaryHeader CBH = CustomBinaryHeader.WriteToStream(targetstream);
+            blob.DataPositions = representations.ToArray();
+            CBH.WriteHeader(0, blob);
             temporary.Position = 0;
             ParserHelpers.BlockCopy(temporary, targetstream);
             generated = true;
@@ -71,10 +71,9 @@ namespace DotNetResourcesExtensions
         public void AddResource(string name, string value)
         {
             ParserHelpers.ValidateName(name);
-            BinaryResourceRepresentation brp = new(name , Encoding.UTF8.GetBytes(value) , typeof(System.String) ,  BinaryRESTypes.String);
-            temporary.Write(brp.FinalBytes.ToArray() , 0 , brp.FinalBytes.Count);
-            representations.Add(brp.FinalBytes.Count);
-            brp = null;
+            CustomBinaryResource CBR = CustomBinaryResource.WriteToStream(temporary);
+            representations.Add(CBR.WriteResource(new() { Name = name, Value = value }, exf));
+            CBR = null;
             generated = false; // We must re-false the generated so that the generator must regenerate the result.
         }
 
@@ -85,12 +84,9 @@ namespace DotNetResourcesExtensions
         public void AddResource(System.String name , System.Object value) 
         {
             ParserHelpers.ValidateName(name);
-            BinaryResourceRepresentation brp = new(name, 
-                exf.GetBytesFromObject(value), value.GetType(), 
-                BinaryRESTypes.Object);
-            temporary.Write(brp.FinalBytes.ToArray(), 0, brp.FinalBytes.Count);
-            representations.Add(brp.FinalBytes.Count);
-            brp = null;
+            CustomBinaryResource CBR = CustomBinaryResource.WriteToStream(temporary);
+            representations.Add(CBR.WriteResource(new() { Name = name, Value = value }, exf));
+            CBR = null;
             generated = false; // We must re-false the generated so that the generator must regenerate the result.
         }
 
@@ -102,16 +98,15 @@ namespace DotNetResourcesExtensions
         {
             if (value.Length > System.Int32.MaxValue - 1400) { throw new OverflowException("The byte array length is extravagantly large to fit into the resource."); }
             ParserHelpers.ValidateName(name);
-            BinaryResourceRepresentation brp = new(name, value, typeof(System.Byte[]), BinaryRESTypes.ByteArray);
-            temporary.Write(brp.FinalBytes.ToArray(), 0, brp.FinalBytes.Count);
-            representations.Add(brp.FinalBytes.Count);
-            brp = null;
+            CustomBinaryResource CBR = CustomBinaryResource.WriteToStream(temporary);
+            representations.Add(CBR.WriteResource(new() { Name = name, Value = value }, exf));
+            CBR = null;
             generated = false; // We must re-false the generated so that the generator must regenerate the result.
         }
 
         /// <inheritdoc />
         /// <remarks>After this method is called , no more modifications can be performed.</remarks>
-        public void Generate() { targetstream?.Flush(); GenerateHeader(); }
+        public void Generate() { temporary?.Flush(); targetstream?.Flush(); GenerateHeader(); }
 
         /// <inheritdoc />
         public void Close() 
@@ -137,11 +132,10 @@ namespace DotNetResourcesExtensions
             representations?.Clear();
             exf?.Dispose();
             exf = null;
-            if (temporary != null) 
-            {
+            if (temporary != null) {
                 System.String fp = temporary.Name;
-                temporary.Dispose(); 
-                System.IO.File.Delete(fp);
+                temporary.Dispose();
+                try { System.IO.File.Delete(fp); } catch { }
                 temporary = null;
             }
             representations = null;

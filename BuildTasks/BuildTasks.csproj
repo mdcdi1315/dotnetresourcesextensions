@@ -29,27 +29,7 @@
   </ItemGroup>
 
 	<Target Name="GenerateTargetsFile" BeforeTargets="BeforeBuild">
-		<PropertyGroup>
-			<TargetsFileContents>
-			<![CDATA[<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="Current">
-	<!-- Imports and prepares the DotNetResourcesExtensions.BuildTasks assembly. -->
-	
-	<PropertyGroup>
-		<TFIdentifier Condition="'%24%28TargetFramework.Contains%28`net7.0`%29%29' == 'true'">netstandard2.0</TFIdentifier>
-		<TFIdentifier Condition="'%24%28TargetFramework.Contains%28`net8.0`%29%29' == 'true'">netstandard2.0</TFIdentifier>
-		<TFIdentifier Condition="'%24%28TargetFramework.Contains%28`netstandard`%29%29' == 'true'">netstandard2.0</TFIdentifier>
-		<TFIdentifier Condition="'%24%28TargetFramework.Contains%28`net4`%29%29' == 'true'">net472</TFIdentifier>
-		<DNRSPath>%24%28MSBuildThisFilePath%29/../tools/%24%28TFIdentifier%29/DotNetResourcesExtensions.BuildTasks.dll</DNRSPath>
-	</PropertyGroup>
-	
-	<!-- Import the MSBuild task -->
-	<UsingTask TaskName="DotNetResourcesExtensions.BuildTasks.DotNetResExtGenerator" AssemblyFile="%24%28DNRSPath%29" />
-	
-	<!-- Done! -->
-</Project>]]></TargetsFileContents>
-		</PropertyGroup>
-		<WriteLinesToFile File="$(OutputPath)/DotNetResourcesExtensions.targets" Lines="$(TargetsFileContents)" WriteOnlyWhenDifferent="true" Overwrite="true" />
+		<Copy SourceFiles="$(MSBuildThisFileDirectory)/BuildTasksFile.targets" DestinationFiles="$(OutputPath)/DotNetResourcesExtensions.targets" SkipUnchangedFiles="true" ContinueOnError="false" />
 	</Target>
 
 </Project>

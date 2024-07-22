@@ -9,6 +9,8 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
 
 #if WINDOWS10_0_17763_0_OR_GREATER || NET471_OR_GREATER
     using System.Drawing;
+    using System.Drawing.Imaging;
+    using System.Runtime.InteropServices;
 #endif
 
     internal sealed class DoubleRepresentation : DefaultArrayRepresentation<System.Double>
@@ -736,79 +738,183 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
 
     internal sealed class BitmapRepresentation : DefaultArrayRepresentation<System.Drawing.Bitmap>
     {
-        public override Converter<System.Drawing.Bitmap, byte[]> GetTransformMethod()
+        // The below boilerplate serialization code was acquired from a decompiled .NET Framework flavor
+        // of System.Drawing. They are seem to use the below technique to serialize images...
+        private struct OBJECTHEADER
         {
-            System.Byte[] Method(System.Drawing.Bitmap bitmap)
+            public short signature;
+
+            public short headersize;
+
+            public short objectType;
+
+            public short nameLen;
+
+            public short classLen;
+
+            public short nameOffset;
+
+            public short classOffset;
+
+            public short width;
+
+            public short height;
+
+            public IntPtr pInfo;
+
+            public OBJECTHEADER()
             {
-                if (bitmap is null) { throw new ArgumentNullException(nameof(bitmap)); }
-                MemoryStream MS = new();
-                try
-                {
-                    // If this image is a bitmap , then it must be saved to PNG.
-                    // Skipping this step will have you ended up with an ExternalException
-                    // due to the fact that the bitmap is a lossy format , and I noticed out that 
-                    // between serializations the format becomes corrupted.
-                    if (bitmap.RawFormat.Guid == System.Drawing.Imaging.ImageFormat.Bmp.Guid)
-                    {
-                        bitmap.Save(MS, System.Drawing.Imaging.ImageFormat.Png);
-                    } else
-                    {
-                        bitmap.Save(MS, bitmap.RawFormat);
-                    }
-                    return MS.ToArray();
-                } finally { MS?.Dispose(); }
+                signature = 0;
+                headersize = 0;
+                objectType = 0;
+                nameLen = 0;
+                classLen = 0;
+                nameOffset = 0;
+                classOffset = 0;
+                width = 0;
+                height = 0;
+                pInfo = IntPtr.Zero;
             }
-            return Method;
         }
 
-        public override Converter<byte[], System.Drawing.Bitmap> GetUntransformMethod()
+        internal static ImageCodecInfo FindEncoder(ImageFormat fmt)
         {
-            System.Drawing.Bitmap Method(System.Byte[] bytes)
+            ImageCodecInfo[] imageEncoders = ImageCodecInfo.GetImageEncoders();
+            foreach (ImageCodecInfo ici in imageEncoders)
             {
-                System.Drawing.Bitmap result;
-                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-                MemoryStream MS = new(bytes);
-                try
-                {
-                    result = new(MS);
-                } finally { MS?.Dispose(); }
-                return result;
+                if (ici.FormatID.Equals(fmt.Guid)) { return ici; }
             }
+            return null;
+        }
+
+        internal static void Save(System.Drawing.Image img, MemoryStream stream)
+        {
+            ImageFormat imageFormat = img.RawFormat;
+            if (imageFormat == ImageFormat.Jpeg)
+            {
+                imageFormat = ImageFormat.Png;
+            }
+            ImageCodecInfo imageCodecInfo = FindEncoder(imageFormat);
+            if (imageCodecInfo == null)
+            {
+                imageCodecInfo = FindEncoder(ImageFormat.Png);
+            }
+            img.Save(stream, imageCodecInfo, null);
+        }
+
+        internal static System.Byte[] GetBytes(System.Drawing.Image value)
+        {
+            if (value is null) { throw new ArgumentNullException(nameof(value)); }
+            bool flag = false;
+            MemoryStream memoryStream = null;
+            Image image2 = null;
+            try
+            {
+                memoryStream = new MemoryStream();
+                image2 = value;
+                if (image2.RawFormat.Equals(ImageFormat.Icon))
+                {
+                    flag = true;
+                    image2 = new Bitmap(image2, image2.Width, image2.Height);
+                }
+                Save(image2, memoryStream);
+            } finally {
+                memoryStream?.Close();
+                if (flag)
+                {
+                    image2?.Dispose();
+                }
+            }
+            return memoryStream?.ToArray();
+        }
+
+        internal static unsafe Stream GetBitmapStream(byte[] rawData)
+        {
+            try
+            {
+                fixed (byte* ptr = rawData)
+                {
+                    IntPtr intPtr = (IntPtr)ptr;
+                    if (intPtr == IntPtr.Zero)
+                    {
+                        return null;
+                    }
+                    if (rawData.Length <= sizeof(OBJECTHEADER) || Marshal.ReadInt16(intPtr) != 7189)
+                    {
+                        return null;
+                    }
+                    OBJECTHEADER oBJECTHEADER = (OBJECTHEADER)Marshal.PtrToStructure(intPtr, typeof(OBJECTHEADER));
+                    if (rawData.Length <= oBJECTHEADER.headersize + 18)
+                    {
+                        return null;
+                    }
+                    string @string = Encoding.ASCII.GetString(rawData, oBJECTHEADER.headersize + 12, 6);
+                    if (@string != "PBrush")
+                    {
+                        return null;
+                    }
+                    byte[] bytes = Encoding.ASCII.GetBytes("BM");
+                    for (int i = oBJECTHEADER.headersize + 18; i < oBJECTHEADER.headersize + 510 && i + 1 < rawData.Length; i++)
+                    {
+                        if (bytes[0] == ptr[i] && bytes[1] == ptr[i + 1])
+                        {
+                            return new MemoryStream(rawData, i, rawData.Length - i);
+                        }
+                    }
+                }
+            } catch (OutOfMemoryException) { }
+            catch (ArgumentException) { }
+            return null;
+        }
+
+        internal static System.Drawing.Image GetImage(System.Byte[] array)
+        {
+            Stream stream = GetBitmapStream(array);
+            if (stream == null)
+            {
+                stream = new MemoryStream(array);
+            }
+            return Image.FromStream(stream);
+        }
+
+        public override Converter<Bitmap, byte[]> GetTransformMethod() => GetBytes;
+
+        public override Converter<byte[], Bitmap> GetUntransformMethod()
+        {
+            System.Drawing.Bitmap Method(System.Byte[] bytes) => (System.Drawing.Bitmap)GetImage(bytes);
             return Method;
         }
     }
 
     internal sealed class IconRepresentation : DefaultArrayRepresentation<System.Drawing.Icon>
     {
-        public override Converter<System.Drawing.Icon, byte[]> GetTransformMethod()
+        public override Converter<Icon, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.Drawing.Icon bitmap)
+            System.Byte[] Method(System.Drawing.Icon icon)
             {
-                if (bitmap is null) { throw new ArgumentNullException(nameof(bitmap)); }
-                MemoryStream MS = new();
+                if (icon is null) { throw new ArgumentNullException(nameof(icon)); }
+                System.IO.MemoryStream MS = null;
                 try
                 {
-                    bitmap.Save(MS);
+                    MS = new();
+                    icon.Save(MS);
                     return MS.ToArray();
                 } finally { MS?.Dispose(); }
             }
             return Method;
         }
 
-        public override Converter<byte[], System.Drawing.Icon> GetUntransformMethod()
+        public override Converter<byte[], Icon> GetUntransformMethod()
         {
             System.Drawing.Icon Method(System.Byte[] bytes)
             {
-                System.Drawing.Icon result;
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-                MemoryStream MS = new(bytes);
+                System.IO.MemoryStream MS = null;
                 try
                 {
-                    MS.Position = 0;
-                    result = new(MS);
-                }
-                finally { MS?.Dispose(); }
-                return result;
+                    MS = new(bytes);
+                    return new(MS);
+                } finally { MS?.Dispose(); }
             }
             return Method;
         }

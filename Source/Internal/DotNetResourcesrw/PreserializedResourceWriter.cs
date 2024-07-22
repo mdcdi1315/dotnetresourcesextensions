@@ -4,6 +4,7 @@ using System.Text;
 using System.Resources;
 using System.ComponentModel;
 using System.Collections.Generic;
+using DotNetResourcesExtensions.Internal.CustomFormatter;
 
 namespace DotNetResourcesExtensions.Internal.DotNetResources;
 
@@ -253,14 +254,14 @@ public sealed class PreserializedResourceWriter : IDotNetResourcesExtensionsWrit
 		{
 			throw new InvalidOperationException(DotNetResourcesExtensions.Properties.Resources.InvalidOperation_ResourceWriterSaved);
 		}
-		if (value != null && value is Stream)
+		if (value is Stream str)
 		{
-			AddResourceInternal(name, (Stream)value, closeAfterWrite: false);
+			AddResourceInternal(name, str, closeAfterWrite: false);
 			return;
 		}
-		_caseInsensitiveDups.Add(name, null);
-		_resourceList.Add(name, value);
-	}
+		AddResourceData(name , ResourceTypeCode.SerializedWithCustomFormatter.ToString() , new ResourceDataRecord(SerializationFormat.BinaryFormatter , value , true));
+        _requiresDeserializingResourceReader = true;
+    }
 
 	/// <summary>Adds a <see cref="T:System.IO.Stream" /> as a named resource to the list of resources to be written to a file.</summary>
 	/// <param name="name">The resource name.</param>
@@ -323,7 +324,7 @@ public sealed class PreserializedResourceWriter : IDotNetResourcesExtensionsWrit
 		_caseInsensitiveDups.Add(name, null);
 		if (_preserializedData == null)
 		{
-			_preserializedData = new Dictionary<string, PrecannedResource>(FastResourceComparer.Default);
+			_preserializedData = new(FastResourceComparer.Default);
 		}
 		_preserializedData.Add(name, new PrecannedResource(typeName, data));
 	}
@@ -390,8 +391,7 @@ public sealed class PreserializedResourceWriter : IDotNetResourcesExtensionsWrit
 		int num2 = 0;
 		MemoryStream memoryStream2 = new MemoryStream(num * 40);
 		BinaryWriter binaryWriter3 = new BinaryWriter(memoryStream2, Encoding.Unicode);
-		Stream stream = new MemoryStream();
-		using (stream)
+		using (Stream stream = new MemoryStream())
 		{
 			BinaryWriter binaryWriter4 = new BinaryWriter(stream, Encoding.UTF8);
 			if (_preserializedData != null)
@@ -694,31 +694,6 @@ public sealed class PreserializedResourceWriter : IDotNetResourcesExtensionsWrit
 		_requiresDeserializingResourceReader = true;
 	}
 
-	/// <summary>Adds a resource of the specified type, represented by a byte array, that will be passed to <see cref="T:System.Runtime.Serialization.Formatters.Binary.BinaryFormatter" /> when reading the resource.</summary>
-	/// <param name="name">The resource name.</param>
-	/// <param name="value">A byte array containing the value of the resource in <c>Byte[]</c> form understood by <see cref="T:System.Runtime.Serialization.Formatters.Binary.BinaryFormatter" />.</param>
-	/// <param name="typeName">The optional assembly qualified type name of the resource. The default value is <see langword="null" />.</param>
-	/// <exception cref="T:System.ArgumentNullException">
-	///   <paramref name="name" /> or <paramref name="value" /> is <see langword="null" />.</exception>
-	[Obsolete("BinaryFormatter serialization is obsolete and should not be used. See https://aka.ms/binaryformatter for more information." , true)]
-	public void AddBinaryFormattedResource(string name, byte[] value, string? typeName = null)
-	{
-		if (name == null)
-		{
-			throw new ArgumentNullException("name");
-		}
-		if (value == null)
-		{
-			throw new ArgumentNullException("value");
-		}
-		if (typeName == null)
-		{
-			typeName = UnknownObjectTypeName;
-		}
-		AddResourceData(name, typeName, new ResourceDataRecord(SerializationFormat.BinaryFormatter, value));
-		_requiresDeserializingResourceReader = true;
-	}
-
 	/// <summary>Adds a resource of the specified type represented by a <see cref="T:System.IO.Stream" /> value that is passed to the type's constructor when reading the resource.</summary>
 	/// <param name="name">The resource name.</param>
 	/// <param name="value">The value of the resource in <see cref="T:System.IO.Stream" /> form understood by the type's constructor.</param>
@@ -760,43 +735,38 @@ public sealed class PreserializedResourceWriter : IDotNetResourcesExtensionsWrit
 		{
 			switch (resourceDataRecord.Format)
 			{
-			case SerializationFormat.BinaryFormatter:
-			{
-				byte[] array2 = (byte[])resourceDataRecord.Data;
-				if (_requiresDeserializingResourceReader)
+				case SerializationFormat.BinaryFormatter:
+					System.Byte[] bytes = ResourceInterchargeFormat.GetFromObject(formatter, resourceDataRecord.Data);
+                    writer.Write7BitEncodedInt(bytes.Length);
+                    writer.Write(bytes);
+					break;
+                case SerializationFormat.ActivatorStream:
 				{
-					writer.Write7BitEncodedInt(array2.Length);
+					Stream stream = (Stream)resourceDataRecord.Data;
+					if (stream.Length > int.MaxValue)
+					{
+						throw new ArgumentException(DotNetResourcesExtensions.Properties.Resources.ArgumentOutOfRange_StreamLength);
+					}
+					stream.Position = 0L;
+					writer.Write7BitEncodedInt((int)stream.Length);
+					stream.CopyTo(writer.BaseStream);
+					break;
 				}
-				writer.Write(array2);
-				break;
-			}
-			case SerializationFormat.ActivatorStream:
-			{
-				Stream stream = (Stream)resourceDataRecord.Data;
-				if (stream.Length > int.MaxValue)
+				case SerializationFormat.TypeConverterByteArray:
 				{
-					throw new ArgumentException(DotNetResourcesExtensions.Properties.Resources.ArgumentOutOfRange_StreamLength);
+					byte[] array = (byte[])resourceDataRecord.Data;
+					writer.Write7BitEncodedInt(array.Length);
+					writer.Write(array);
+					break;
 				}
-				stream.Position = 0L;
-				writer.Write7BitEncodedInt((int)stream.Length);
-				stream.CopyTo(writer.BaseStream);
-				break;
-			}
-			case SerializationFormat.TypeConverterByteArray:
-			{
-				byte[] array = (byte[])resourceDataRecord.Data;
-				writer.Write7BitEncodedInt(array.Length);
-				writer.Write(array);
-				break;
-			}
-			case SerializationFormat.TypeConverterString:
-			{
-				string value = (string)resourceDataRecord.Data;
-				writer.Write(value);
-				break;
-			}
-			default:
-				throw new ArgumentException("Format");
+				case SerializationFormat.TypeConverterString:
+				{
+					string value = (string)resourceDataRecord.Data;
+					writer.Write(value);
+					break;
+				}
+				default:
+					throw new ArgumentException("Format");
 			}
 		}
 		finally
