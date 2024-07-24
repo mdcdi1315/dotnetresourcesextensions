@@ -27,14 +27,17 @@ namespace DotNetResourcesExtensions.BuildTasks
         private IResourceLoader loader;
         private ResourceClassVisibilty visibilty;
 
+        public OutputResourceType OutType { get; set; }
+
         public StronglyTypedResourceGenerator(
             IResourceLoader ldr , System.String MRN , 
-            System.String CN , ResourceClassVisibilty visible) 
+            System.String CN , ResourceClassVisibilty visible , OutputResourceType outputftype) 
         {
             loader = ldr;
             manifestresname = MRN;
             classname = CN;
             visibilty = visible;
+            OutType = outputftype;
         }
 
         public void Generate(ICodeGenerator g , TextWriter output  , CodeGeneratorOptions opt)
@@ -84,7 +87,7 @@ namespace DotNetResourcesExtensions.BuildTasks
             if (visibilty == ResourceClassVisibilty.Public)
             {
                 ctd.Attributes |= MemberAttributes.Public;
-            } else {
+            } else if (visibilty == ResourceClassVisibilty.Internal) {
                 ctd.Attributes |= MemberAttributes.Assembly;
             }
             ctd.Members.Add(CreateInternalLoaderField());
@@ -178,14 +181,18 @@ namespace DotNetResourcesExtensions.BuildTasks
             CodeMethodInvokeExpression invokemrs = new(getmrs, new CodeSnippetExpression($"\"{manifestresname}\""));
             CodeAssignStatement state = new(cfre2, invokemrs);
             System.Type underlying;
-            if (loader is JSONResourcesLoader) {
-                underlying = typeof(JSONResourcesLoader);
-            } else if (loader is CustomDataResourcesLoader) {
-                underlying = typeof(CustomDataResourcesLoader);
-            } else if (loader is DotNetResourceLoader) {
-                underlying = typeof(DotNetResourceLoader);
-            } else {
-                throw new InvalidDataException($"Cannot create the information required using the {loader.GetType().FullName} class.");
+            switch (OutType) {
+                case OutputResourceType.Resources:
+                    underlying = typeof(DotNetResourceLoader);
+                    break;
+                case OutputResourceType.CustomBinary:
+                    underlying = typeof(CustomDataResourcesLoader);
+                    break;
+                case OutputResourceType.JSON:
+                    underlying = typeof(JSONResourcesLoader);
+                    break;
+                default:
+                    throw new InvalidDataException($"Cannot create the information required using any non-binary data class.");
             }
             CodeAssignStatement state2 = new(cfre, new CodeObjectCreateExpression(new CodeTypeReference(underlying), cfre2));
             ctcfs.TryStatements.Add(state);
@@ -321,7 +328,7 @@ namespace DotNetResourcesExtensions.BuildTasks
     /// </summary>
     public static class StronglyTypedCodeProviderBuilder
     {
-        public static void WithCSharp(IResourceLoader loader , System.String ManifestResourceName , System.String ClassName , System.String outfile , ResourceClassVisibilty visible)
+        public static void WithCSharp(IResourceLoader loader , System.String ManifestResourceName , System.String ClassName , System.String outfile , ResourceClassVisibilty visible , OutputResourceType ort)
         {
             if (String.IsNullOrEmpty(ClassName)) {
                 ClassName = ManifestResourceName;
@@ -332,7 +339,7 @@ namespace DotNetResourcesExtensions.BuildTasks
                 fs = new(outfile , System.IO.FileMode.Create);
                 writer = new System.IO.StreamWriter(fs);
                 CSharpCodeProvider prov = new();
-                StronglyTypedResourceGenerator build = new(loader, ManifestResourceName , ClassName , visible);
+                StronglyTypedResourceGenerator build = new(loader, ManifestResourceName , ClassName , visible , ort);
                 build.Generate(prov.CreateGenerator(writer), writer, new() { BlankLinesBetweenMembers = true, IndentString = "  " , VerbatimOrder = true });
             } catch (Exception e) { 
                 throw new AggregateException("Could not generate the result. Code generation failed.", e);
@@ -344,7 +351,7 @@ namespace DotNetResourcesExtensions.BuildTasks
             }
         }
 
-        public static void WithVisualBasic(IResourceLoader loader, System.String ManifestResourceName,System.String ClassName, System.String outfile, ResourceClassVisibilty visible)
+        public static void WithVisualBasic(IResourceLoader loader, System.String ManifestResourceName,System.String ClassName, System.String outfile, ResourceClassVisibilty visible , OutputResourceType ort)
         {
             if (String.IsNullOrEmpty(ClassName)) {
                 ClassName = ManifestResourceName;
@@ -355,7 +362,7 @@ namespace DotNetResourcesExtensions.BuildTasks
                 fs = new(outfile, System.IO.FileMode.Create);
                 writer = new System.IO.StreamWriter(fs);
                 VBCodeProvider prov = new();
-                StronglyTypedResourceGenerator build = new(loader, ManifestResourceName, ClassName, visible);
+                StronglyTypedResourceGenerator build = new(loader, ManifestResourceName, ClassName, visible , ort);
                 build.Generate(prov.CreateGenerator(writer), writer, new() { BlankLinesBetweenMembers = true, IndentString = "  ", VerbatimOrder = true });
             } catch (Exception e) {
                 throw new AggregateException("Could not generate the result. Code generation failed.", e);

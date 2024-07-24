@@ -90,7 +90,7 @@ namespace DotNetResourcesExtensions
                     // Get the object itself.
                     result.Value = reader.exf.GetObjectFromBytes(
                         JE.GetProperty("Value[0]").GetBytesFromBase64()
-                        , System.Type.GetType(ObjType));
+                        , System.Type.GetType(ObjType , true , true));
                     break;
             }
             return result;

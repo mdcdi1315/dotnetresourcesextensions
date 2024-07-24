@@ -5,6 +5,7 @@
 	<RootNamespace>DotNetResourcesExtensions.BuildTasks</RootNamespace>
 	<AssemblyName>$(RootNamespace)</AssemblyName>
 	<LangVersion>10.0</LangVersion>
+	<IsPackable>false</IsPackable>
 	<GenerateAssemblyInfo>False</GenerateAssemblyInfo>
   </PropertyGroup>
 

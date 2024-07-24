@@ -1,5 +1,4 @@
 ﻿
-using DotNetResourcesExtensions.Internal.CustomFormatter.Converters;
 using System;
 using System.Collections.Generic;
 
@@ -62,13 +61,15 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
         public IArrayRepresentation<T> GetConverter<T>()
         {
             System.Type type = typeof(T);
+            AssemblyQualifiedNamesBreaker br = new(type.AssemblyQualifiedName), brt;
             foreach (System.String qname in qualifiednames)
             {
-                if (type.AssemblyQualifiedName == qname)
-                {
+                brt = new(qname);
+                if (brt.Satisfies(br)) {
                     return IArrayRepresentationExtensions.GetArrayRepresentation<T>();
                 }
             }
+            brt = null; br = null;
             throw new Exceptions.ConverterNotFoundException(typeof(T));
         }
     }
@@ -118,6 +119,57 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
             }
             throw new Exceptions.ConverterNotFoundException(typeof(T));
         }
+    }
+
+    internal sealed class AssemblyQualifiedNamesBreaker
+    {
+        private System.String fullname;
+        private System.Reflection.AssemblyName name;
+
+        public AssemblyQualifiedNamesBreaker(System.String full) 
+        { 
+            fullname = full;
+            name = new(fullname.Substring(fullname.IndexOf(',') + 1));
+        }
+
+        public Version MinimumRequiredVersion => name.Version;
+
+        public System.String FullTypeName => fullname.Remove(fullname.IndexOf(','));
+
+        public System.Boolean Satisfies(AssemblyQualifiedNamesBreaker other)
+        {
+            if (other is null) { throw new ArgumentNullException(nameof(other)); }
+            System.Diagnostics.Debug.WriteLine(
+                $"SATISFIES: this.FullTypeName={FullTypeName} other.FullTypeName={other.FullTypeName} other.name.Version={other.name.Version} this.MinimumRequiredVersion={MinimumRequiredVersion}");
+            return other.FullTypeName == FullTypeName && other.name.Version >= MinimumRequiredVersion;
+        }
+
+        public System.Boolean Equals(AssemblyQualifiedNamesBreaker other)
+        {
+            if (other is null) { return false; }
+            return Satisfies(other);
+        }
+
+        public static System.Boolean operator ==(AssemblyQualifiedNamesBreaker a, AssemblyQualifiedNamesBreaker b) => a.Equals(b);
+
+        public static System.Boolean operator !=(AssemblyQualifiedNamesBreaker a , AssemblyQualifiedNamesBreaker b) => a.Equals(b) == false;
+        
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (ReferenceEquals(obj, null))
+            {
+                return false;
+            }
+
+            return Equals(obj as AssemblyQualifiedNamesBreaker);
+        }
+
+        public override int GetHashCode() { return base.GetHashCode(); }
     }
 
 }

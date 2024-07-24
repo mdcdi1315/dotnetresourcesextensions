@@ -17,3 +17,4 @@
 - [The Custom `System.Resources.Extensions` Resource Classes](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/customdotnetres.md)
 - [Documentation of the first custom binary resource format of `DotNetResourcesExtensions` project](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/custombinaryresformatdoc.md)
 - [About the `BuildTasks` project](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/BuildTasks/README.md)
+- [Building and using the `DotNetResourcesExtensions` project](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Building.md)

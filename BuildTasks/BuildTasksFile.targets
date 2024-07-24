@@ -1,21 +1,92 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+	ABSTRACT: This file is preloaded for importing BuildTasks into your project during the NuGet package load.
+	It also provides to the MSBuild proper interface for creating resources.
+-->
 <Project ToolsVersion="Current">
-	<!-- Imports and prepares the DotNetResourcesExtensions.BuildTasks assembly. -->
-	
+
 	<PropertyGroup>
-		<TFIdentifier Condition="$(TargetFramework.Contains(`net7.0`))' == 'true'">netstandard2.0</TFIdentifier>
-		<TFIdentifier Condition="$(TargetFramework.Contains(`net8.0`))' == 'true'">netstandard2.0</TFIdentifier>
-		<TFIdentifier Condition="'$(TargetFramework.Contains(`netstandard`))' == 'true'">netstandard2.0</TFIdentifier>
-		<TFIdentifier Condition="$(TargetFramework.Contains(`net4`)' == 'true'">net472</TFIdentifier>
-		<DNRSPath>$(MSBuildThisFilePath)/../tools/$(TFIdentifier)/DotNetResourcesExtensions.BuildTasks.dll</DNRSPath>
+		<!-- Determine the BuildTasks assembly to use -->
+		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`net7.0`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
+		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`net8.0`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
+		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`netstandard`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
+		<DNRS_TFIdentifier Condition="'$(TargetFramework.StartsWith(`net4`))' == 'true'">net472</DNRS_TFIdentifier>
+		<!-- This will load the net472 one if: 1. This is a .NET Core project , 2. The project is a Windows project and 3. We are building for desktop MSBuild. -->
+		<DNRS_TFIdentifier Condition="'$(DNRS_TFIdentifier)' == 'netstandard2.0' AND '$(TargetFramework.Contains(`windows`))' == 'true' AND '$(MSBuildRuntimeType)' != 'Core'">net472</DNRS_TFIdentifier>
+		<!-- Ultimately fallback to net472 if no target framework can be computed -->
+		<DNRS_TFIdentifier Condition="'$(DNRS_TFIdentifier)' == ''">net472</DNRS_TFIdentifier>
+		<DNRSPath>$(MSBuildThisFileDirectory)../tools/$(DNRS_TFIdentifier)/DotNetResourcesExtensions.BuildTasks.dll</DNRSPath>
+		<!-- [PUBLIC PROPERTY] Enable or disable the dependencies resolve mechanism. This is used by BuildTasks because NuGet cannot provide them to it at run-time. -->
+		<DotNetResourcesExtensions_EnableDepResolve>True</DotNetResourcesExtensions_EnableDepResolve>
+		<!-- [PUBLIC PROPERTY] Returns the currently used BuildTasks assembly path. Prefer to use this property if you want to do programmatical operations that involve this assembly. -->
+		<DotNetResourcesExtensionsBuildTasksPath>$(DNRSPath)</DotNetResourcesExtensionsBuildTasksPath>
+		<!-- [PUBLIC PROPERTY] Defines the output resource file. By default it is a file that is generated on the project cache folders -->
+		<DotNetResourcesExtensions_OutputResFile Condition="'$(DotNetResourcesExtensions_OutputResFile)' == ''">$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)/Generated.resources</DotNetResourcesExtensions_OutputResFile>
+		<!-- [PUBLIC PROPERTY] Specifies the output type of the resulting resource file. Current allowed values: Resources , CustomBinary , JSON -->
+		<DotNetResourcesExtensions_OutputType Condition="'$(DotNetResourcesExtensions_OutputType)' == ''">Resources</DotNetResourcesExtensions_OutputType>
+		<!-- [PUBLIC PROPERTY] Specifies that the outputted resource file should be embedded in the resulting assembly. -->
+		<DotNetResourcesExtensions_EmbedResultingFileToBuildResult Condition="'$(DotNetResourcesExtensions_EmbedResultingFileToBuildResult)' == ''">False</DotNetResourcesExtensions_EmbedResultingFileToBuildResult>
 	</PropertyGroup>
-	
+
+	<ItemDefinitionGroup>
+		<!-- [PUBLIC BUILD ITEM] Specifies a resource file that is leveraged by DotNetResourcesExtensions. -->
+		<!-- Then , it is embedded in the final resource file. -->
+		<GeneratableResource>
+			<!-- Generate a strongly-typed resource class. -->
+			<GenerateStrClass>False</GenerateStrClass>
+			<!-- The class language for this file to be generated in. -->
+			<StrClassLanguage>C#</StrClassLanguage>
+			<!-- The strongly-typed class name. Must be the full namespace name split with dots , such as Generated.Product.Resources. -->
+			<StrClassName></StrClassName>
+			<!-- The manifest stream to load that references the class. This is required for strongly-typed resource class generation. -->
+			<StrClassManifestName></StrClassManifestName>
+			<!-- The source file output path to place it into. This is a required property. -->
+			<StrOutPath></StrOutPath>
+			<!-- Specifies the strongly-typed resource class visibility. It only accepts Internal and Public. -->
+			<StrClassVisibility>Internal</StrClassVisibility>
+		</GeneratableResource>
+	</ItemDefinitionGroup>
+
 	<!-- Import the MSBuild tasks -->
 	<UsingTask TaskName="DotNetResourcesExtensions.BuildTasks.DotNetResExtGenerator" AssemblyFile="$(DNRSPath)" />
+	<!-- Required for resolving the dependencies required by the DotNetResExtGenerator -->
 	<UsingTask TaskName="DotNetResourcesExtensions.BuildTasks.DependenciesResolver" AssemblyFile="$(DNRSPath)" />
 
-	<Target Name="DG_Resolve" BeforeTargets="BeforeBuild">
-		<DependenciesResolver PackageRoot="$(NuGetPackageRoot)" RunningFramework="$(TFIdentifier)" />
+	<!-- [PUBLIC TARGET] The DotNetResourcesExtensions proposal to GenerateResource task. -->
+	<!-- Private Notes: Disable resource generation when any IDE loads the project this can be a very heavy process. -->
+	<Target Name="DotNetResourcesExtensions_GenerateResource" Condition="'$(DesignTimeBuild)' != 'true'">
+		<Message Importance="normal" Text="Instantiating the Resource Generator." />
+		<DotNetResExtGenerator
+				InputFiles="@(GeneratableResource)"
+				OutputFileType="$(DotNetResourcesExtensions_OutputType)"
+				OutputFilePath="$(DotNetResourcesExtensions_OutputResFile)"
+			/>
+		<Message Importance="normal" Text ="Resource Generator ended successfully." />
+	</Target>
+
+	<!-- Embeds to the output assembly the generated resource file , if requested by the user. -->
+	<!-- Notes to public: You can access the resource stream required for strongly typed resource classes by the full filename and extension. -->
+	<Target Name="I_DotNetResourcesExtensions_EmbedOutputToAssembly" BeforeTargets="BeforeBuild" Condition="'$(DotNetResourcesExtensions_EmbedResultingFileToBuildResult)' == 'True' AND '$(DesignTimeBuild)' != 'true'">
+		<ItemGroup>
+			<EmbeddedResource Include="$(DotNetResourcesExtensions_OutputResFile)">
+				<LogicalName>$([System.IO.Path]::GetFileName(`$(DotNetResourcesExtensions_OutputResFile)`))</LogicalName>
+			</EmbeddedResource>
+		</ItemGroup>
+	</Target>
+
+	<!-- Resolves the dependencies required by the BuildTasks and copies System.Windows.Forms if we are on Windows -->
+	<!-- A warning is also emitted if somebody attempts to build a Windows project on non-Windows platforms. -->
+	<Target Name="I_DotNetResourcesExtensions_BuildTasks_Resolve" BeforeTargets="BeforeBuild" Condition="'$(DotNetResourcesExtensions_EnableDepResolve)' == 'True'">
+		<Message Importance="normal" Text="Running dependency resolver." />
+		<DependenciesResolver PackageRoot="$(NuGetPackageRoot)" RunningFramework="$(DNRS_TFIdentifier)" EngineRuntimeType="$(MSBuildRuntimeType)" />
+		<Message Importance="normal" Text="Dependency resolver successfully installed all required dependencies." />
+		<!-- Be noted that the .NET Standard version of DotNetResourcesExtensions does not have support for usual ResX files so this is not needed to be copied out -->
+		<Copy SourceFiles="$(WinDir)\Microsoft.NET\Framework64\v4.0.30319\System.Windows.Forms.dll"
+			  DestinationFolder="$(MSBuildThisFileDirectory)/../tools/$(DNRS_TFIdentifier)"
+			  SkipUnchangedFiles="true" Condition="'$(OS)' == 'Windows_NT' AND '$(DNRS_TFIdentifier)' == 'net472'" />
+		<Warning File="DotNetResourcesExtensions.BuildTransitive.targets"
+			Condition="('$(DNRS_TFIdentifier)' == 'net472' OR '$(TargetFramework.Contains(`windows`))' == 'true') AND '$(OS)' != 'Windows_NT'" Code="DNTRESEXT0138"
+			Text="Attempting to build a Windows project from a non-Windows machine. As a result you might get build errors because the System.Windows.Forms assembly is required if you want to transfer ResX resources!" />
 	</Target>
 
 	<!-- Done! -->

@@ -3,10 +3,12 @@ extern alias DRESEXT;
 
 using System;
 using System.Collections;
+using System.IO.Compression;
 using System.Threading.Tasks;
 using Microsoft.Build.Framework;
 using DRESEXT::DotNetResourcesExtensions;
-using System.IO.Compression;
+using DRESEXT::DotNetResourcesExtensions.Internal.ResX;
+using DRESEXT::DotNetResourcesExtensions.Internal.DotNetResources;
 
 namespace DotNetResourcesExtensions.BuildTasks
 {
@@ -24,20 +26,31 @@ namespace DotNetResourcesExtensions.BuildTasks
         private static System.Boolean resolverconnected = false;
         private OutputResourceType restype;
 
-        public DotNetResExtGenerator() : base()
+        private System.Reflection.Assembly Resolver(System.Object sender, System.ResolveEventArgs e)
         {
-            static System.Reflection.Assembly Resolver(System.Object sender , System.ResolveEventArgs e)
+            System.IO.DirectoryInfo DI = new(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location));
+            System.Reflection.AssemblyName AN = new(e.Name);
+            Log.LogMessage(MessageImportance.Normal, "Path assembly prober of BuildTasks searches for a file called \"{0}\"." , AN.FullName);
+            foreach (var file in DI.GetFiles("*.dll"))
             {
-                System.IO.DirectoryInfo DI = new(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location));
-                foreach (var file in DI.GetFiles("*.dll"))
+                if ($"{AN.Name}.dll" == file.Name)
                 {
-                    if ($"{e.Name}.dll" == file.Name)
-                    {
-                        return System.Reflection.Assembly.LoadFrom(file.FullName);
-                    }
+                    Log.LogMessage(MessageImportance.Normal, "Path assembly prober found a matching file called \"{0}\" with fully resolved path to be \"{1}\"." , file.Name , file.FullName);
+                    Log.LogMessage(MessageImportance.Normal, "Loaded assembly details: Version: {0}" , AN.Version);
+                    return System.Reflection.Assembly.LoadFrom(file.FullName);
                 }
-                return null;
             }
+            Log.LogMessage(MessageImportance.Normal, "Path assembly prober could not find a matching file for name \"{0}\".", e.Name);
+            return null;
+        }
+
+        ~DotNetResExtGenerator() 
+        {
+            if (resolverconnected) { System.AppDomain.CurrentDomain.AssemblyResolve -= Resolver; resolverconnected = false; }
+        }
+
+        public DotNetResExtGenerator() : base()
+        {  
             if (resolverconnected == false)
             {
                 System.AppDomain.CurrentDomain.AssemblyResolve += Resolver;
@@ -70,6 +83,13 @@ namespace DotNetResourcesExtensions.BuildTasks
             Log.LogError("", code, "", "", "<Non-Existent>", 0, 0, 0, 0, msg);
         }
 
+        private static System.String GetMetadataNames(ICollection collection)
+        {
+            System.String result = System.String.Empty;
+            foreach (System.Object val in collection) { result += val.ToString() + " "; }
+            return result;
+        }
+
         private void ProduceWarning(System.String code, System.String msg)
         {
             Log.LogWarning("", code, "", "", "<Non-Existent>", 0, 0, 0, 0, msg);
@@ -95,7 +115,7 @@ namespace DotNetResourcesExtensions.BuildTasks
             }
             if (restype == OutputResourceType.Resources)
             {
-                target = new DRESEXT::DotNetResourcesExtensions.Internal.DotNetResources.PreserializedResourceWriter(OutputFilePath.ItemSpec);
+                target = new PreserializedResourceWriter(OutputFilePath.ItemSpec);
             } else if (restype == OutputResourceType.CustomBinary)
             {
                 target = new CustomBinaryResourceWriter(OutputFilePath.ItemSpec);
@@ -112,33 +132,27 @@ namespace DotNetResourcesExtensions.BuildTasks
 #endif
             System.Boolean isfirst = true;
 #if DEBUG
-            Log.LogMessage(MessageImportance.High , "Yielding engine...");
-#endif
-            BuildEngine9.Yield();
-#if DEBUG
             Log.LogMessage(MessageImportance.High, "Reading files...");
 #endif
+            MinimalResourceLoader templdr = null;
             foreach (var file in InputFiles)
             {
                 if (file is null) { continue; }
-                var dd = GetReaderFromPath(file.ItemSpec);
+                System.Resources.IResourceReader dd = GetReaderFromPath(file.ItemSpec);
                 if (dd is null)
                 {
-                    ProduceError("DNTRESEXT0011" , "Temporary reader MUST NOT BE NULL AT THIS POINT FAILURE OCCURED");
+                    ProduceError("DNTRESEXT0018" , "Temporary reader MUST NOT BE NULL AT THIS POINT FAILURE OCCURED");
                     return false;
                 }
-#if DEBUG
-                Log.LogMessage(MessageImportance.High, "Succeeded acquiring the reader.");
-#endif
+                Log.LogMessage(MessageImportance.Normal , "Loaded file {0} into memory. Metadata Names: {1} Metadata Count: {2}" , file.ItemSpec , GetMetadataNames(file.MetadataNames) , file.MetadataCount);
                 if (isfirst)
                 {
+                    Log.LogMessage(MessageImportance.Low, "As the file {0} is first in the list , the transferer instance will attach to this input resource file." , file.ItemSpec);
                     transferer = new AbstractResourceTransferer(dd , target);
                     transferer.TransferAll();
                     isfirst = false;
                 } else {
-#if DEBUG
-                    Log.LogMessage(MessageImportance.High , "Secondary reader is now processed.");
-#endif
+                    Log.LogMessage(MessageImportance.Low , "The file {0} is a secondary file imported after the first file , and thus it's resources will be manually transferred." , file.ItemSpec);
                     DictionaryEntry d;
                     IDictionaryEnumerator de = dd.GetEnumerator();
                     while (de.MoveNext())
@@ -156,68 +170,95 @@ namespace DotNetResourcesExtensions.BuildTasks
                     de.Reset();
                     de = null;
                 }
+                Log.LogMessage(MessageImportance.Low , "Done transferring resources from {0} ." , file.ItemSpec);
+                // After transferring resources to it , it is easy to generate str's if the user demands it
+                try {
+                    templdr = new(dd);
+                    GenerateStrTypedClassForItem(templdr, file);
+                } catch (System.Exception e) {
+                    ProduceWarning("DNTRESEXT0014" , $"The strongly-typed resource class generation for item {file.ItemSpec} has failed due to an unhandled {e.GetType().Name}.\n" +
+                        $"As a result , the final compilation might fail if your code depends on this class generation. \n{e}");
+                } finally { templdr?.Dispose();  }
             }
 #if DEBUG
             Log.LogMessage(MessageImportance.High, "Done writing the resources.");
 #endif
-            BuildEngine9.Reacquire();
-            if (GenerateStronglyTypedClass)
-            {
-                if (String.IsNullOrWhiteSpace(StronglyTypedClassManifestName))
-                {
-                    ProduceError("DNTRESEXT0004" , $"Cannot generate code because the {nameof(StronglyTypedClassManifestName)} was not specified.");
-                    return false;
-                }
-                if (String.IsNullOrWhiteSpace(StronglyTypedClassOutPath))
-                {
-                    ProduceError("DNTRESEXT0005", "Cannot generate code because a valid output path was not specified. Please specify one and retry.");
-                    return false;
-                }
-                if (String.IsNullOrWhiteSpace(StronglyTypedClassLanguage))
-                {
-                    ProduceWarning("DNTRESEXT0006", "The strongly typed-class language was not specified. Presuming that it is \'CSharp\'.");
-                    StronglyTypedClassLanguage = "CSharp";
-                }
-                if (String.IsNullOrWhiteSpace(StronglyTypedClassName))
-                {
-                    ProduceWarning("DNTRESEXT0009", $"The strongly typed-class .NET name was not specified. Presuming that it is the manifest name: \"{StronglyTypedClassManifestName}\"");
-                    StronglyTypedClassName = StronglyTypedClassManifestName;
-                }
-                GenerateStrTypedClass();
-            }
             target?.Close();
             target?.Dispose();
             return true;
         }
 
-        private void GenerateStrTypedClass()
+        // Generates a strongly-typed class from the specified task item.
+        // The task item must conform to the format provided inside GeneratableResource.
+        // If not , it throws a FormatException and explains which situation it found.
+        private System.Boolean GenerateStrTypedClassForItem(IResourceLoader ldr , ITaskItem item)
         {
-            target?.Close();
-            target?.Dispose();
-            IResourceLoader loader = null;
-            try {
-                if (restype == OutputResourceType.Resources) {
-                    loader = new DotNetResourceLoader(OutputFilePath.ItemSpec);
-                } else if (restype == OutputResourceType.CustomBinary) {
-                    loader = new CustomDataResourcesLoader(OutputFilePath.ItemSpec);
-                } else if (restype == OutputResourceType.JSON) {
-                    loader = new JSONResourcesLoader(OutputFilePath.ItemSpec);
+            static ResourceClassVisibilty ParseVisibility(System.String frommeta) => frommeta.ToLower() switch {
+                "internal" => ResourceClassVisibilty.Internal,
+                "public" => ResourceClassVisibilty.Public,
+                _ => ResourceClassVisibilty.Internal,
+            };
+            System.String[] expecttofind = { "GenerateStrClass", "StrClassLanguage" , "StrClassName" , "StrClassManifestName" , "StrOutPath" , "StrClassVisibility" };
+            System.Byte found = 0;
+            foreach (System.Object obj in item.MetadataNames)
+            {
+                foreach (System.String str in expecttofind) 
+                {
+                    if (str == obj.ToString()) { found++; break; }
                 }
-                switch (StronglyTypedClassLanguage.ToLower()) {
-                    case "csharp":
-                    case "c#":
-                        StronglyTypedCodeProviderBuilder.WithCSharp(loader , StronglyTypedClassManifestName , StronglyTypedClassName , StronglyTypedClassOutPath , ResourceClassVisibilty.Internal);
-                        break;
-                    case "visualbasic":
-                    case "vb":
-                        StronglyTypedCodeProviderBuilder.WithVisualBasic(loader, StronglyTypedClassManifestName, StronglyTypedClassName, StronglyTypedClassOutPath, ResourceClassVisibilty.Internal);
-                        break;
-                }
-            } catch (System.Exception e) {
-                Log.LogErrorFromException(e);
-            } finally { 
-                loader?.Dispose();
             }
+            if (found < expecttofind.Length) {
+                throw new FormatException($"INTERNAL ERROR: One or more metadata fields for this item are missing or have incorrect names. Expected {expecttofind.Length} but retrieved {found}.");
+            }
+            // Determine whether the user wants to generate a str for this input. If not , exit.
+            // Any string input that matches the letters false should prevent from creating a str.
+            // On purpose we return here true since we have successfully executed anyway.
+            if (item.GetMetadata(expecttofind[0]).ToLower() == "false") { return true; }
+            // OK. Now we need to validate all input data.
+            if (String.IsNullOrWhiteSpace(item.GetMetadata(expecttofind[3]))) {
+                ProduceError("DNTRESEXT0004", $"Cannot generate code because the {expecttofind[3]} property in {item.ItemSpec} was not specified.");
+                return false;
+            }
+            if (String.IsNullOrWhiteSpace(item.GetMetadata(expecttofind[4]))) {
+                ProduceError("DNTRESEXT0005", $"Cannot generate code because a valid output path for {item.ItemSpec} was not specified. Please specify one and retry.");
+                return false;
+            }
+            if (String.IsNullOrWhiteSpace(item.GetMetadata(expecttofind[1]))) {
+                ProduceWarning("DNTRESEXT0006", "The strongly typed-class language was not specified. Presuming that it is \'CSharp\'.");
+                item.SetMetadata(expecttofind[1], "CSharp");
+            }
+            if (String.IsNullOrWhiteSpace(item.GetMetadata(expecttofind[2]))) {
+                ProduceWarning("DNTRESEXT0009", $"The strongly typed-class .NET name was not specified. Presuming that it is the manifest name: \"{item.GetMetadata(expecttofind[3])}\"");
+                item.SetMetadata(expecttofind[2], item.GetMetadata(expecttofind[3]));
+            }
+            if (String.IsNullOrWhiteSpace(item.GetMetadata(expecttofind[5]))) {
+                ProduceWarning("DNTRESEXT0011", "The resource class visibility was set to an invalid value. Presuming that it's value is \'Internal\'.");
+                item.SetMetadata(expecttofind[5], "Internal");
+            }
+            // After verifying everything , next step is to generate our resource class...
+            // Also ignore language letters cases.
+            switch (item.GetMetadata(expecttofind[1]).ToLower())
+            {
+                case "csharp":
+                case "c#":
+                    StronglyTypedCodeProviderBuilder.WithCSharp(ldr ,
+                        item.GetMetadata(expecttofind[3]) ,
+                        item.GetMetadata(expecttofind[2]) ,
+                        item.GetMetadata(expecttofind[4]) ,
+                        ParseVisibility(item.GetMetadata(expecttofind[5])) ,
+                        restype);
+                    break;
+                case "visualbasic":
+                case "vb":
+                    StronglyTypedCodeProviderBuilder.WithVisualBasic(ldr,
+                        item.GetMetadata(expecttofind[3]),
+                        item.GetMetadata(expecttofind[2]),
+                        item.GetMetadata(expecttofind[4]),
+                        ParseVisibility(item.GetMetadata(expecttofind[5])) , 
+                        restype);
+                    break;
+            }
+            return true;
         }
 
         private System.Resources.IResourceReader GetReaderFromPath(System.String path)
@@ -231,7 +272,7 @@ namespace DotNetResourcesExtensions.BuildTasks
                 switch (FI.Extension)
                 {
                     case ".rescx":
-                        rdr = new DRESEXT::DotNetResourcesExtensions.Internal.ResX.ResXResourceReader(streams[strindex]);
+                        rdr = new ResXResourceReader(streams[strindex]);
                         break;
                     case ".resj":
                         rdr = new JSONResourcesReader(streams[strindex]);
@@ -251,25 +292,29 @@ namespace DotNetResourcesExtensions.BuildTasks
                 }
             } catch (System.Exception ex) {
                 Log.LogWarning("Could not load file {0} ... See next warning for more information." , path);
-                Log.LogWarningFromException(ex); 
+                Log.LogWarningFromException(ex , true); 
                 return null;
             }
             return rdr;
         }
 
         /// <summary>
-        /// Gets the input resource files to add.
+        /// Gets the input resource files to add. <br />
+        /// Additionally these task items are expected to have the same layout as exported from GeneratableResource.
         /// </summary>
+        [Required]
         public ITaskItem[] InputFiles { get; set; }
 
         /// <summary>
         /// Defines the save output path to the file.
         /// </summary>
+        [Required]
         public ITaskItem OutputFilePath { get; set; }
 
         /// <summary>
         /// The output file type. Must be one of the constants defined in <see cref="OutputResourceType"/> enumeration.
         /// </summary>
+        [Required]
         public System.String OutputFileType { 
             get => restype.ToString();
             set {
@@ -277,38 +322,11 @@ namespace DotNetResourcesExtensions.BuildTasks
                     restype = (OutputResourceType)System.Enum.Parse(typeof(OutputResourceType), value);
                 } catch (ArgumentException e) {
                     ProduceWarning("DNTRESEXT0007", $"The value specified , {value} was not accepted because of \n {e} .");
-                    ProduceWarning("DNTRESEXT0008", "Setting the OutputFileType back to Resources due to an error. See above for more information.");
+                    ProduceWarning("DNTRESEXT0008", "Setting the OutputFileType back to Resources due to an error. See the previous message for more information.");
                     restype = OutputResourceType.Resources;
                 }
             }
         }
-
-        /// <summary>
-        /// Gets or sets a value whether to generate a strongly-typed class for the current resource.
-        /// </summary>
-        public System.Boolean GenerateStronglyTypedClass { get; set; }
-
-        /// <summary>
-        /// Gets or sets the underlying manifest name of the actual resource. Must be compilant with it.
-        /// </summary>
-        public System.String StronglyTypedClassManifestName { get; set; }
-
-        /// <summary>
-        /// The output path to save the generated strongly-typed class.
-        /// </summary>
-        public System.String StronglyTypedClassOutPath { get; set; }
-
-        /// <summary>
-        /// The progamming language to produce the strongly-typed class for. <br />
-        /// Available values: csharp , visualbasic. This string is case-insensitive.
-        /// </summary>
-        public System.String StronglyTypedClassLanguage { get; set; }
-
-        /// <summary>
-        /// The strongly-typed full class and namespace name to generate. <br />
-        /// The name after the last dot is the class name , while before it is (or are) the namespace name (or names).
-        /// </summary>
-        public System.String StronglyTypedClassName { get; set; }
     }
 
     public enum OutputResourceType : System.Byte
@@ -325,27 +343,71 @@ namespace DotNetResourcesExtensions.BuildTasks
 
         public override bool Execute()
         {
+            if (System.String.IsNullOrWhiteSpace(PackageRoot)) {
+                if (System.IO.Directory.Exists(DownloadDeps.GeneratePlatformAgnosticPath(DownloadDeps.BuildTasksPath.FullName , "temp"))) {
+                    PackageRoot = DownloadDeps.GeneratePlatformAgnosticPath(DownloadDeps.BuildTasksPath.FullName, "temp");
+                } else {
+                    PackageRoot = DownloadDeps.BuildTasksPath.CreateSubdirectory("temp").FullName; 
+                }
+            }
+            Log.LogMessage(MessageImportance.Normal, "Determined package root is {0}." , PackageRoot);
             try {
+                Log.LogMessage(MessageImportance.Normal, "Ensuring 9 packages.");
+                LogPackageInstallStart(DownloadDeps.SystemValueTuple);
                 DownloadDeps.EnsurePackage(DownloadDeps.SystemValueTuple , PackageRoot , RunningFramework);
+                LogPackageInstallEnd(DownloadDeps.SystemValueTuple);
+                LogPackageInstallStart(DownloadDeps.SystemBuffers);
                 DownloadDeps.EnsurePackage(DownloadDeps.SystemBuffers , PackageRoot , RunningFramework);
+                LogPackageInstallEnd(DownloadDeps.SystemBuffers);
+                LogPackageInstallStart(DownloadDeps.MicrosoftBclAsyncInterfaces);
                 DownloadDeps.EnsurePackage(DownloadDeps.MicrosoftBclAsyncInterfaces , PackageRoot , RunningFramework);
+                LogPackageInstallEnd(DownloadDeps.MicrosoftBclAsyncInterfaces);
+                LogPackageInstallStart(DownloadDeps.SystemTextJson);
                 DownloadDeps.EnsurePackage(DownloadDeps.SystemTextJson , PackageRoot , RunningFramework);
+                LogPackageInstallEnd (DownloadDeps.SystemTextJson);
+                LogPackageInstallStart(DownloadDeps.SystemTextEncodingsWeb);
                 DownloadDeps.EnsurePackage(DownloadDeps.SystemTextEncodingsWeb , PackageRoot , RunningFramework);
+                LogPackageInstallEnd(DownloadDeps.SystemTextEncodingsWeb);
                 DownloadDeps.EnsurePackage(DownloadDeps.SystemMemory , PackageRoot , RunningFramework);
+                LogPackageInstallStart(DownloadDeps.SystemRuntimeCompilerServicesUnsafe);
                 DownloadDeps.EnsurePackage(DownloadDeps.SystemRuntimeCompilerServicesUnsafe, PackageRoot, RunningFramework);
+                LogPackageInstallEnd(DownloadDeps.SystemRuntimeCompilerServicesUnsafe);
+                LogPackageInstallStart(DownloadDeps.SystemThreadingTasksExtensions);
                 DownloadDeps.EnsurePackage(DownloadDeps.SystemThreadingTasksExtensions, PackageRoot, RunningFramework);
+                LogPackageInstallEnd(DownloadDeps.SystemThreadingTasksExtensions);
+                LogPackageInstallStart(DownloadDeps.SystemNumericsVectors);
+                DownloadDeps.EnsurePackage(DownloadDeps.SystemNumericsVectors, PackageRoot, RunningFramework);
+                LogPackageInstallEnd(DownloadDeps.SystemNumericsVectors);
+                if (System.String.IsNullOrWhiteSpace(EngineRuntimeType)) { EngineRuntimeType = System.String.Empty; }
+                if (EngineRuntimeType.ToLower() == "core" && DownloadDeps.Is_Windows) {
+                    Log.LogMessage(MessageImportance.Normal, "Installing 1 more package due to true conditions (MSBuildRuntimeType is core and we are on Windows).");
+                    LogPackageInstallStart(DownloadDeps.SystemDrawingCommon);
+                    DownloadDeps.EnsurePackage(DownloadDeps.SystemDrawingCommon, PackageRoot, RunningFramework);
+                    LogPackageInstallEnd(DownloadDeps.SystemDrawingCommon);
+                }
                 return true;
             } catch (Exception e)  {
-                Log.LogCriticalMessage("", "DOTNETRESOURCESEXTENSIONSDEPERROR", "", "<Non-Existent>", 0 , 0 , 0 ,0 , "Could not resolve dependencies due to an unhandled exception:\n {0}" , e);
+                Log.LogErrorFromException(e , true , true , null);
                 return false;
             }
         }
 
-        [Required]
+        private void LogPackageInstallStart(DownloadDeps.Package pkg)
+        {
+            Log.LogMessage(MessageImportance.Normal, "Ensuring package {0} with preferred version {1}." , pkg.LibraryName , pkg.LibraryVersion);
+        }
+
+        private void LogPackageInstallEnd(DownloadDeps.Package pkg)
+        {
+            Log.LogMessage(MessageImportance.Normal, "Package {0} sucessfully installed." , pkg.LibraryName);
+        }
+
         public System.String PackageRoot { get; set; }
 
         [Required]
         public System.String RunningFramework { get; set; }
+
+        public System.String EngineRuntimeType { get; set; }
     }
 
     // Internal class that downloads and installs dependencies required by BuildTasks.
@@ -358,6 +420,7 @@ namespace DotNetResourcesExtensions.BuildTasks
         }
 
         public static readonly Package SystemTextJson = new() { LibraryName = "System.Text.Json" , LibraryVersion = "8.0.4" };
+        public static readonly Package SystemNumericsVectors = new() { LibraryName = "System.Numerics.Vectors", LibraryVersion = "4.5.0" };
         public static readonly Package SystemRuntimeCompilerServicesUnsafe = new() { LibraryName = "System.Runtime.CompilerServices.Unsafe" , LibraryVersion = "6.0.0" };
         public static readonly Package MicrosoftBclAsyncInterfaces = new() { LibraryName = "Microsoft.Bcl.AsyncInterfaces" , LibraryVersion = "8.0.0" };
         public static readonly Package SystemBuffers = new() { LibraryName = "System.Buffers" , LibraryVersion = "4.5.1" };
@@ -365,8 +428,36 @@ namespace DotNetResourcesExtensions.BuildTasks
         public static readonly Package SystemTextEncodingsWeb = new() { LibraryName = "System.Text.Encodings.Web", LibraryVersion = "8.0.0" };
         public static readonly Package SystemThreadingTasksExtensions = new() { LibraryName = "System.Threading.Tasks.Extensions", LibraryVersion = "4.5.4" };
         public static readonly Package SystemValueTuple = new() { LibraryName = "System.ValueTuple", LibraryVersion = "4.5.0" };
+        public static readonly Package SystemDrawingCommon = new() { LibraryName = "System.Drawing.Common", LibraryVersion = "8.0.7" };
+        public static readonly System.IO.DirectoryInfo BuildTasksPath = new System.IO.FileInfo(typeof(DownloadDeps).Assembly.Location).Directory;
+        public static readonly System.Boolean Is_Windows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
 
         public static System.Uri GeneratePackageUrl(Package pkg) => new($"https://nuget.org/api/v2/package/{pkg.LibraryName}/{pkg.LibraryVersion}");
+
+        public static System.String GeneratePlatformAgnosticPath(params System.String[] paths)
+        {
+            System.String result, seperator , temp;
+            // I currently know that Windows have the backslash as path seperator.
+            // If more platforms have other path seperator or use backslash plz notify me.
+            if (Is_Windows) { seperator = "\\"; } else { seperator = "/"; }
+            result = System.String.Empty;
+            if (paths.Length == 0) { return result; }
+            for (System.Int32 I = 0; I < paths.Length - 1; I++) {
+                temp = paths[I];
+                if (temp.EndsWith("\\") || temp.EndsWith("/")) { temp = temp.Remove(temp.Length - 1); } // Strip last slash so no double slashes occur at the resulting string
+                result += temp + seperator;
+            }
+            temp = paths[paths.Length - 1];
+            if (temp.EndsWith("\\") || temp.EndsWith("/")) { temp = temp.Remove(temp.Length - 1); }
+            result += temp;
+            return result;
+        }
+
+        public static System.IO.DirectoryInfo GeneratePackagePath(Package pkg, System.String root)
+         => new(GeneratePlatformAgnosticPath(root , pkg.LibraryName.ToLowerInvariant() , pkg.LibraryVersion));
+
+        public static System.String GeneratePackageLibraryPath(System.IO.DirectoryInfo basedir, Package pkg, System.String tfname)
+            => GeneratePlatformAgnosticPath(basedir.FullName , "lib" , tfname , $"{pkg.LibraryName}.dll");
 
         public static void DownloadFileAndPlaceToPackageRoot(Package pkg , System.String path)
         {
@@ -378,17 +469,11 @@ namespace DotNetResourcesExtensions.BuildTasks
                 wrap.Wait();
                 archive = new(wrap.Result);
                 // Now we must create the subsequent folders and extract the file there.
-                System.IO.DirectoryInfo DI = new(path) , DG;
-                if (System.IO.Directory.Exists($"{DI.FullName}\\{pkg.LibraryName}") == false)
-                {
-                    DG = DI.CreateSubdirectory(pkg.LibraryName);
-                } else { DG = new($"{DI.FullName}\\{pkg.LibraryName}"); }
-                if (System.IO.Directory.Exists($"{DG.FullName}\\{pkg.LibraryVersion}") == false) {
-                    DG.CreateSubdirectory(pkg.LibraryVersion);
-                }
-                // After all these we are ready to extract the file
-                archive.ExtractToDirectory($"{DG.FullName}\\{pkg.LibraryVersion}");
-                DI = null; DG = null;
+                System.IO.DirectoryInfo DI = GeneratePackagePath(pkg, path);
+                // If the subsequent folders do not exist , they will be created
+                if (DI.Exists == false) { DI.Create(); }
+                // After these we are ready to extract the file
+                archive.ExtractToDirectory(DI.FullName);
             } catch (System.AggregateException ex) {
                 throw ex.InnerException ?? ex;
             } finally {
@@ -403,7 +488,7 @@ namespace DotNetResourcesExtensions.BuildTasks
 
         public static void EnsurePackage(Package package , System.String nugetpackageroot , System.String targetresolvedid)
         {
-            System.IO.DirectoryInfo DI = new($"{nugetpackageroot}\\{package.LibraryName}\\{package.LibraryVersion}");
+            System.IO.DirectoryInfo DI = GeneratePackagePath(package, nugetpackageroot);
             if (DI.Exists == false) {
                 DownloadFileAndPlaceToPackageRoot(package, nugetpackageroot);
             }
@@ -412,29 +497,48 @@ namespace DotNetResourcesExtensions.BuildTasks
             DI.Refresh();
             // Ok. The DLL must now be retrieved and copied to the BuildTasks.
             // For first we retrieve the directory of the location of this assembly which is the BuildTasks itself.
-            System.IO.DirectoryInfo DBuild = new System.IO.FileInfo(typeof(DownloadDeps).Assembly.Location).Directory;
+            System.IO.DirectoryInfo DBuild = BuildTasksPath;
             // Return if the file exists already
-            if (System.IO.File.Exists($"{DBuild.FullName}\\{package.LibraryName}.dll")) { return; }
+            System.String ResultPath = GeneratePlatformAgnosticPath(DBuild.FullName, $"{package.LibraryName}.dll");
+            if (System.IO.File.Exists(ResultPath)) { return; }
             // Next we must determine the running framework provided by targetresolvedid.
             switch (targetresolvedid)
             {
                 case "netstandard2.0":
                     // For .NET standard 2.0 , most assemblies exist for this type of framework so directly just copying the file.
                     try {
-                        System.IO.File.Copy($"{DI.FullName}\\lib\\netstandard2.0\\{package.LibraryName}.dll", $"{DBuild.FullName}\\{package.LibraryName}.dll", true);
-                    } catch (System.IO.DirectoryNotFoundException) { goto case "net472"; } // Oh. we do not have netstandard2.0 so copy the .NET framework one if exists.
-                    break;
+                        System.IO.File.Copy(GeneratePackageLibraryPath(DI , package , "netstandard2.0"), ResultPath , true);
+                    } catch (System.IO.FileNotFoundException) { goto case "net472"; }
+                    catch (System.IO.DirectoryNotFoundException) { goto case "net472"; } // Oh. we do not have netstandard2.0 so copy the .NET framework one if exists.
+                    return;
                 case "net472":
                     // The .NET framework assemblies might not have a net472 variant so all cases must be examined
-                    foreach (System.String tfname in new System.String[] { "net461" , "net462" , "net47" , "net471" , "net472" }) {
-                        if (System.IO.Directory.Exists($"{DI.FullName}\\lib\\{tfname}")) {
+                    foreach (System.String tfname in new System.String[] { "net45" , "net451" , "net452" , "net46" , "net461" , "net462" , "net463" , "net47" , "net471" , "net472" }) {
+                        if (System.IO.File.Exists(GeneratePackageLibraryPath(DI , package , tfname))) {
                             // The first hit will be copied.
-                            System.IO.File.Copy($"{DI.FullName}\\lib\\{tfname}\\{package.LibraryName}.dll", $"{DBuild.FullName}\\{package.LibraryName}.dll", true);
-                            break;
+                            System.IO.File.Copy(GeneratePackageLibraryPath(DI , package , tfname), ResultPath, true);
+                            return;
                         }
                     }
                     throw new System.InvalidOperationException("The packages downloaded must support .NET Framework and .NET Standard.");
+                default:
+                    throw new ArgumentException("The Target Resolver Framework must be either netstandard2.0 or net472.");
             }
         }
+    }
+
+    /// <summary>
+    /// Provides a very minimal resource loader. It directly wraps a IResourceReader instance without additional checks.
+    /// </summary>
+    internal sealed class MinimalResourceLoader : OptimizedResourceLoader
+    {
+        public MinimalResourceLoader(System.Resources.IResourceReader rdr) : base() { read = rdr; }
+
+        public override void Dispose() {
+            read = null; // Directly set this so as to avoid of being disposed accidentally by the internal mechanisms.
+            base.Dispose();
+        }
+
+        public override ValueTask DisposeAsync() => new(Task.Run(Dispose));
     }
 }
