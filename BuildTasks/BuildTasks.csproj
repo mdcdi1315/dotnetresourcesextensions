@@ -21,9 +21,7 @@
     <PackageReference Include="Microsoft.Build.Framework" Version="17.10.4" />
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.10.4" />
 	<PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.10.4" />
-	<ProjectReference Include="..\Source\DotNetResourcesExtensions.csproj">
-	  <Aliases>DRESEXT</Aliases>
-	</ProjectReference>
+	<ProjectReference Include="..\Source\DotNetResourcesExtensions.csproj" />
     <Reference Include="System.Windows.Forms">
       <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\System.Windows.Forms.dll</HintPath>
     </Reference>

@@ -1,6 +1,4 @@
 ﻿
-extern alias DRESEXT;
-
 using System;
 using System.IO;
 using System.Text;
@@ -9,7 +7,6 @@ using Microsoft.CSharp;
 using Microsoft.VisualBasic;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
-using DRESEXT::DotNetResourcesExtensions;
 
 namespace DotNetResourcesExtensions.BuildTasks
 {

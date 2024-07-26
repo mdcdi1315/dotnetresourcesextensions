@@ -3,7 +3,7 @@
 	ABSTRACT: This file is preloaded for importing BuildTasks into your project during the NuGet package load.
 	It also provides to the MSBuild proper interface for creating resources.
 -->
-<Project ToolsVersion="Current">
+<Project ToolsVersion="Current" InitialTargets="I_DotNetResourcesExtensions_BuildTasks_Resolve">
 
 	<PropertyGroup>
 		<!-- Determine the BuildTasks assembly to use -->
@@ -76,7 +76,7 @@
 
 	<!-- Resolves the dependencies required by the BuildTasks and copies System.Windows.Forms if we are on Windows -->
 	<!-- A warning is also emitted if somebody attempts to build a Windows project on non-Windows platforms. -->
-	<Target Name="I_DotNetResourcesExtensions_BuildTasks_Resolve" BeforeTargets="BeforeBuild" Condition="'$(DotNetResourcesExtensions_EnableDepResolve)' == 'True'">
+	<Target Name="I_DotNetResourcesExtensions_BuildTasks_Resolve" Condition="'$(DotNetResourcesExtensions_EnableDepResolve)' == 'True'">
 		<Message Importance="normal" Text="Running dependency resolver." />
 		<DependenciesResolver PackageRoot="$(NuGetPackageRoot)" RunningFramework="$(DNRS_TFIdentifier)" EngineRuntimeType="$(MSBuildRuntimeType)" />
 		<Message Importance="normal" Text="Dependency resolver successfully installed all required dependencies." />

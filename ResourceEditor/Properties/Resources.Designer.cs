@@ -8,10 +8,10 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ResourceEditor.Properties
-{
-
-
+namespace ResourceEditor.Properties {
+    using System;
+    
+    
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -19,52 +19,177 @@ namespace ResourceEditor.Properties
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Resources
-    {
-
+    internal class Resources {
+        
         private static global::System.Resources.ResourceManager resourceMan;
-
+        
         private static global::System.Globalization.CultureInfo resourceCulture;
-
+        
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Resources()
-        {
+        internal Resources() {
         }
-
+        
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Resources.ResourceManager ResourceManager
-        {
-            get
-            {
-                if ((resourceMan == null))
-                {
+        internal static global::System.Resources.ResourceManager ResourceManager {
+            get {
+                if (object.ReferenceEquals(resourceMan, null)) {
                     global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("ResourceEditor.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
             }
         }
-
+        
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Globalization.CultureInfo Culture
-        {
-            get
-            {
+        internal static global::System.Globalization.CultureInfo Culture {
+            get {
                 return resourceCulture;
             }
-            set
-            {
+            set {
                 resourceCulture = value;
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Create New Modifidable Resource File.
+        /// </summary>
+        internal static string CreateFile_PathSelectTitle {
+            get {
+                return ResourceManager.GetString("CreateFile_PathSelectTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .NET binary .resources files|*.resources|Custom Binary Resource file|*.resb.
+        /// </summary>
+        internal static string FileExtsOnlyBinaryClasses {
+            get {
+                return ResourceManager.GetString("FileExtsOnlyBinaryClasses", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to C# Source Files|*.cs|Visual Basic .NET Source Files|*.vb.
+        /// </summary>
+        internal static string FileExtsStrClass {
+            get {
+                return ResourceManager.GetString("FileExtsStrClass", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi|.NET binary .resources files|*.resources|Custom Binary Resources Files|*.resb.
+        /// </summary>
+        internal static string FileExtsWithBinaryClasses {
+            get {
+                return ResourceManager.GetString("FileExtsWithBinaryClasses", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi|.NET binary .resources files (Read-Only)|*.resources|Custom Binary Resources Files (Read-Only)|*.resb.
+        /// </summary>
+        internal static string FileExtsWithBinaryClassesOpenOnly {
+            get {
+                return ResourceManager.GetString("FileExtsWithBinaryClassesOpenOnly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi.
+        /// </summary>
+        internal static string FileExtsWithoutBinaryClasses {
+            get {
+                return ResourceManager.GetString("FileExtsWithoutBinaryClasses", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure that you want to finalize the current resource file?
+        ///Finalizing a resource file means that the resources are written to a binary format
+        ///readable by production apps. After doing this and if you lose all the resource files 
+        ///that have these contents you cannot modify or copy to other format the produced resource file.
+        ///Are you sure that you want to continue?.
+        /// </summary>
+        internal static string FinalizeResFileMsg {
+            get {
+                return ResourceManager.GetString("FinalizeResFileMsg", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Finalize the current resources....
+        /// </summary>
+        internal static string FinalizeResourceFile_PathSelectTitle {
+            get {
+                return ResourceManager.GetString("FinalizeResourceFile_PathSelectTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You have not specified a path yet..
+        /// </summary>
+        internal static string PathToFileNotSpecified {
+            get {
+                return ResourceManager.GetString("PathToFileNotSpecified", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The resource file save path must not be empty..
+        /// </summary>
+        internal static string SavePath_RequiresNotEmpty {
+            get {
+                return ResourceManager.GetString("SavePath_RequiresNotEmpty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The Strongly-Typed resource class underlying stream name must not be empty..
+        /// </summary>
+        internal static string StrClassManifestResourceName_RequiresNotEmpty {
+            get {
+                return ResourceManager.GetString("StrClassManifestResourceName_RequiresNotEmpty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The Strongly-Typed resource class .NET name must not be empty..
+        /// </summary>
+        internal static string StrClassName_RequiresNotEmpty {
+            get {
+                return ResourceManager.GetString("StrClassName_RequiresNotEmpty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The Strongly-Typed resource class save path must not be empty.
+        ///Please provide a valid save path and retry..
+        /// </summary>
+        internal static string StrClassSavePath_RequiresNotEmpty {
+            get {
+                return ResourceManager.GetString("StrClassSavePath_RequiresNotEmpty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Only the .NET , the Custom Binary and JSON file types may
+        ///be used to generate a strongly-typed resource class.
+        ///Please select one of these in order to generate such a class..
+        /// </summary>
+        internal static string StrClassSupportedForBinaryClasses {
+            get {
+                return ResourceManager.GetString("StrClassSupportedForBinaryClasses", resourceCulture);
             }
         }
     }

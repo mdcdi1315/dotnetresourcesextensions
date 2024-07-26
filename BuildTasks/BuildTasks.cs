@@ -1,14 +1,11 @@
 ﻿
-extern alias DRESEXT;
-
 using System;
 using System.Collections;
 using System.IO.Compression;
 using System.Threading.Tasks;
 using Microsoft.Build.Framework;
-using DRESEXT::DotNetResourcesExtensions;
-using DRESEXT::DotNetResourcesExtensions.Internal.ResX;
-using DRESEXT::DotNetResourcesExtensions.Internal.DotNetResources;
+using DotNetResourcesExtensions.Internal.ResX;
+using DotNetResourcesExtensions.Internal.DotNetResources;
 
 namespace DotNetResourcesExtensions.BuildTasks
 {

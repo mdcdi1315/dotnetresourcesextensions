@@ -47,8 +47,9 @@
             this.ResourceCMS = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.RCMS_1 = new System.Windows.Forms.ToolStripMenuItem();
             this.RCMS_2 = new System.Windows.Forms.ToolStripMenuItem();
-            this.RCMS_3 = new System.Windows.Forms.ToolStripMenuItem();
             this.EXTRButton = new System.Windows.Forms.ToolStripMenuItem();
+            this.RCMS_3 = new System.Windows.Forms.ToolStripMenuItem();
+            this.AdvancedSaveButton = new System.Windows.Forms.ToolStripMenuItem();
             this.MainMenu.SuspendLayout();
             this.ResourceCMS.SuspendLayout();
             this.SuspendLayout();
@@ -73,6 +74,7 @@
             this.FEButton,
             this.SaveOpenedButton,
             this.SaveAsFileButton,
+            this.AdvancedSaveButton,
             this.ExitButton});
             this.TSM_actions.Name = "TSM_actions";
             this.TSM_actions.Size = new System.Drawing.Size(68, 23);
@@ -191,7 +193,7 @@
             this.EXTRButton,
             this.RCMS_3});
             this.ResourceCMS.Name = "ResourceCMS";
-            this.ResourceCMS.Size = new System.Drawing.Size(190, 114);
+            this.ResourceCMS.Size = new System.Drawing.Size(190, 92);
             this.ResourceCMS.Text = "Resource Actions";
             this.ResourceCMS.Opening += new System.ComponentModel.CancelEventHandler(this.G_CMS_OPENING);
             this.ResourceCMS.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.CMS_CLICKED);
@@ -208,18 +210,25 @@
             this.RCMS_2.Size = new System.Drawing.Size(189, 22);
             this.RCMS_2.Text = "Edit Resource Value...";
             // 
-            // RCMS_3
-            // 
-            this.RCMS_3.Name = "RCMS_3";
-            this.RCMS_3.Size = new System.Drawing.Size(189, 22);
-            this.RCMS_3.Text = "Delete...";
-            // 
             // EXTRButton
             // 
             this.EXTRButton.Name = "EXTRButton";
             this.EXTRButton.Size = new System.Drawing.Size(189, 22);
             this.EXTRButton.Text = "Extract Resource...";
             this.EXTRButton.Click += new System.EventHandler(this.ResourceActions_CLICK);
+            // 
+            // RCMS_3
+            // 
+            this.RCMS_3.Name = "RCMS_3";
+            this.RCMS_3.Size = new System.Drawing.Size(189, 22);
+            this.RCMS_3.Text = "Delete...";
+            // 
+            // AdvancedSaveButton
+            // 
+            this.AdvancedSaveButton.Name = "AdvancedSaveButton";
+            this.AdvancedSaveButton.Size = new System.Drawing.Size(236, 22);
+            this.AdvancedSaveButton.Text = "Save As... (Advanced)";
+            this.AdvancedSaveButton.Click += new System.EventHandler(this.ADV_SAVE_CLICK);
             // 
             // Main
             // 
@@ -264,6 +273,7 @@
         private System.Windows.Forms.ToolStripMenuItem RCMS_3;
         private System.Windows.Forms.ToolStripMenuItem FEButton;
         private System.Windows.Forms.ToolStripMenuItem EXTRButton;
+        private System.Windows.Forms.ToolStripMenuItem AdvancedSaveButton;
     }
 }
 

@@ -27,10 +27,10 @@ namespace ResourceEditor
             OFD.CheckFileExists = true;
             OFD.AddExtension = true;
             OFD.DefaultExt = ".resj";
-            OFD.Filter = "Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi|.NET binary .resources files (Read-Only)|*.resources|Custom Binary Resources Files (Read-Only)|*.resb";
+            OFD.Filter = Properties.Resources.FileExtsWithBinaryClassesOpenOnly;
             if (OFD.ShowDialog() == DialogResult.OK) {
                 openedfile = OFD.FileName;
-                ParseFileAndAddContentsToListView(OFD.FileName, OFD.OpenFile());
+                ParseFileAndAddContentsToListView(OFD.FileName);
                 return;
             } else {
                 Helper.ShowErrorMessage("You must select a file from the list provided so as to open it.\n" +
@@ -45,9 +45,9 @@ namespace ResourceEditor
             OFD.CheckPathExists = true;
             OFD.CheckFileExists = false;
             OFD.AddExtension = true;
-            OFD.Title = "Create New Modifidable Resource File";
+            OFD.Title = Properties.Resources.CreateFile_PathSelectTitle;
             OFD.DefaultExt = ".resj";
-            OFD.Filter = "Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi";
+            OFD.Filter = Properties.Resources.FileExtsWithoutBinaryClasses;
             if (OFD.ShowDialog() == DialogResult.OK)
             {
                 openedfile = OFD.FileName;
@@ -60,7 +60,9 @@ namespace ResourceEditor
             }
         }
 
-        private void SaveToFileTask(System.String file , System.Boolean issaveas = false)
+        private void SaveToFileTask(System.String file , System.Boolean issaveas = false) => SaveToFileTask(file , null , issaveas);
+
+        private void SaveToFileTask(System.String file , StrClassGenerationOptions options , System.Boolean issaveas = false)
         {
             if (fileisnotsaved == false && issaveas == false) { StatusTextBox.Text = "There are no outstanding resources to be saved. File is already updated."; return; }
             System.Threading.Thread TD = new(() => {
@@ -69,29 +71,12 @@ namespace ResourceEditor
                 try
                 {
                     if (System.IO.File.Exists(file)) { System.IO.File.Delete(file); }
-                    switch (file.Substring(file.LastIndexOf('.')))
-                    {
-                        case ".rescx":
-                            writer = new DotNetResourcesExtensions.Internal.ResX.ResXResourceWriter(file);
-                            break;
-                        case ".resj":
-                            writer = new JSONResourcesWriter(file);
-                            break;
-                        case ".resxx":
-                            writer = new XMLResourcesWriter(file);
-                            break;
-                        case ".resi":
-                            writer = new MsIniResourcesWriter(file);
-                            break;
-                        case ".resx":
-                            writer = new System.Resources.ResXResourceWriter(file);
-                            break;
-                    }
+                    writer = Helper.CreateWriter(file);
                     ResourceView.BeginUpdate(); // Do this so as to access the items faster.
                     Cursor = Cursors.WaitCursor;
                     System.String rn;
                     System.Object value;
-                    for (System.Int32 I = 0; I < ResourceView.Items.Count; I++) 
+                    for (System.Int32 I = 0; I < ResourceView.Items.Count; I++)
                     {
                         ListViewItem item = ResourceView.Items[I];
                         rn = item.Text;
@@ -115,22 +100,40 @@ namespace ResourceEditor
                     writer.Generate();
                     StatusTextBox.Text = $"Resources were successfully generated to {file} .";
                     if (file == openedfile) { fileisnotsaved = false; }
+                    if (options is not null && options.Generate && issaveas) {
+                        StatusTextBox.Text = $"Generating STR Class for item {file} ...";
+                        Helper.EnsureDisposeOrFail(writer, "Writer");
+                        writer = null;
+                        System.Threading.Thread.Sleep(300);
+                        System.Resources.IResourceReader rdr = null;
+                        MinimalResourceLoader MRL = null;
+                        try {
+                            rdr = Helper.CreateReader(file);
+                            MRL = new(rdr);
+                            switch (options.StrClassSavePath.Substring(options.StrClassSavePath.LastIndexOf('.')).ToLowerInvariant())
+                            {
+                                case ".cs":
+                                    DotNetResourcesExtensions.BuildTasks.StronglyTypedCodeProviderBuilder.WithCSharp(MRL,
+                                        options.ManifestStreamName , options.StrClassName , options.StrClassSavePath , options.ClassVisibilty , options.OutResType);
+                                    break;
+                                case ".vb":
+                                    DotNetResourcesExtensions.BuildTasks.StronglyTypedCodeProviderBuilder.WithVisualBasic(MRL,
+                                        options.ManifestStreamName, options.StrClassName, options.StrClassSavePath, options.ClassVisibilty, options.OutResType);
+                                    break;
+                            }
+                        } finally {
+                            Helper.EnsureDisposeOrFail(MRL , "Loader");
+                            Helper.EnsureDisposeOrFail(rdr, "Reader");
+                        }
+                        StatusTextBox.Text = "Both STR and resource file were successfully generated.";
+                    }
                 } catch (System.Exception e) {
                     ResourceView.EndUpdate();
                     StatusTextBox.Text = "Failed to write the specified resource file.";
                     Helper.ShowErrorMessage($"Failed to write resources to the resource file due to {e.GetType().Name}:\n {e}");
                 } finally {
                     Cursor = Cursors.Default;
-                    try
-                    {
-                        writer?.Dispose();
-                    }
-                    catch (System.Exception e)
-                    {
-                        Helper.ShowErrorMessage("CRITICAL: Writer was unexpectedly locked. Error is occuring from\n" +
-                            $"a {e.GetType().FullName} . The Resource Editor will shut down as soon as you press \'OK\'");
-                        System.Environment.FailFast("The DotNetResourcesExtensions Resource Editor application was shut down due to a locking exception while attempting to free resources from the resource writer.", e);
-                    }
+                    Helper.EnsureDisposeOrFail(writer, "Writer");
                 }
             });
             TD.TrySetApartmentState(System.Threading.ApartmentState.STA);
@@ -451,22 +454,36 @@ namespace ResourceEditor
             if (fn != null) { StatusTextBox.Text = $"Resource {ResourceView.Items[ResourceView.SelectedIndices[0]].Text} extracted to file {fn} ."; }
         }
 
+        private void ADV_SAVE_CLICK(object sender, EventArgs e)
+        {
+            if (EnsureNotReadOnly()) { return; }
+            if (fileisopened == false)
+            {
+                Helper.ShowErrorMessage("You must open a resource file so as to save it.");
+                return;
+            }
+            SaveAsAdvanced adv = new();
+            try {
+                adv.ShowDialog();
+                if (adv.Successfull) {
+                    SaveToFileTask(adv.SavePath, adv.StrClassGenerationOptions, true);
+                }
+            } finally { adv?.Dispose(); }
+        }
+
         private void FE_BUTTON_CLICK(object sender, EventArgs e)
         {
             if (fileisopened == false) { StatusTextBox.Text = "You have to load an existing modifidable resource file to finalize it."; return; }
             if (EnsureNotReadOnly()) { return; }
-            if (Helper.ShowQuestionMessage("Are you sure that you want to finalize the current resource file?\n" +
-                "Finalizing a resource file means that the resources are written to a binary format\n" +
-                "readable by production apps. After doing this and if you lose all the resource files\n" +
-                "that have these contents you cannot modify or copy to other format the produced resource file. Continue?"))
+            if (Helper.ShowQuestionMessage(Properties.Resources.FinalizeResFileMsg))
             {
                 using SaveFileDialog SFD = new();
                 SFD.CheckPathExists = true;
                 SFD.CheckFileExists = false;
-                SFD.Filter = ".NET binary .resources files|*.resources|Custom Binary Resource file|*.resb";
+                SFD.Filter = Properties.Resources.FileExtsOnlyBinaryClasses;
                 SFD.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 SFD.AddExtension = true;
-                SFD.Title = "Finalize the current resources...";
+                SFD.Title = Properties.Resources.FinalizeResourceFile_PathSelectTitle;
                 if (SFD.ShowDialog() == DialogResult.OK)
                 {
                     System.Threading.Thread TD = new(() => {
@@ -475,15 +492,7 @@ namespace ResourceEditor
                         {
                             StatusTextBox.Text = $"Saving finalized resources to file {SFD.FileName} ...";
                             if (System.IO.File.Exists(SFD.FileName)) { System.IO.File.Delete(SFD.FileName); }
-                            switch (SFD.FileName.Substring(SFD.FileName.LastIndexOf('.')))
-                            {
-                                case ".resources":
-                                    writer = new DotNetResourcesExtensions.Internal.DotNetResources.PreserializedResourceWriter(SFD.FileName);
-                                    break;
-                                case ".resb":
-                                    writer = new CustomBinaryResourceWriter(SFD.FileName);
-                                    break;
-                            }
+                            writer = Helper.CreateWriter(SFD.FileName);
                             ResourceView.BeginUpdate(); // Do this so as to access the items faster.
                             Cursor = Cursors.WaitCursor;
                             System.String rn;
@@ -535,47 +544,24 @@ namespace ResourceEditor
             }
         }
 
-        private void ParseFileAndAddContentsToListView(System.String file , System.IO.Stream str)
+        private void ParseFileAndAddContentsToListView(System.String file)
         {
             System.Threading.Thread TD = new(() => {
-                IResourceLoader RL = null;
+                MinimalResourceLoader RL = null;
                 System.String cd = System.Environment.CurrentDirectory;
                 System.Environment.CurrentDirectory = System.IO.Path.GetDirectoryName(file);
                 List<System.Drawing.Image> images = new() { new System.Drawing.Bitmap(50, 50) };
                 try
                 {
                     StatusTextBox.Text = $"Opening file {file} ...";
-                    switch (file.Substring(file.LastIndexOf('.')))
-                    {
-                        case ".rescx":
-                            RL = new CustomResXResourcesLoader(str);
-                            isreadonly = false;
-                            break;
-                        case ".resj":
-                            RL = new JSONResourcesLoader(str);
-                            isreadonly = false;
-                            break;
-                        case ".resxx":
-                            RL = new XMLResourcesLoader(str);
-                            isreadonly = false;
-                            break;
-                        case ".resi":
-                            RL = new CustomMsIniResourcesLoader(str);
-                            isreadonly = false;
-                            break;
-                        case ".resx":
-                            RL = new ResXResourceLoader(str);
-                            isreadonly = false;
-                            break;
-                        case ".resb":
-                            RL = new CustomDataResourcesLoader(str);
-                            isreadonly = true;
-                            break;
-                        case ".resources":
-                            RL = new DotNetResourceLoader(str);
+                    ResourceClasses selected = Helper.FromFileName(file);
+                    switch (selected) {
+                        case ResourceClasses.DotNetResources:
+                        case ResourceClasses.CustomBinary:
                             isreadonly = true;
                             break;
                     }
+                    RL = new(Helper.CreateReader(selected, file));
                     if (RL == null) { Helper.ShowErrorMessage("Reading the resource file failed unexpectedly."); StatusTextBox.Text = "Failed to read the specified resource file."; return; }
                     ResourceView.SmallImageList = null;
                     ResourceView.BeginUpdate();
@@ -607,11 +593,7 @@ namespace ResourceEditor
                     Helper.ShowErrorMessage($"Failed to read resources from the resource file due to {e.GetType().Name}: {e}");
                 } finally {
                     System.Environment.CurrentDirectory = cd;
-                    try { RL?.Dispose(); } catch (System.Exception e) {
-                        Helper.ShowErrorMessage("CRITICAL: Writer was unexpectedly locked. Error is occuring from\n" +
-                            $"a {e.GetType().FullName} . The Resource Editor will shut down as soon as you press \'OK\'");
-                        System.Environment.FailFast("The DotNetResourcesExtensions Resource Editor application was shut down due to a locking exception while attempting to free resources from the resource writer.", e);
-                    }
+                    Helper.EnsureDisposeOrFail(RL, "Writer");
                     images.Clear();
                     images = null;
                 }
