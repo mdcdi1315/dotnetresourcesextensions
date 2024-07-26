@@ -1,10 +1,8 @@
 ﻿
-extern alias DRESEXT;
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using DRESEXT::DotNetResourcesExtensions.Internal;
+using DotNetResourcesExtensions.Internal;
 
 namespace DotNetResourcesExtensions.BuildTasks
 {
