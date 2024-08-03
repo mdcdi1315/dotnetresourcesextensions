@@ -153,6 +153,9 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
         /// Disposes the <see cref="BaseFormatter"/> instance. NOTE: You must call this last if you override this method! <br />
         /// Failing to ensure that might lead you to early instance disposition.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", 
+            "CA1816:Dispose methods should call SuppressFinalize", 
+            Justification = "It is unsafe to leave it stale if the user does not know how and when to dispose this class.")]
         public virtual void Dispose()
         {
             Resolvers?.Clear();

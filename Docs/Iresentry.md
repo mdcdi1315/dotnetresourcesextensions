@@ -26,3 +26,5 @@ After retrieveing an instance of the `IResourceEntry` , you can:
 Just using the `IResourceEntry` is not enough. To access all the features , 
 you must access the extension methods. To access those , you must include
 a import directive to your source file to the `DotNetResourcesExtensions` namespace.
+
+[Back to Index](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md)

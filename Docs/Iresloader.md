@@ -90,7 +90,7 @@ a new class and add proper constructor methods that will pass to their `read` fi
 new instance of your reader class.
 
 It is not recommended to directly implement the `IResourceLoader` interface 
-due to the fact that someone must implement a lot of stuff that requires 
+due to the fact that someone must implement a lot of stuff that require
 advanced knowledge of .NET-so leave everything to `DefaultResourceLoader` if possible!
 
 Usage Example:

@@ -37,7 +37,7 @@ namespace DotNetResourcesExtensions
 
     /// <summary>
     /// It is a dummy interface that defines both <see cref="IAdvancedResourceEnumerator"/> and <see cref="ISimpleResourceEnumerator"/>
-    /// for the <see cref="System.Collections.IEnumerable"/> interface needs.
+    /// for the <see cref="IResourceEnumerable"/> interface needs.
     /// </summary>
     public interface IFullResourceEnumerator : IAdvancedResourceEnumerator, ISimpleResourceEnumerator { }
 
@@ -153,13 +153,10 @@ namespace DotNetResourcesExtensions
             {
                 get
                 {
-                    if (mgmt == UsageManagement.IEnumerator)
-                    {
+                    if (mgmt == UsageManagement.IEnumerator) {
                         return enumerator.Current;
-                    }
-                    else
-                    {
-                        return enumerator1.Entry.AsResourceEntry();
+                    } else {
+                        return new HiddenEnumeratorResourceEntry(enumerator1.Entry);
                     }
                 }
             }
@@ -240,13 +237,10 @@ namespace DotNetResourcesExtensions
             {
                 get
                 {
-                    if (mgmt == UsageManagement.IEnumerator)
-                    {
+                    if (mgmt == UsageManagement.IEnumerator) {
                         return enumerator.Current;
-                    }
-                    else
-                    {
-                        return enumerator1.Entry.AsResourceEntry();
+                    } else {
+                        return new HiddenEnumeratorResourceEntry(enumerator1.Entry);
                     }
                 }
             }
@@ -363,13 +357,10 @@ namespace DotNetResourcesExtensions
             {
                 get
                 {
-                    if (mgmt == UsageManagement.IEnumerator)
-                    {
+                    if (mgmt == UsageManagement.IEnumerator) {
                         return enumerator.Current;
-                    }
-                    else
-                    {
-                        return enumerator1.Entry.AsResourceEntry();
+                    } else {
+                        return new HiddenEnumeratorResourceEntry(enumerator1.Entry);
                     }
                 }
             }
@@ -391,12 +382,9 @@ namespace DotNetResourcesExtensions
             /// <returns>A value whether more resources exist after the moved one.</returns>
             public bool MoveNext()
             {
-                if (mgmt == UsageManagement.IEnumerator)
-                {
+                if (mgmt == UsageManagement.IEnumerator) {
                     return enumerator.MoveNext();
-                }
-                else
-                {
+                } else {
                     return enumerator1.MoveNext();
                 }
             }
@@ -407,11 +395,32 @@ namespace DotNetResourcesExtensions
             public void Reset() => enumerator.Reset();
         }
 
+        private sealed class HiddenEnumeratorResourceEntry : IResourceEntry
+        {
+            private readonly System.String name;
+            private readonly System.Object value;
+
+            public HiddenEnumeratorResourceEntry(string name, object value)
+            {
+                this.name = name;
+                this.value = value;
+            }
+
+            public HiddenEnumeratorResourceEntry(DictionaryEntry de) : this(de.Key.ToString() , de.Value) { }
+
+            public System.String Name => name;
+
+            public System.Object Value => value;
+
+            public System.Type TypeOfValue => value?.GetType();
+        }
+
         /// <summary>
         /// Returns this enumerator but defined as a <see cref="DefaultSimpleResourceEnumerator"/> class.
         /// </summary>
         /// <param name="en">The original enumerator</param>
         /// <returns>The constructed default enumerator.</returns>
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static DefaultSimpleResourceEnumerator AsDefaultEnumerator(this ISimpleResourceEnumerator en)
          => new DefaultSimpleResourceEnumerator(en);
 
@@ -420,6 +429,7 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="en">The original enumerator</param>
         /// <returns>The constructed default enumerator.</returns>
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static DefaultAdvancedResourceEnumerator AsDefaultEnumerator(this IAdvancedResourceEnumerator en)
             => new DefaultAdvancedResourceEnumerator(en);
 
@@ -428,6 +438,7 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="en">The original enumerator</param>
         /// <returns>The constructed default enumerator.</returns>
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static DefaultFullResourceEnumerator AsDefaultEnumerator(this IFullResourceEnumerator en)
             => new DefaultFullResourceEnumerator(en);
 
@@ -436,6 +447,7 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="en">The object instance to take the <see cref="IResourceEnumerable.GetEnumerator"/> method.</param>
         /// <returns>A new <see cref="DefaultFullResourceEnumerator"/> that wraps the contents of <see cref="IResourceEnumerable.GetEnumerator"/> method.</returns>
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static DefaultFullResourceEnumerator GetDefaultFullResourceEnumerator(this IResourceEnumerable en)
             => new DefaultFullResourceEnumerator(en.GetEnumerator());
 
@@ -444,6 +456,7 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="en">The object instance to take the <see cref="IResourceEnumerable.GetAdvancedResourceEnumerator"/> method.</param>
         /// <returns>A new <see cref="DefaultAdvancedResourceEnumerator"/> that wraps the contents of <see cref="IResourceEnumerable.GetAdvancedResourceEnumerator"/> method.</returns>
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static DefaultAdvancedResourceEnumerator GetDefaultAdvancedResourceEnumerator(this IAdvancedResourceEnumerator en)
             => new DefaultAdvancedResourceEnumerator(en);
 
@@ -452,6 +465,7 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="en">The object instance to take the <see cref="IResourceEnumerable.GetSimpleResourceEnumerator"/> method.</param>
         /// <returns>A new <see cref="DefaultSimpleResourceEnumerator"/> that wraps the contents of <see cref="IResourceEnumerable.GetSimpleResourceEnumerator"/> method.</returns>
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static DefaultSimpleResourceEnumerator GetDefaultSimpleResourceEnumerator(this ISimpleResourceEnumerator en)
             => new DefaultSimpleResourceEnumerator(en);
 
@@ -471,8 +485,7 @@ namespace DotNetResourcesExtensions
                 } else {
                     return null;
                 }
-            }
-            finally { inst?.Dispose(); }
+            } finally { inst?.Dispose(); }
         }
 
         /// <summary>
@@ -489,8 +502,7 @@ namespace DotNetResourcesExtensions
             {
                 while (inst?.MoveNext() == true) { entry = inst.Current; }
                 return entry;
-            }
-            finally { inst?.Dispose(); }
+            } finally { inst?.Dispose(); }
         }
 
         /// <summary>
@@ -500,6 +512,7 @@ namespace DotNetResourcesExtensions
         /// <param name="re">The resource enumerable to check.</param>
         /// <returns>The single element in this resource enumerable.</returns>
         /// <exception cref="InvalidOperationException">See the summary of how this exception occurs.</exception>
+        [return: System.Diagnostics.CodeAnalysis.MaybeNull]
         public static IResourceEntry Single(this IResourceEnumerable re)
         {
             var inst = re.GetAdvancedResourceEnumerator();
@@ -525,11 +538,14 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="re">The resource enumerable to get the array from.</param>
         /// <returns>A list of resource entries.</returns>
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static List<IResourceEntry> ToList(this IResourceEnumerable re)
         {
             var inst = re.GetAdvancedResourceEnumerator();
             List<IResourceEntry> entries = new();
-            while (inst?.MoveNext() == true) { entries.Add(inst.Current); }
+            if (inst is null) { goto g_end; }
+            while (inst.MoveNext()) { entries.Add(inst.Current); }
+        g_end:
             return entries;
         }
 
@@ -542,7 +558,9 @@ namespace DotNetResourcesExtensions
         {
             var inst = re.GetAdvancedResourceEnumerator();
             System.Int64 count = 0;
+            if (inst is null) { goto g_end; }
             while (inst?.MoveNext() == true && count < System.Int64.MaxValue) { count++; }
+        g_end:
             return count;
         }
 
@@ -555,8 +573,26 @@ namespace DotNetResourcesExtensions
         {
             var inst = re.GetAdvancedResourceEnumerator();
             System.Int32 count = 0;
-            while (inst?.MoveNext() == true && count < System.Int32.MaxValue) { count++; }
+            if (inst is null) { goto g_end; }
+            while (inst.MoveNext() && count < System.Int32.MaxValue) { count++; }
+        g_end:
             return count;
+        }
+
+        /// <summary>
+        /// Returns a collection that represents the found resources of this <see cref="IResourceEnumerable"/>.
+        /// </summary>
+        /// <param name="re">The resource enumerable to get the array from.</param>
+        /// <returns>A collection of resource entries.</returns>
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        public static Collections.ResourceCollection ToResourceCollection(this IResourceEnumerable re)
+        {
+            Collections.ResourceCollection Rc = new(new Collections.ResourceEntryComparer());
+            IFullResourceEnumerator enumerator = re.GetEnumerator();
+            if (enumerator is null) { goto g_end; }
+            while (enumerator.MoveNext()) { Rc.Add(enumerator.Entry); }
+        g_end:
+            return Rc;
         }
     }
 

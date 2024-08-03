@@ -35,10 +35,10 @@ namespace DotNetResourcesExtensions
             if (gotres) { return; }
             entry = cbres.ReadResource(heldposition , reader.exf);
             if (entry.BytesRead != reader.headerblob.DataPositions[currentindex]) {
-                throw new FormatException($"Read {entry.BytesRead} bytes while expecting to read {reader.headerblob.DataPositions[currentindex]} bytes.");
+                throw new CustomBinaryFormatException($"Read {entry.BytesRead} bytes while expecting to read {reader.headerblob.DataPositions[currentindex]} bytes." , ParserErrorType.Deserialization);
             }
             if (entry.BinResType > reader.headerblob.CurrentFormatsMask) {
-                throw new FormatException($"The format specifies that the resource types allowed are all up to {reader.headerblob.CurrentFormatsMask} but read a value of {entry.BinResType} that is higher than the mask.");
+                throw new CustomBinaryFormatException($"The format specifies that the resource types allowed are all up to {reader.headerblob.CurrentFormatsMask} but read a value of {entry.BinResType} that is higher than the mask." , ParserErrorType.Versioning);
             }
             heldposition += entry.BytesRead;
             gotres = true;

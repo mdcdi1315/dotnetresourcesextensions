@@ -5,7 +5,9 @@ To clone it you need [`git`](https://git-scm.com) installed and you must execute
 ~~~cmd
 git clone https://github.com/mdcdi1315/dotnetresourcesextensions [DIRECTORY]
 ~~~
+<br />
 
+**NOTE** If you decide to clone the repository , you will need ~250 MB of free disk for building and using the project.
 
 There are four different alternatives to build (and/or use) the project.
 
@@ -50,9 +52,9 @@ Copy that version and include it there.
 
 Method 3: Use a Static Layout from a repo build
 
-If you like to access nightly changes or fixes , then this is for you!
+If you like to access nightly features or fixes , then this is for you!
 
-A Static Layout is a NuGet package layout that emulates the features that the NuGet package also offers , but ommiting all NuGet stuff.
+A Static Layout is a NuGet package layout that emulates the features that the NuGet package also offers , but omitting all NuGet stuff.
 
 Any change before being propagated to the NuGet package is first tested using such layouts.
 
@@ -106,7 +108,7 @@ too , please feel free to report an issue or pull request!
 
 The project also ships with a Visual Studio solution. Through Visual Studio you can build the project or edit it's code as well.
 
-Currently , Visual Studio DOES NOT SUPPORT THE CREATION OF STATIC LAYOUTS. And possibly neither do I will add proper code
+Currently , Visual Studio *DOES NOT SUPPORT THE CREATION OF STATIC LAYOUTS*. And possibly neither do I will add proper code
 to build within it.
 
 [Back to Index](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md)

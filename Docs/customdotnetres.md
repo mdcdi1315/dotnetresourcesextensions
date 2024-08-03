@@ -19,3 +19,5 @@ They are defined inside the `DotNetResourcesExtensions.Internal.DotNetResources`
 The API Usage for them is exactly the same as it used to be for `System.Resources.Extensions` classes.
 
 Just the namespace name does change , in order to be built out for all supported flavors.
+
+[Back to Index](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md)

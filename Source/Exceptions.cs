@@ -34,10 +34,7 @@ namespace DotNetResourcesExtensions
             /// </summary>
             /// <param name="resname">The resource name that caused this exception.</param>
             /// <param name="msg">A custom message that describes the exception.</param>
-            public DotNetResourcesException(System.String resname , System.String msg) : base(msg) 
-            {
-                rname = resname;
-            }
+            public DotNetResourcesException(System.String resname , System.String msg) : base(msg) { rname = resname; }
 
             /// <inheritdoc cref="System.Exception.Message" />
             public virtual new string Message => System.String.Format(Resources.DotNetResourcesException_Message , base.Message , rname);
@@ -45,7 +42,7 @@ namespace DotNetResourcesExtensions
             /// <summary>
             /// Gets the resource name that caused the exception.
             /// </summary>
-            public virtual System.String ResourceName { get => rname; }
+            public virtual System.String ResourceName => rname;
         }
 
         /// <summary>
@@ -176,6 +173,30 @@ namespace DotNetResourcesExtensions
     }
 
     /// <summary>
+    /// Defines the Custom Binary Reader/Writer exception type that is thrown by the custom binary format resource classes.
+    /// </summary>
+    public class CustomBinaryFormatException : DotNetResourceParsersException 
+    {
+        /// <summary>
+        /// Creates a new instance of <see cref="CustomBinaryFormatException"/> with the specified message 
+        /// and parser error category.
+        /// </summary>
+        /// <param name="msg">The message to show.</param>
+        /// <param name="errortype">The parser error category.</param>
+        public CustomBinaryFormatException(System.String msg, ParserErrorType errortype) : base(msg, errortype) { }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="CustomBinaryFormatException"/> with the specified message 
+        /// , parser specific error message and parser error category.
+        /// </summary>
+        /// <param name="message">The message to show.</param>
+        /// <param name="errortype">The parser error category.</param>
+        /// <param name="parsermessage">The parser error specific message.</param>
+        public CustomBinaryFormatException(System.String message, System.String parsermessage, ParserErrorType errortype)
+            : base(message, parsermessage, errortype) { }
+    }
+
+    /// <summary>
     /// Exception class that it is thrown when a specific resource was not found.
     /// </summary>
     public class ResourceNotFoundException : Internal.DotNetResourcesException
@@ -189,9 +210,9 @@ namespace DotNetResourcesExtensions
     }
 
     /// <summary>
-    /// Exception class that it is thrown when a resource was attempted to get with an incorrect type.
+    /// Exception class that it is thrown when a resource was attempted to be retrieved under an incorrect type.
     /// </summary>
-    public class ResourceTypeMismatchException : Internal.DotNetResourcesException
+    public class ResourceTypeMismatchException : DotNetResourcesException
     {
         private System.Type found, expected;
 

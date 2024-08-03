@@ -290,7 +290,9 @@ namespace DotNetResourcesExtensions.Internal
 
     /// <summary>
     /// Defines a format to save serialized objects using the <see cref="ICustomFormatter"/> interface
-    /// for resource classes which did not had support or was not considered such support.
+    /// for resource classes which did not had support or was not considered such support. <br />
+    /// Additionally it provides two extension methods that extend the <see cref="ICustomFormatter"/>
+    /// interface for supporting using this format directly from the formatter instance.
     /// </summary>
     public static class ResourceInterchargeFormat
     {
@@ -370,6 +372,22 @@ namespace DotNetResourcesExtensions.Internal
             return formatter.GetObjectFromBytes(ParserHelpers.GetBytes(bytes: bytes , I , len) , System.Type.GetType(typestring , true , true));
         }
 
+        /// <summary>
+        /// Returns the serialized bytes for <paramref name="obj"/> but also directly saves it under the Resource Intercharge Format for directly saving it.
+        /// </summary>
+        /// <param name="formatter">The formatter which will serialize the specified object.</param>
+        /// <param name="obj">The object to serialize.</param>
+        /// <returns>A new intercharge format array containing <paramref name="obj"/>.</returns>
+        public static System.Byte[] GetObjectAsResourceInterchargeFormatBytes(this CustomFormatter.ICustomFormatter formatter , System.Object obj) => GetFromObject(formatter , obj);
+
+        /// <summary>
+        /// Gets the original object defined in the Resource Intercharge Format from the specified <paramref name="bytes"/>.
+        /// </summary>
+        /// <param name="formatter">The formatter which will deserialize the object back to it's original state.</param>
+        /// <param name="bytes">The byte array acquired from <see cref="GetFromObject(CustomFormatter.ICustomFormatter, object)"/> or <see cref="GetObjectAsResourceInterchargeFormatBytes(CustomFormatter.ICustomFormatter, object)"/> methods.</param>
+        /// <returns>The original object.</returns>
+        /// <exception cref="FormatException">The array given was not the array returned from <see cref="GetFromObject(CustomFormatter.ICustomFormatter, object)"/> or <see cref="GetObjectAsResourceInterchargeFormatBytes(CustomFormatter.ICustomFormatter, object)"/>.</exception>
+        public static System.Object GetFromResourceInterchargeFormatBytes(this CustomFormatter.ICustomFormatter formatter, System.Byte[] bytes) => GetFromBytes(formatter, bytes);
     }
 }
 

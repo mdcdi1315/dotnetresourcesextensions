@@ -19,7 +19,7 @@ But it does not stop here. It defines also diverse classes for reading and writi
 
 - Custom JSON resources. Writes and reads out custom JSON resources using the `System.Text.Json` API's.
 
-- Custom XML resources. Writes and reads out custom XML (NOT `Resx`) using the `System.Xml` namespace.
+- Custom XML resources. Writes and reads out custom XML (**NOT** `Resx`) using the `System.Xml` namespace.
 
 - Custom MS-INI resources. Although that sounds weird , those classes depend on a pseudo-syntax of the usual INI files to write and read resources.
 
@@ -30,8 +30,8 @@ The Windows Forms ResX reader cannot read the results produced from them , becau
 	alternative to it. The result was a custom formatter that is allowed to serialize only specific objects.
 		- You can also use it and extend it too!
 
-Also this project includes a build task to use for MSBuild projects for resource generation
-through the `DotNetResourcesExtensions` project. See the `BuildTasks` project for more info.
+Also this project includes a build target and infrastracture to use for MSBuild projects for resource generation
+through the `DotNetResourcesExtensions` project. See the [`BuildTasks`](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/BuildTasks) project for more info.
 
 Currently , the implementation is fairly enough stable.
 You can see the usage documentation [here](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md).
@@ -39,8 +39,8 @@ You can see the usage documentation [here](https://github.com/mdcdi1315/dotnetre
 Please report any bugs you have found out during the project usage.
 
 Most programs are imperfect , and even this one is no exception. 
-I will be very glad to hear about bugs you have found!
+I will be very glad to hear about any bugs you have found!
 
 <p style="font-size:9.2509px">
-	(This project is open-source and is liscensed under the MIT Liscense)
+	(This project is open-source and is licensed to you under the MIT License)
 </p>

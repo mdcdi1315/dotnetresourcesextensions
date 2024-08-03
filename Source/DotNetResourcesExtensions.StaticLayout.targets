@@ -14,7 +14,7 @@
 		<DNTSTATICLAYOUT_TFM Condition="'$(DNTSTATICLAYOUT_TFM.StartsWith(`net4`))' == 'true'">net472</DNTSTATICLAYOUT_TFM>
 		<DNTSTATICLAYOUT_TFM Condition="'$(DNTSTATICLAYOUT_TFM.StartsWith(`netstandard`))' == 'true'">netstandard2.0</DNTSTATICLAYOUT_TFM>
 		<DNTSTATICLAYOUT_TFM Condition="'$(DNTSTATICLAYOUT_TFM.Contains(`net8.0`))' == 'true'">net7.0</DNTSTATICLAYOUT_TFM>
-		<DNTSTATICLAYOUT_TFM Condition="'$(TargetFramework.Contains(`windows`))' == 'true'">net7.0-windows10.0.19041.0</DNTSTATICLAYOUT_TFM>
+		<DNTSTATICLAYOUT_TFM Condition="'$(TargetFramework.Contains(`windows`))' == 'true' AND '$(DNTSTATICLAYOUT_TFM)' != 'net472'">net7.0-windows10.0.19041.0</DNTSTATICLAYOUT_TFM>
 	</PropertyGroup>
 	
 	<ItemGroup>

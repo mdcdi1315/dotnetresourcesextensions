@@ -85,4 +85,4 @@ register all types in <code>RegisteredQualifiedTypeNames</code>
 property will be considered by the formatters as a invalid instance and 
 will be disposed. Be careful when registering type resolvers!</div></p>
 
-[Back to Index](https://github.com/mdcdi1315/dotnettesourcesextensions/blob/master/Docs/Main.md)
+[Back to Index](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md)

@@ -223,8 +223,7 @@ namespace ResourceEditor
 
         private void AssertFileChanges()
         {
-            if (fileisopened)
-            {
+            if (fileisopened) {
                 fileisnotsaved = true;
                 StatusTextBox.Text = "This resource file has been undergone changes and must be saved.";
             }
@@ -319,7 +318,7 @@ namespace ResourceEditor
                 SFD.CheckFileExists = false;
                 SFD.AddExtension = true;
                 SFD.DefaultExt = ".resj";
-                SFD.Filter = "Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi";
+                SFD.Filter = Properties.Resources.FileExtsWithoutBinaryClasses;
                 if (SFD.ShowDialog() == DialogResult.OK)
                 {
                     SaveToFileTask(SFD.FileName , true);
@@ -559,6 +558,9 @@ namespace ResourceEditor
                         case ResourceClasses.DotNetResources:
                         case ResourceClasses.CustomBinary:
                             isreadonly = true;
+                            break;
+                        default:
+                            isreadonly = false;
                             break;
                     }
                     RL = new(Helper.CreateReader(selected, file));

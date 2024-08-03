@@ -46,7 +46,7 @@ namespace DotNetResourcesExtensions.Collections
     }
 
     /// <summary>
-    /// Represents an abstract entry enumerator that acts as wrapper for other enumerators which do not have support 
+    /// Represents an abstract entry enumerator that acts as a wrapper for other enumerators which do not have support 
     /// or knowledge of <see cref="IResourceEntry"/> interface. <br />
     /// This class cannot be inherited.
     /// </summary>
@@ -222,6 +222,93 @@ namespace DotNetResourcesExtensions.Collections
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Represents an enumerator that acts as a wrapper for <see cref="IEnumerator{T}"/> instances for interoperating when using
+    /// a <see cref="IResourceEntryEnumerator"/>. <br />
+    /// This permits the user to create only one enumerator implementation for cases that the <see cref="IResourceEntryEnumerable"/> is implemented.<br />
+    /// For example , when you need a System.Collections.Generic.IEnumerator&lt;IResourceEntry&gt; , you use an instance of this class and then cast to IEnumerator to get it.
+    /// </summary>
+    public sealed class DualResourceEntryEnumerator : AbstractDualResourceEntryEnumerator , IResourceEntryEnumerator , 
+        IEnumerator<IResourceEntry> , IEnumerator<DictionaryEntry> , 
+        IEnumerator<KeyValuePair<System.String , System.Object>>
+    {
+        private IResourceEntryEnumerator en;
+
+        /// <summary>
+        /// Creates a new instance of <see cref="DualResourceEntryEnumerator"/> class with specified underlying enumerator implementation.
+        /// </summary>
+        /// <param name="en">The enumerator implementation to use.</param>
+        public DualResourceEntryEnumerator(IResourceEntryEnumerator en) { this.en = en; }
+
+        /// <inheritdoc />
+        public override IResourceEntry ResourceEntry => en.ResourceEntry;
+
+        /// <inheritdoc />
+        public override DictionaryEntry Entry => en.Entry;
+
+        /// <inheritdoc />
+        public override object Key => en.Key;
+
+        /// <inheritdoc />
+        public override object Value => en.Value;
+
+        /// <inheritdoc />
+        public override bool MoveNext() => en.MoveNext();
+
+        /// <inheritdoc />
+        public override void Reset() => en.Reset();
+
+        /// <summary>Disposes this enumerator instance.</summary>
+        public override void Dispose() {
+            en = null;
+            base.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Provides an abstract implementation of <see cref="DualResourceEntryEnumerator"/> so as to use it in your own code.
+    /// </summary>
+    public abstract class AbstractDualResourceEntryEnumerator : IResourceEntryEnumerator ,
+        IEnumerator<IResourceEntry>, IEnumerator<DictionaryEntry>,
+        IEnumerator<KeyValuePair<System.String, System.Object>>
+    {
+        /// <summary>
+        /// Default empty constructor. You might probably not even need this one.
+        /// </summary>
+        protected AbstractDualResourceEntryEnumerator() { }
+
+        IResourceEntry IEnumerator<IResourceEntry>.Current => ResourceEntry;
+
+        DictionaryEntry IEnumerator<DictionaryEntry>.Current => Entry;
+
+        KeyValuePair<System.String, System.Object> IEnumerator<KeyValuePair<System.String, System.Object>>.Current
+            => new(ResourceEntry.Name, ResourceEntry.Value);
+
+        /// <inheritdoc />
+        public abstract IResourceEntry ResourceEntry { get; }
+
+        /// <inheritdoc />
+        public abstract DictionaryEntry Entry { get; }
+
+        /// <inheritdoc />
+        public abstract System.Object Key { get; }
+
+        /// <inheritdoc />
+        public abstract System.Object Value { get; }
+
+        /// <inheritdoc />
+        public object Current => Entry;
+
+        /// <inheritdoc />
+        public abstract System.Boolean MoveNext();
+
+        /// <inheritdoc />
+        public abstract void Reset();
+
+        /// <summary>By default , this method is empty. If you need to free resources , override this method and provide the disposal routines.</summary>
+        public virtual void Dispose() { GC.SuppressFinalize(this); }
     }
 
 }

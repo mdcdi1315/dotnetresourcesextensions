@@ -19,4 +19,5 @@ To ensure that any derivable formatters do not expose information to the web (an
 Apart from these , it provides a default , abstract formatter (`BaseFormatter`) and a ready-to-use
 formatter (`ExtensibleFormatter`) which is currently used in some resource classes.
 
+[Back to Index](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md)
 

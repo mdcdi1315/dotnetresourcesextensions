@@ -250,6 +250,7 @@ namespace ResourceEditor
 
 }
 
+// Copied from BuildTasks.cs
 namespace DotNetResourcesExtensions.BuildTasks
 {
     public enum OutputResourceType : System.Byte
