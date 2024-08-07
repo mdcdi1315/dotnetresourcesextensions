@@ -112,13 +112,6 @@ namespace DotNetResourcesExtensions
         /// <param name="reader">The reader to read the resources from.</param>
         /// <returns>A new resource entry enumerator.</returns>
         public static Collections.ResourceEntryEnumerator GetResourceEntryEnumerator(this IResourceReader reader) => new(reader.GetEnumerator());
-
-        /// <summary>
-        /// Returns a resource entry enumerator for also supporting the usage of <see cref="IResourceEntry"/> in the classes that define <see cref="IDotNetResourcesExtensionsReader"/> and <see cref="IResourceReader"/> interfaces.
-        /// </summary>
-        /// <param name="reader">The reader to read the resources from.</param>
-        /// <returns>A new resource entry enumerator.</returns>
-        public static Collections.ResourceEntryEnumerator GetResourceEntryEnumerator(this IDotNetResourcesExtensionsReader reader) => GetResourceEntryEnumerator(reader);
     }
 
 }

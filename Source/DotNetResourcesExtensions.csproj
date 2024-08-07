@@ -25,11 +25,11 @@
 		<IsPackable>True</IsPackable>
 		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageVersion>1.0.0-beta2</PackageVersion>
+		<PackageVersion>1.0.0-beta3</PackageVersion>
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
-		<PackageReleaseNotes>Initial Test version of $(_ProjName) as a NuGet package</PackageReleaseNotes>
+		<PackageReleaseNotes>The $(_ProjName) project is expected to be released soon. The code has been stabilized. The 1.0.0-beta3 version is the last test package.</PackageReleaseNotes>
 		<PackageProjectUrl>http://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
 		<Authors>mdcdi1315</Authors>
 		<AssemblyName>$(_ProjName)</AssemblyName>

@@ -79,3 +79,9 @@ Such as:
 -> `CustomDataResourcesLoader` , which loads and gets resources from the custom resource stream format.
 
 Note that not all loaders are supported on all platforms and .NET flavors.
+
+Please also visit the documentation of the project for more information. It is located [here](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md).
+
+__NOTE__: The .NET Standard version is provided only for bridging __.NET Framework with .NET 7__.
+It is not meant to be used so as to cover all target frameworks. If you attempt to use it in old .NET Core or on .NET 5 or 6
+the package will throw a build error in any way.

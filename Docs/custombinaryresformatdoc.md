@@ -39,7 +39,7 @@ _NOTE:_ The format is written on top of `.NET Runtime` environment , and thus , 
 format require knowledge of it; For more information you can go to the `.NET Runtime Official Repository` located at [https://github.com/dotnet/runtime](https://github.com/dotnet/runtime).
 
 _NOTE:(2)_ The following format is only meant to be used in a project and any `.NET Applications` that use it called [`DotNetResourcesExtensions`](https://github.com/mdcdi1315/dotnetresourcesextensions);
-However , the project is open-source and can be copied under the terms of the [`MIT Liscense`](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/LICENSE.txt).
+However , the project is open-source and can be copied under the terms of the [`MIT License`](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/LICENSE.txt).
 
 __Format Versioning__
 
@@ -171,3 +171,19 @@ The `VALUE=<Any arbitrary data>` defines the resource raw value data that is now
 
 It is expected that after the resource data end , the header end must occur (which is `\u0007\n`).
 
+__Remarks about the usage of this format__
+
+The format was originally designed to provide an alternative and fast method of acquiring resources.
+Be noted that the format is written with that way so that it is basically understandable by both machines and
+humans which inspect it in a text editor.
+
+The format itself aims to provide an extensible experience for new resource data , which might require more information to be saved into.
+
+It is also as code-performant as possible due to it's binary nature.
+
+Although that the `.resources` format might beat this one at performance , it was just created to provide a stable and reliable experience of
+writing , saving and acquiring resources so that to be saved on application images.
+
+_End of format description_
+
+[Back to Index](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md)

@@ -14,9 +14,8 @@ namespace DotNetResourcesExtensions
     /// </summary>
     public sealed class CustomBinaryResourceEnumerator : Collections.IResourceEntryEnumerator
     {
+        private System.Int64 currentindex, heldposition;
         private CustomBinaryResourceReader reader;
-        private System.Int64 currentindex;
-        private System.Int64 heldposition;
         private System.Boolean gotres;
         private BinResourceBlob entry;
         private CustomBinaryResource cbres;
@@ -27,7 +26,7 @@ namespace DotNetResourcesExtensions
             currentindex = -1;
             cbres = CustomBinaryResource.ReadFromStream(reader.targetstream);
             gotres = false;
-            heldposition = reader.headerblob.WrittenBytesCount;
+            heldposition = reader.originalstreampos + reader.headerblob.WrittenBytesCount;
         }
 
         private void ReadNext()
@@ -58,7 +57,7 @@ namespace DotNetResourcesExtensions
         public void Reset()
         {
             currentindex = -1;
-            heldposition = reader.headerblob.WrittenBytesCount;
+            heldposition = reader.originalstreampos + reader.headerblob.WrittenBytesCount;
         }
 
         /// <inheritdoc />
@@ -92,6 +91,7 @@ namespace DotNetResourcesExtensions
         private System.Boolean isstreamowner , verified;
         internal ExtensibleFormatter exf;
         internal CustomBinaryHeaderBlob headerblob;
+        internal System.Int64 originalstreampos;
 
         /// <summary>
         /// Gets or sets a value whether the class controls the lifetime of the underlying stream.
@@ -105,6 +105,7 @@ namespace DotNetResourcesExtensions
             isstreamowner = false;
             verified = false;
             headerblob = null;
+            originalstreampos = 0;
         }
 
         /// <summary>
@@ -115,6 +116,7 @@ namespace DotNetResourcesExtensions
         {
             targetstream = stream;
             isstreamowner = false;
+            originalstreampos = targetstream.Position;
         }
 
         /// <summary>
@@ -124,6 +126,7 @@ namespace DotNetResourcesExtensions
         public CustomBinaryResourceReader(System.String path) : this()
         {
             targetstream = new System.IO.FileStream(path , System.IO.FileMode.Open);
+            originalstreampos = targetstream.Position;
             isstreamowner = true;
         }
 
@@ -166,6 +169,7 @@ namespace DotNetResourcesExtensions
         public void Dispose()
         {
             if (isstreamowner) { targetstream.Dispose(); }
+            headerblob = null;
             exf?.Dispose();
             exf = null;
         }

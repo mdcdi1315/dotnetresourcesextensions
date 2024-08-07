@@ -143,9 +143,6 @@ namespace DotNetResourcesExtensions
         }
 
         /// <inheritdoc /> 
-        public void RegisterTypeResolver(ITypeResolver resolver)
-        {
-            exf.RegisterTypeResolver(resolver);
-        }
+        public void RegisterTypeResolver(ITypeResolver resolver) => exf.RegisterTypeResolver(resolver);
     }
 }

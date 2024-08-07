@@ -7,7 +7,7 @@ Notes:
 load resources written with this dependency.
 - Resource objects serialized through `TypeConverter` classes are still supported.
 - Resource objects that are serialized through `ICustomFormatter` are also supported.
-Additionally , these implement the `IUsingCustomFormatter` abstract interface.
+Additionally , these classes implement the `IUsingCustomFormatter` abstract interface so as to add more resource objects to be serialized.
 - Resources written with `ICustomFormatter` cannot be read with the actual `System.Resources.Extensions` classes.
 Only the provided reader from this project has the information to deserialize formatted objects through `ICustomFormatter`.
 - You can still load older resources from .NET Framework. You can also load and .NET Core resources , 

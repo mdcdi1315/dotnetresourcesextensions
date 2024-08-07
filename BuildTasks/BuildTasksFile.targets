@@ -3,7 +3,7 @@
 	ABSTRACT: This file is preloaded for importing BuildTasks into your project during the NuGet package load.
 	It also provides to the MSBuild proper interface for creating resources.
 -->
-<Project ToolsVersion="Current" InitialTargets="I_DotNetResourcesExtensions_BuildTasks_Resolve">
+<Project ToolsVersion="Current" InitialTargets="I_DotNetResourcesExtensions_CheckTF;I_DotNetResourcesExtensions_BuildTasks_Resolve">
 
 	<PropertyGroup>
 		<!-- Determine the BuildTasks assembly to use -->
@@ -87,6 +87,13 @@
 		<Warning File="DotNetResourcesExtensions.BuildTransitive.targets"
 			Condition="('$(DNRS_TFIdentifier)' == 'net472' OR '$(TargetFramework.Contains(`windows`))' == 'true') AND '$(OS)' != 'Windows_NT'" Code="DNTRESEXT0138"
 			Text="Attempting to build a Windows project from a non-Windows machine. As a result you might get build errors because the System.Windows.Forms assembly is required if you want to transfer ResX resources!" />
+	</Target>
+
+	<!-- The NuGet package is not supported for all target frameworks although that .NET Standard allows that to happen. -->
+	<!-- For the unsupported frameworks , throw a build error. -->
+	<Target Name="I_DotNetResourcesExtensions_CheckTF">
+		<Error Condition="'$(TargetFramework.Contains(`net6.0`))' == 'true' OR '$(TargetFramework.Contains(`netcoreapp`))' == 'true' OR '$(TargetFramework.Contains(`net5.0`))' == 'true'"
+			   Code="DNTRESEXT1034" Text="The DotNetResourcesExtensions package is not supported for building apps that use the .NET Core , 5 and 6 versions." />
 	</Target>
 
 	<!-- Done! -->

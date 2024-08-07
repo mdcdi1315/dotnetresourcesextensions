@@ -30,15 +30,13 @@ namespace DotNetResourcesExtensions.Internal
                 {
                     if (enc[I] == InvalidChars[J]) { quotes = true; }
                 }
-                if (enc[I] == '\n') {
-                    result += "-n";
-                } else if (enc[I] == '\r') {
-                    result += "-r";
-                } else if (enc[I] == '\t') {
-                    result += "-t";
-                } else if (enc[I] == '-') {
-                    result += "--";
-                } else { result += enc[I]; }
+                result += enc[I] switch {
+                    '\n' => "-n",
+                    '\r' => "-r",
+                    '\t' => "-t",
+                    '-' => "--",
+                    _ => enc[I]
+                };
             }
             if (quotes) {
                 return $"\"{result}\"";
@@ -64,19 +62,23 @@ namespace DotNetResourcesExtensions.Internal
             for (System.Int32 I = 0; I < dc.Length; I++)
             {
                 if (dc[I] == '-' && (I + 1) < dc.Length) {
-                    System.Char c = dc[I+1]; // Indexing done only once , faster than indexing multiple times.
-                    I++; // We are very much sure about it. In worst case , it throws an exception and we are done.
-                    if (c == 'n') {
-                        decoded += "\n";
-                    } else if (c == 'r') {
-                        decoded += "\r";
-                    } else if (c == 't') {
-                        decoded += "\t";
-                    } else if (c == '-') {
-                        decoded += "-";
-                    } else {
-                        throw new MSINIFormatException($"Invalid or unknown sequence detected: \'-{c}\'" , ParserErrorType.Deserialization);
+                    switch (dc[I+1]) { // switch through cases
+                        case 'n':
+                            decoded += "\n";
+                            break;
+                        case 'r':
+                            decoded += "\r";
+                            break;
+                        case 't':
+                            decoded += "\t";
+                            break;
+                        case '-':
+                            decoded += "-";
+                            break;
+                        default:
+                            throw new MSINIFormatException($"Invalid or unknown sequence detected: \'-{dc[I+1]}\'", ParserErrorType.Deserialization);
                     }
+                    I++; // We are very much sure about it. In worst case , it throws an exception and we are done.
                 } else { // Otherwise just make sure to copy it to the result
                     decoded += dc[I]; 
                 }
