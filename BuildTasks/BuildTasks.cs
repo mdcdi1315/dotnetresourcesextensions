@@ -283,7 +283,7 @@ namespace DotNetResourcesExtensions.BuildTasks
                     case ".txt":
                         rdr = new KVPResourcesReader(streams[strindex]);
                         break;
-#if WF_AVAIlABLE
+#if WF_AVAILABLE
                     case ".resx":
                         rdr = new System.Resources.ResXResourceReader(streams[strindex]);
                         break;
