@@ -283,9 +283,11 @@ namespace DotNetResourcesExtensions.BuildTasks
                     case ".txt":
                         rdr = new KVPResourcesReader(streams[strindex]);
                         break;
+#if WF_AVAIlABLE
                     case ".resx":
                         rdr = new System.Resources.ResXResourceReader(streams[strindex]);
                         break;
+#endif
                 }
             } catch (System.Exception ex) {
                 Log.LogWarning("Could not load file {0} ... See next warning for more information." , path);
