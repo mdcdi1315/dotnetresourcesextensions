@@ -172,10 +172,7 @@ namespace DotNetResourcesExtensions
         public void Generate() { writer.Flush(); }
 
         /// <inheritdoc />
-        public void RegisterTypeResolver(ITypeResolver resolver)
-        {
-            formatter.RegisterTypeResolver(resolver);
-        }
+        public void RegisterTypeResolver(ITypeResolver resolver) => formatter.RegisterTypeResolver(resolver);
     }
 
 }

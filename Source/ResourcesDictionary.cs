@@ -13,6 +13,25 @@ namespace DotNetResourcesExtensions.Collections
     /// </summary>
     public sealed class ResourceCollection : ICollection<IResourceEntry> , IResourceEntryEnumerable
     {
+        private sealed class DefaultResEntry : IResourceEntry
+        {
+            private readonly System.String _name;
+            private readonly System.Object _value;
+
+            public DefaultResEntry(System.String name, System.Object value)
+            {
+                _name = name;
+                _value = value;
+            }
+
+            public System.String Name => _name;
+
+            public System.Object Value => _value;
+
+            public System.Type TypeOfValue => _value?.GetType();
+        }
+
+
         private System.Int32 _index;
         private IComparer<IResourceEntry> _comparer;
         private System.Memory<IResourceEntry> entries;
@@ -157,8 +176,7 @@ namespace DotNetResourcesExtensions.Collections
         /// </summary>
         /// <param name="Name">The resource name.</param>
         /// <param name="Value">The resource value.</param>
-        public void Add(System.String Name , System.Object Value)
-            => Add(IResourceEntryExtensions.Create(Name, Value));
+        public void Add(System.String Name , System.Object Value) => Add(new DefaultResEntry(Name , Value));
 
         /// <summary>
         /// Clears the contents of this <see cref="ResourceCollection"/>. <br />
@@ -247,7 +265,7 @@ namespace DotNetResourcesExtensions.Collections
         /// otherwise, <see langword="false"/>. This method also returns <see langword="false"/> if the specified resource name and value is not found in the
         /// original <see cref="ResourceCollection"/>.</returns>
         public System.Boolean Remove(System.String Name, System.Object obj)
-            => Remove(IResourceEntryExtensions.Create(Name, obj));
+            => Remove(new DefaultResEntry(Name , obj));
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 

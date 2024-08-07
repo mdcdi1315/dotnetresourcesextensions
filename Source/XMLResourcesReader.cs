@@ -102,14 +102,13 @@ namespace DotNetResourcesExtensions
         public void Reset() => currentindex = -1;
 
         /// <inheritdoc />
-        public DictionaryEntry Entry {
-            get
-            {
-                if (currentindex == -1) { throw new InvalidOperationException(); }
+        public DictionaryEntry Entry 
+        {
+            get {
+                if (currentindex == -1) { throw new InvalidOperationException("The enumeration has not started yet."); }
                 if (readresource) { return current; }
                 readresource = true;
-                current = GetResource();
-                return current;
+                return current = GetResource();
             }
         }
 
@@ -118,7 +117,6 @@ namespace DotNetResourcesExtensions
 
         /// <inheritdoc />
         public System.Object Value => Entry.Value;
-
     }
 
     /// <summary>

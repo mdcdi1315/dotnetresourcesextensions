@@ -62,10 +62,7 @@ namespace DotNetResourcesExtensions
         }
 
         /// <inheritdoc />
-        public DictionaryEntry Entry
-        {
-            get { ReadNext(); return new(entry.Name , entry.Value); }
-        }
+        public DictionaryEntry Entry => new(entry.Name, entry.Value);
 
         /// <summary>
         /// Returns the current read resource as a new <see cref="IResourceEntry"/>.

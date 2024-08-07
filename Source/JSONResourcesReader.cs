@@ -118,7 +118,7 @@ namespace DotNetResourcesExtensions
         {
             get
             {
-                if (CurrentIndex == -1) { throw new InvalidOperationException(); }
+                if (CurrentIndex == -1) { throw new InvalidOperationException("The enumerator is uninitialized."); }
                 if (resourceread) { return cachedresource; }
                 else { return (cachedresource = GetResource()); }
             }

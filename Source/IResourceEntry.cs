@@ -61,7 +61,7 @@ namespace DotNetResourcesExtensions
     {
         // Default wrapped entry class implementation to use in the IResourceEntry extensions.
         [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
-        private class DefaultResourceEntry : IResourceEntry
+        private sealed class DefaultResourceEntry : IResourceEntry
         {
             private System.String name;
             private System.Object value;
@@ -261,7 +261,7 @@ namespace DotNetResourcesExtensions
         /// the second one contains the resource entry value.
         /// </summary>
         /// <param name="entry">The resource entry to reinterpret.</param>
-        /// <returns>A <see cref="System.ValueTuple{T1, T2}"/> , or pair that is a reinterpreted version of the resource entry given.</returns>
+        /// <returns>A <see cref="System.ValueTuple{T1, T2}"/> , or a pair that is a reinterpreted version of the resource entry given.</returns>
         public static System.ValueTuple<System.String, System.Object> AsValueTuple(this IResourceEntry entry) => new(entry.Name , entry.Value);
 
         /// <summary>
@@ -327,7 +327,7 @@ namespace DotNetResourcesExtensions
         /// Determines whether this entry originates from a <see cref="IResourceLoader"/> instance.
         /// </summary>
         /// <param name="entry">The entry to determine whether it originates from the <see cref="IResourceLoader"/>.</param>
-        /// <returns></returns>
+        /// <returns><see langword="true"/> if this entry originates from a <see cref="IResourceLoader"/> instance; otherwise , <see langword="false"/>.</returns>
         public static System.Boolean IsRealResourceEntry(this IResourceEntry entry) => entry is not DefaultResourceEntry;
     
         /// <summary>
@@ -337,6 +337,28 @@ namespace DotNetResourcesExtensions
         /// <param name="other">The second entry to test.</param>
         /// <returns><see langword="true"/> if their names are equal; otherwise <see langword="false"/>.</returns>
         public static System.Boolean IsEqualTo(this IResourceEntry entry , IResourceEntry other) => CompareTo(entry, other) == 0;
+
+        /// <summary>
+        /// Determines whether the <see cref="IResourceEntry.Value"/> property is effectively <see langword="null"/>.
+        /// </summary>
+        /// <param name="entry">The resource entry to test.</param>
+        /// <returns><see langword="true"/> if the <see cref="IResourceEntry.Value"/> property is <see langword="null"/>. 
+        /// Otherwise , it returns <see langword="false"/>.</returns>
+        public static System.Boolean ValueIsNull(this IResourceEntry entry) => entry.Value is null;
+
+        /// <summary>
+        /// Defines a generalized method to deconstruct an <see cref="IResourceEntry"/>-derived class. <br />
+        /// Together with the language internals , this method can be used to deconstruct such an instance immediately. <br />
+        /// If your implementing class provides more information that you need also to be passed, you must create your own deconstruction method overload.
+        /// </summary>
+        /// <param name="entry">The resource entry to deconstruct</param>
+        /// <param name="Name">The deconstructed entry name.</param>
+        /// <param name="Value">The deconstructed entry value.</param>
+        public static void Deconstruct(this IResourceEntry entry , out System.String Name , out System.Object Value)
+        {
+            Name = entry.Name;
+            Value = entry.Value;
+        }
 
         /// <summary>
         /// Compares this resource entry name to another resource entry name.
