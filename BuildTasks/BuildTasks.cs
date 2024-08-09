@@ -130,12 +130,14 @@ namespace DotNetResourcesExtensions.BuildTasks
             {
                 if (file is null) { continue; }
                 System.Resources.IResourceReader dd = GetReaderFromPath(file.ItemSpec);
-                if (dd is null && isfirst) {
-                    ProduceError("DNTRESEXT0018" , "Primary file for reading must always be valid. Resource generation stopped.");
-                    return false;
-                } else if (isfirst == false) {
-                    Log.LogMessage(MessageImportance.Normal, "The file {0} was skipped due to an unexpected error. See the log messages before for more information." , file.ItemSpec);
-                    continue;
+                if (dd is null) {
+                    if (isfirst) {
+                        ProduceError("DNTRESEXT0018", "Primary file for reading must always be valid. Resource generation stopped.");
+                        return false;
+                    } else {
+                        Log.LogMessage(MessageImportance.Normal, "The file {0} was skipped due to an unexpected error. See the log messages before for more information.", file.ItemSpec);
+                        continue;
+                    }
                 }
                 Log.LogMessage(MessageImportance.Normal , "Loaded file {0} into memory. Metadata Names: {1} Metadata Count: {2}" , file.ItemSpec , GetMetadataNames(file.MetadataNames) , file.MetadataCount);
                 if (isfirst)
