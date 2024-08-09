@@ -563,7 +563,6 @@ namespace System.Diagnostics.CodeAnalysis
 
 namespace System
 {
-    using System.Diagnostics;
     using System.Runtime.CompilerServices;
     using System.Diagnostics.CodeAnalysis;
 
@@ -587,17 +586,6 @@ namespace System
             foreach (System.String s in strings) { if (path.EndsWith(s)) { return true; } }
             return false;
         }
-
-        public static System.Object GetUninitializedObject(System.Type type)
-        {
-            if (type == null) { throw new System.ArgumentNullException(nameof(type)); }
-            // When someone calls GetUninitializedObject , he will probably get the 'default' value from the structure.
-            // This is not so simple to do. To do it , I have declared another method that is generic and gets it's default value. 
-            System.Type cltype = typeof(InternalImports);
-            return cltype.GetMethod("GetUntObject").MakeGenericMethod(type).Invoke(null, new System.Object[0]);
-        }
-
-        public static System.Object GetUntObject<T>() => default(T);
     }
 
 #nullable enable

@@ -5,10 +5,10 @@ using System.Text;
 
 namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
 {
+    using System.Drawing;
     using System.Diagnostics.CodeAnalysis;
 
 #if WINDOWS10_0_17763_0_OR_GREATER || NET471_OR_GREATER
-    using System.Drawing;
     using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
 #endif
@@ -731,6 +731,235 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
 
 #endif
 
+    internal sealed class PointRepresentation : DefaultArrayRepresentation<System.Drawing.Point>
+    {
+        public override Converter<Point, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(System.Drawing.Point point)
+            {
+                if (point.IsEmpty) { throw new ArgumentNullException(nameof(point)); }
+                // We know that the int as bytes array length is 4. 
+                // During write , the resulting array will be 8 bytes , 4 for the X point , and 4 for the Y point.
+                System.Byte[] result = new System.Byte[8];
+                System.Byte[] temp = System.BitConverter.GetBytes(point.X);
+                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
+                temp = System.BitConverter.GetBytes(point.Y);
+                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
+                return result;
+            }
+            return Method;
+        }
+
+        public override Converter<byte[], Point> GetUntransformMethod()
+        {
+            System.Drawing.Point Method(System.Byte[] bytes)
+            {
+                // The array size must be exactly 8.
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
+                // Create our resulting structure.
+                System.Drawing.Point point = new();
+                point.X = System.BitConverter.ToInt32(bytes, 0);
+                point.Y = System.BitConverter.ToInt32(bytes, 4);
+                return point;
+            }
+            return Method;
+        }
+    }
+
+    internal sealed class PointFRepresentation : DefaultArrayRepresentation<System.Drawing.PointF>
+    {
+        public override Converter<PointF, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(System.Drawing.PointF point)
+            {
+                if (point.IsEmpty) { throw new ArgumentNullException(nameof(point)); }
+                // We know that the float as bytes array length is 4. 
+                // During write , the resulting array will be 8 bytes , 4 for the X point , and 4 for the Y point.
+                System.Byte[] result = new System.Byte[8];
+                System.Byte[] temp = System.BitConverter.GetBytes(point.X);
+                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
+                temp = System.BitConverter.GetBytes(point.Y);
+                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
+                return result;
+            }
+            return Method;
+        }
+
+        public override Converter<byte[], PointF> GetUntransformMethod()
+        {
+            System.Drawing.PointF Method(System.Byte[] bytes)
+            {
+                // The array size must be exactly 8.
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
+                // Create our resulting structure.
+                System.Drawing.PointF point = new();
+                point.X = System.BitConverter.ToSingle(bytes, 0);
+                point.Y = System.BitConverter.ToSingle(bytes, 4);
+                return point;
+            }
+            return Method;
+        }
+    }
+
+    internal sealed class SizeRepresentation : DefaultArrayRepresentation<System.Drawing.Size>
+    {
+        public override Converter<Size, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(System.Drawing.Size size)
+            {
+                if (size.IsEmpty) { throw new ArgumentNullException(nameof(size)); }
+                // We know that the int as bytes array length is 4. 
+                // During write , the resulting array will be 8 bytes , 4 for the width and 4 for the height.
+                System.Byte[] result = new System.Byte[8];
+                System.Byte[] temp = System.BitConverter.GetBytes(size.Width);
+                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
+                temp = System.BitConverter.GetBytes(size.Height);
+                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
+                return result;
+            }
+            return Method;
+        }
+
+        public override Converter<byte[], Size> GetUntransformMethod()
+        {
+            System.Drawing.Size Method(System.Byte[] bytes)
+            {
+                // The array size must be exactly 8.
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
+                System.Drawing.Size result = new();
+                result.Width = System.BitConverter.ToInt32(bytes, 0);
+                result.Height = System.BitConverter.ToInt32(bytes, 4);
+                return result;
+            }
+            return Method;
+        }
+    }
+
+    internal sealed class SizeFRepresentation : DefaultArrayRepresentation<System.Drawing.SizeF>
+    {
+        public override Converter<SizeF, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(System.Drawing.SizeF size)
+            {
+                if (size.IsEmpty) { throw new ArgumentNullException(nameof(size)); }
+                // We know that the int as bytes array length is 4. 
+                // During write , the resulting array will be 8 bytes , 4 for the width and 4 for the height.
+                System.Byte[] result = new System.Byte[8];
+                System.Byte[] temp = System.BitConverter.GetBytes(size.Width);
+                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
+                temp = System.BitConverter.GetBytes(size.Height);
+                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
+                return result;
+            }
+            return Method;
+        }
+
+        public override Converter<byte[], SizeF> GetUntransformMethod()
+        {
+            System.Drawing.SizeF Method(System.Byte[] bytes)
+            {
+                // The array size must be exactly 8.
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
+                System.Drawing.SizeF result = new();
+                result.Width = System.BitConverter.ToSingle(bytes, 0);
+                result.Height = System.BitConverter.ToSingle(bytes, 4);
+                return result;
+            }
+            return Method;
+        }
+    }
+
+    internal sealed class RectangleRepresentation : DefaultArrayRepresentation<System.Drawing.Rectangle>
+    {
+        public override Converter<Rectangle, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(Rectangle rectangle)
+            {
+                if (rectangle.IsEmpty) { throw new ArgumentNullException(nameof(rectangle)); }
+                // We know that the int as bytes array length is 4. 
+                // During write , the resulting array will be 16 bytes , 4 for the width
+                // , 4 for the height , 4 for the X point and 4 for the Y point.
+                // We do not need to encode other properties , because these are only part of the
+                // Rectangle.
+                System.Byte[] result = new System.Byte[16];
+                System.Byte[] temp = System.BitConverter.GetBytes(rectangle.Width);
+                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
+                temp = System.BitConverter.GetBytes(rectangle.Height);
+                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
+                temp = System.BitConverter.GetBytes(rectangle.X);
+                System.Array.ConstrainedCopy(temp, 0, result, 8, 4);
+                temp = System.BitConverter.GetBytes(rectangle.Y);
+                System.Array.ConstrainedCopy(temp, 0, result, 12, 4);
+                return result;
+            }
+            return Method;
+        }
+
+        public override Converter<byte[], Rectangle> GetUntransformMethod()
+        {
+            Rectangle Method(System.Byte[] bytes)
+            {
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (bytes.LongLength != 16) { throw new ArgumentException("The array size must be exactly 16."); }
+                Rectangle result = new();
+                result.Width = System.BitConverter.ToInt32(bytes, 0);
+                result.Height = System.BitConverter.ToInt32(bytes, 4);
+                result.X = System.BitConverter.ToInt32(bytes, 8);
+                result.Y = System.BitConverter.ToInt32(bytes, 12);
+                return result;
+            }
+            return Method;
+        }
+    }
+
+    internal sealed class RectangleFRepresentation : DefaultArrayRepresentation<System.Drawing.RectangleF>
+    {
+        public override Converter<RectangleF, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(RectangleF rectangle)
+            {
+                if (rectangle.IsEmpty) { throw new ArgumentNullException(nameof(rectangle)); }
+                // We know that the float as bytes array length is 4. 
+                // During write , the resulting array will be 16 bytes , 4 for the width
+                // , 4 for the height , 4 for the X point and 4 for the Y point.
+                // We do not need to encode other properties ,
+                // because the Rectangle object only depends on these
+                // 4 properties.
+                System.Byte[] result = new System.Byte[16];
+                System.Byte[] temp = System.BitConverter.GetBytes(rectangle.Width);
+                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
+                temp = System.BitConverter.GetBytes(rectangle.Height);
+                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
+                temp = System.BitConverter.GetBytes(rectangle.X);
+                System.Array.ConstrainedCopy(temp, 0, result, 8, 4);
+                temp = System.BitConverter.GetBytes(rectangle.Y);
+                System.Array.ConstrainedCopy(temp, 0, result, 12, 4);
+                return result;
+            }
+            return Method;
+        }
+
+        public override Converter<byte[], RectangleF> GetUntransformMethod()
+        {
+            RectangleF Method(System.Byte[] bytes)
+            {
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (bytes.LongLength != 16) { throw new ArgumentException("The array size must be exactly 16."); }
+                RectangleF result = new();
+                result.Width = System.BitConverter.ToSingle(bytes, 0);
+                result.Height = System.BitConverter.ToSingle(bytes, 4);
+                result.X = System.BitConverter.ToSingle(bytes, 8);
+                result.Y = System.BitConverter.ToSingle(bytes, 12);
+                return result;
+            }
+            return Method;
+        }
+    }
+
 #if WINDOWS10_0_17763_0_OR_GREATER || NET471_OR_GREATER
 
     // These types are for Windows only , but when they are available ,
@@ -915,235 +1144,6 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                     MS = new(bytes);
                     return new(MS);
                 } finally { MS?.Dispose(); }
-            }
-            return Method;
-        }
-    }
-
-    internal sealed class PointRepresentation : DefaultArrayRepresentation<System.Drawing.Point>
-    {
-        public override Converter<Point, byte[]> GetTransformMethod()
-        {
-            System.Byte[] Method(System.Drawing.Point point) 
-            {
-                if (point.IsEmpty) { throw new ArgumentNullException(nameof(point)); }
-                // We know that the int as bytes array length is 4. 
-                // During write , the resulting array will be 8 bytes , 4 for the X point , and 4 for the Y point.
-                System.Byte[] result = new System.Byte[8];
-                System.Byte[] temp = System.BitConverter.GetBytes(point.X);
-                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(point.Y);
-                System.Array.ConstrainedCopy(temp , 0 , result, 4, 4);
-                return result;
-            }
-            return Method;
-        }
-
-        public override Converter<byte[], Point> GetUntransformMethod()
-        {
-            System.Drawing.Point Method(System.Byte[] bytes) 
-            {
-                // The array size must be exactly 8.
-                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-                if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
-                // Create our resulting structure.
-                System.Drawing.Point point = new();
-                point.X = System.BitConverter.ToInt32(bytes, 0);
-                point.Y = System.BitConverter.ToInt32(bytes, 4);
-                return point;
-            }
-            return Method;
-        }
-    }
-
-    internal sealed class PointFRepresentation : DefaultArrayRepresentation<System.Drawing.PointF>
-    {
-        public override Converter<PointF, byte[]> GetTransformMethod()
-        {
-            System.Byte[] Method(System.Drawing.PointF point)
-            {
-                if (point.IsEmpty) { throw new ArgumentNullException(nameof(point)); }
-                // We know that the float as bytes array length is 4. 
-                // During write , the resulting array will be 8 bytes , 4 for the X point , and 4 for the Y point.
-                System.Byte[] result = new System.Byte[8];
-                System.Byte[] temp = System.BitConverter.GetBytes(point.X);
-                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(point.Y);
-                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                return result;
-            }
-            return Method;
-        }
-
-        public override Converter<byte[], PointF> GetUntransformMethod()
-        {
-            System.Drawing.PointF Method(System.Byte[] bytes)
-            {
-                // The array size must be exactly 8.
-                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-                if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
-                // Create our resulting structure.
-                System.Drawing.PointF point = new();
-                point.X = System.BitConverter.ToSingle(bytes, 0);
-                point.Y = System.BitConverter.ToSingle(bytes, 4);
-                return point;
-            }
-            return Method;
-        }
-    }
-
-    internal sealed class SizeRepresentation : DefaultArrayRepresentation<System.Drawing.Size>
-    {
-        public override Converter<Size, byte[]> GetTransformMethod()
-        {
-            System.Byte[] Method(System.Drawing.Size size) 
-            {
-                if (size.IsEmpty) { throw new ArgumentNullException(nameof(size)); }
-                // We know that the int as bytes array length is 4. 
-                // During write , the resulting array will be 8 bytes , 4 for the width and 4 for the height.
-                System.Byte[] result = new System.Byte[8];
-                System.Byte[] temp = System.BitConverter.GetBytes(size.Width);
-                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(size.Height);
-                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                return result;
-            }
-            return Method;
-        }
-
-        public override Converter<byte[], Size> GetUntransformMethod()
-        {
-            System.Drawing.Size Method(System.Byte[] bytes)
-            {
-                // The array size must be exactly 8.
-                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-                if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
-                System.Drawing.Size result = new();
-                result.Width = System.BitConverter.ToInt32(bytes, 0);
-                result.Height = System.BitConverter.ToInt32(bytes, 4);
-                return result;
-            }
-            return Method;
-        }
-    }
-
-    internal sealed class SizeFRepresentation : DefaultArrayRepresentation<System.Drawing.SizeF>
-    {
-        public override Converter<SizeF, byte[]> GetTransformMethod()
-        {
-            System.Byte[] Method(System.Drawing.SizeF size)
-            {
-                if (size.IsEmpty) { throw new ArgumentNullException(nameof(size)); }
-                // We know that the int as bytes array length is 4. 
-                // During write , the resulting array will be 8 bytes , 4 for the width and 4 for the height.
-                System.Byte[] result = new System.Byte[8];
-                System.Byte[] temp = System.BitConverter.GetBytes(size.Width);
-                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(size.Height);
-                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                return result;
-            }
-            return Method;
-        }
-
-        public override Converter<byte[], SizeF> GetUntransformMethod()
-        {
-            System.Drawing.SizeF Method(System.Byte[] bytes)
-            {
-                // The array size must be exactly 8.
-                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-                if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
-                System.Drawing.SizeF result = new();
-                result.Width = System.BitConverter.ToSingle(bytes, 0);
-                result.Height = System.BitConverter.ToSingle(bytes, 4);
-                return result;
-            }
-            return Method;
-        }
-    }
-
-    internal sealed class RectangleRepresentation : DefaultArrayRepresentation<System.Drawing.Rectangle>
-    {
-        public override Converter<Rectangle, byte[]> GetTransformMethod()
-        {
-            System.Byte[] Method(Rectangle rectangle)
-            {
-                if (rectangle.IsEmpty) { throw new ArgumentNullException(nameof(rectangle)); }
-                // We know that the int as bytes array length is 4. 
-                // During write , the resulting array will be 16 bytes , 4 for the width
-                // , 4 for the height , 4 for the X point and 4 for the Y point.
-                // We do not need to encode other properties , because these are only part of the
-                // Rectangle.
-                System.Byte[] result = new System.Byte[16];
-                System.Byte[] temp = System.BitConverter.GetBytes(rectangle.Width);
-                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(rectangle.Height);
-                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                temp = System.BitConverter.GetBytes(rectangle.X);
-                System.Array.ConstrainedCopy(temp, 0, result, 8, 4);
-                temp = System.BitConverter.GetBytes(rectangle.Y);
-                System.Array.ConstrainedCopy(temp, 0, result, 12, 4);
-                return result;
-            }
-            return Method;
-        }
-
-        public override Converter<byte[], Rectangle> GetUntransformMethod()
-        {
-            Rectangle Method(System.Byte[] bytes)
-            {
-                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-                if (bytes.LongLength != 16) { throw new ArgumentException("The array size must be exactly 16."); }
-                Rectangle result = new();
-                result.Width = System.BitConverter.ToInt32(bytes, 0);
-                result.Height = System.BitConverter.ToInt32(bytes, 4);
-                result.X = System.BitConverter.ToInt32(bytes, 8);
-                result.Y = System.BitConverter.ToInt32(bytes, 12);
-                return result;
-            }
-            return Method;
-        }
-    }
-
-    internal sealed class RectangleFRepresentation : DefaultArrayRepresentation<System.Drawing.RectangleF>
-    {
-        public override Converter<RectangleF, byte[]> GetTransformMethod()
-        {
-            System.Byte[] Method(RectangleF rectangle)
-            {
-                if (rectangle.IsEmpty) { throw new ArgumentNullException(nameof(rectangle)); }
-                // We know that the float as bytes array length is 4. 
-                // During write , the resulting array will be 16 bytes , 4 for the width
-                // , 4 for the height , 4 for the X point and 4 for the Y point.
-                // We do not need to encode other properties ,
-                // because the Rectangle object only depends on these
-                // 4 properties.
-                System.Byte[] result = new System.Byte[16];
-                System.Byte[] temp = System.BitConverter.GetBytes(rectangle.Width);
-                System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(rectangle.Height);
-                System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                temp = System.BitConverter.GetBytes(rectangle.X);
-                System.Array.ConstrainedCopy(temp, 0, result, 8, 4);
-                temp = System.BitConverter.GetBytes(rectangle.Y);
-                System.Array.ConstrainedCopy(temp, 0, result, 12, 4);
-                return result;
-            }
-            return Method;
-        }
-
-        public override Converter<byte[], RectangleF> GetUntransformMethod()
-        {
-            RectangleF Method(System.Byte[] bytes)
-            {
-                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-                if (bytes.LongLength != 16) { throw new ArgumentException("The array size must be exactly 16."); }
-                RectangleF result = new();
-                result.Width = System.BitConverter.ToSingle(bytes, 0);
-                result.Height = System.BitConverter.ToSingle(bytes, 4);
-                result.X = System.BitConverter.ToSingle(bytes, 8);
-                result.Y = System.BitConverter.ToSingle(bytes, 12);
-                return result;
             }
             return Method;
         }
