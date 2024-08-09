@@ -84,11 +84,9 @@ namespace DotNetResourcesExtensions
         private void WriteObjectResource(System.String Name, System.Object value)
         {
             System.Byte[] t;
-            try
-            {
+            try {
                t = exf.GetBytesFromObject(value);
-            } catch (Internal.CustomFormatter.Exceptions.ConverterNotFoundException e)
-            {
+            } catch (Internal.CustomFormatter.Exceptions.ConverterNotFoundException e) {
                 throw new FormatException("Could not serialize the given object. Error occured.", e);
             }
             writer.WriteStartObject();

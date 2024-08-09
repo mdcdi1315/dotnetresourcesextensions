@@ -42,15 +42,13 @@ namespace DotNetResourcesExtensions.BuildTasks
             {
                 if (rb == 10 || rb == 13)
                 {
-                    if (data.StartsWith("#"))
-                    { 
+                    if (data.Length > 0 && data[0] == '#') { 
                         data = System.String.Empty;
                         continue; 
                     }
                     data = MsIniStringsEncoder.Decode(data);
                     idx = data.IndexOf('=');
-                    if (idx == -1)
-                    {
+                    if (idx == -1) {
                         data = System.String.Empty;
                         System.Diagnostics.Debug.WriteLine("KVP parser cannot find the \'=\' sign required for splitting the resources from values.");
                         continue;
@@ -73,19 +71,12 @@ namespace DotNetResourcesExtensions.BuildTasks
 
         public void Close()
         {
-            if (strmown)
-            {
-                stream?.Close();
-            }
+            if (strmown) { stream?.Close(); }
         }
 
         public void Dispose()
         {
-            if (strmown)
-            {
-                stream?.Dispose();
-            }
+            if (strmown) { stream?.Dispose(); }
         }
-
     }
 }

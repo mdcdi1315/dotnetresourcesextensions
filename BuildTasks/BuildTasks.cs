@@ -25,7 +25,7 @@ namespace DotNetResourcesExtensions.BuildTasks
 
         private System.Reflection.Assembly Resolver(System.Object sender, System.ResolveEventArgs e)
         {
-            System.IO.DirectoryInfo DI = new(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location));
+            System.IO.DirectoryInfo DI = DownloadDeps.BuildTasksPath;
             System.Reflection.AssemblyName AN = new(e.Name);
             Log.LogMessage(MessageImportance.Normal, "Path assembly prober of BuildTasks searches for a file called \"{0}\"." , AN.FullName);
             foreach (var file in DI.GetFiles("*.dll"))
@@ -94,21 +94,15 @@ namespace DotNetResourcesExtensions.BuildTasks
 
         private bool UnsafeExecute()
         {
-            System.Int32 avcores = BuildEngine9.RequestCores(2);
-            if (avcores == 0) 
-            {
-                ProduceError("DNTRESEXT0002", "Cannot allocate at least one core for generating the resources.");
-                return false;
-            }
-            if (OutputFilePath == null || OutputFilePath.ItemSpec == null) 
-            {
+            if (OutputFilePath == null || OutputFilePath.ItemSpec == null) {
                 ProduceError("DNTRESEXT0001" , "A target output file was not specified. Please specify a valid path , then retry. ");
-                return false;
+                // Someone might not have yet included build code so as to generate resources , so return true to continue the build normally.
+                return true;
             }
-            if (InputFiles == null)
-            {
+            if (InputFiles == null) {
                 ProduceError("DNTRESEXT0012", "No input files were supplied. Please check whether all files are supplied correctly.");
-                return false;
+                // Someone might not have yet included build code so as to generate resources , so return true to continue the build normally.
+                return true;
             }
             if (restype == OutputResourceType.Resources)
             {
@@ -136,10 +130,12 @@ namespace DotNetResourcesExtensions.BuildTasks
             {
                 if (file is null) { continue; }
                 System.Resources.IResourceReader dd = GetReaderFromPath(file.ItemSpec);
-                if (dd is null)
-                {
-                    ProduceError("DNTRESEXT0018" , "Temporary reader MUST NOT BE NULL AT THIS POINT FAILURE OCCURED");
+                if (dd is null && isfirst) {
+                    ProduceError("DNTRESEXT0018" , "Primary file for reading must always be valid. Resource generation stopped.");
                     return false;
+                } else if (isfirst == false) {
+                    Log.LogMessage(MessageImportance.Normal, "The file {0} was skipped due to an unexpected error. See the log messages before for more information." , file.ItemSpec);
+                    continue;
                 }
                 Log.LogMessage(MessageImportance.Normal , "Loaded file {0} into memory. Metadata Names: {1} Metadata Count: {2}" , file.ItemSpec , GetMetadataNames(file.MetadataNames) , file.MetadataCount);
                 if (isfirst)
@@ -288,6 +284,11 @@ namespace DotNetResourcesExtensions.BuildTasks
                         rdr = new System.Resources.ResXResourceReader(streams[strindex]);
                         break;
 #endif
+                    default:
+                        streams[strindex]?.Dispose();
+                        streams[strindex] = null;
+                        ProduceWarning("DNTRESEXT0213" , $"Could not find a resource reader for the file {FI.FullName}. Resource generation for this item will be skipped. This can cause compilation or run-time errors.");
+                        break;
                 }
             } catch (System.Exception ex) {
                 Log.LogWarning("Could not load file {0} ... See next warning for more information." , path);
@@ -320,7 +321,7 @@ namespace DotNetResourcesExtensions.BuildTasks
                 try {
                     restype = (OutputResourceType)System.Enum.Parse(typeof(OutputResourceType), value);
                 } catch (ArgumentException e) {
-                    ProduceWarning("DNTRESEXT0007", $"The value specified , {value} was not accepted because of \n {e} .");
+                    ProduceWarning("DNTRESEXT0007", $"The value specified , {value} was not accepted because of an {e.GetType().Name}: \n {e} .");
                     ProduceWarning("DNTRESEXT0008", "Setting the OutputFileType back to Resources due to an error. See the previous message for more information.");
                     restype = OutputResourceType.Resources;
                 }

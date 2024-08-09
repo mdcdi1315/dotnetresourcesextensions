@@ -518,7 +518,7 @@ namespace DotNetResourcesExtensions
             var inst = re.GetAdvancedResourceEnumerator();
             if (inst?.MoveNext() == true)
             {
-                if (inst?.MoveNext() == true) { goto g_rf; }
+                if (inst.MoveNext()) { goto g_rf; }
                 return inst.Current;
             }
         g_rf:
@@ -559,7 +559,7 @@ namespace DotNetResourcesExtensions
             var inst = re.GetAdvancedResourceEnumerator();
             System.Int64 count = 0;
             if (inst is null) { goto g_end; }
-            while (inst?.MoveNext() == true && count < System.Int64.MaxValue) { count++; }
+            while (inst.MoveNext() && count < System.Int64.MaxValue) { count++; }
         g_end:
             return count;
         }

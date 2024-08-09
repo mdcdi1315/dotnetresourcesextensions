@@ -45,8 +45,7 @@ namespace DotNetResourcesExtensions.BuildTasks
             {
                 classnamespace.Name = classname.Remove(classname.LastIndexOf('.'));
             }
-            CodeNamespaceImport cni = new("DotNetResourcesExtensions");
-            classnamespace.Imports.Add(cni);
+            classnamespace.Imports.Add(new("DotNetResourcesExtensions"));
             classnamespace.Comments.Add(new CodeCommentStatement("This is an Automatically generated file: It means that it's contents might be replaced if the StronglyTypedResourceGenerator is run on this file."));
             classnamespace.Comments.Add(new CodeCommentStatement("© MDCDI1315. DotNetResourcesExtensions is a project under the MIT Liscense."));
             classnamespace.Comments.Add(new CodeCommentStatement("About: This file is a strongly-typed resource loader convenient for getting your resources through code."));
@@ -80,12 +79,10 @@ namespace DotNetResourcesExtensions.BuildTasks
             ctd.IsClass = true;
             ctd.IsStruct = false;
             ctd.Name = GetClassName();
-            ctd.Attributes = MemberAttributes.Static;
-            if (visibilty == ResourceClassVisibilty.Public)
-            {
-                ctd.Attributes |= MemberAttributes.Public;
+            if (visibilty == ResourceClassVisibilty.Public) {
+                ctd.Attributes = MemberAttributes.Public | MemberAttributes.Static;
             } else if (visibilty == ResourceClassVisibilty.Internal) {
-                ctd.Attributes |= MemberAttributes.Assembly;
+                ctd.Attributes = MemberAttributes.Assembly | MemberAttributes.Static;
             }
             ctd.Members.Add(CreateInternalLoaderField());
             ctd.Members.Add(CreateUnderlyingStreamField());
@@ -160,7 +157,6 @@ namespace DotNetResourcesExtensions.BuildTasks
             ctm.HasSet = false;
             ctm.Type = new CodeTypeReference(typeof(IResourceLoader));
             ctm.Attributes = MemberAttributes.Public | MemberAttributes.Static;
-
             CodeFieldReferenceExpression cfre = new();
             cfre.FieldName = "resloader";
             CodeFieldReferenceExpression cfre2 = new();
