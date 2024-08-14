@@ -1,9 +1,9 @@
 ﻿## The `DotNetResourcesExtensions` Package
 
-This package adds new possiblities for handling .NET resources ,
+This package adds new ways and methods for handling .NET resources ,
 for those who do not like to use the default provided alternatives.
 
-This package is provided for four different .NET flavors to use.
+The package is provided for four different .NET flavors to use.
 
 Supported .NET flavors:
 - .NET Framework 4.7.2 or above
@@ -11,7 +11,7 @@ Supported .NET flavors:
 - .NET Windows Desktop 7 or above
 - .NET Standard 2.0 or above
 
-What Possibilities this package adds?
+What does this package add?
 
 It defines a new alternative to get and load resources.
 Additionally , it defines new custom resource readers and writers to use.
@@ -59,7 +59,7 @@ You can use this simple example to get and read resources.
 
 Except from defining the `IResourceLoader` interface itself , it defines new resource format alternatives.
 
-Currently , Custom ResX , JSON , Custom XML and the Custom Binary Resource Format are some of the formats that this library currently holds.
+Currently , Custom ResX , JSON , Custom XML and the Custom Binary Resource Format are some of the formats that this library currently implements and has.
 
 All readers and writers of course are always implementing the 
 `System.Resources.IResourceReader` and
@@ -80,7 +80,7 @@ Such as:
 
 Note that not all loaders are supported on all platforms and .NET flavors.
 
-Please also visit the documentation of the project for more information. It is located [here](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md).
+You may also visit the documentation of the project for more information. It is located [here](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md).
 
 __NOTE__: The .NET Standard version is provided only for bridging __.NET Framework with .NET 7__.
 It is not meant to be used so as to cover all target frameworks. If you attempt to use it in old .NET Core or on .NET 5 or 6

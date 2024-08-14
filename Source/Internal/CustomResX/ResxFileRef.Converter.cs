@@ -121,8 +121,8 @@ public partial class ResXFileRef
                 // We have a string, now we need to check the encoding.
                 Encoding textFileEncoding =
                     parts.Length > 2
-                        ? Encoding.GetEncoding(parts[2])
-                        : Encoding.Default;
+                        ? System.Text.Encoding.GetEncoding(parts[2])
+                        : System.Text.Encoding.Default;
                 using (StreamReader sr = new StreamReader(fileName, textFileEncoding))
                 {
                     return sr.ReadToEnd();

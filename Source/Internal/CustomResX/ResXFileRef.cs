@@ -15,7 +15,7 @@ namespace DotNetResourcesExtensions.Internal.ResX;
 ///  for the value of the resource item, the external resource is loaded.
 /// </summary>
 [TypeConverter(typeof(Converter))]
-public partial class ResXFileRef
+public partial class ResXFileRef : IFileReference
 {
     /// <summary>
     ///  Creates a new ResXFileRef that points to the specified file.
@@ -59,6 +59,19 @@ public partial class ResXFileRef
     public Encoding? TextFileEncoding { get; }
 
     /// <summary>
+    /// The type that this reference is associated with.
+    /// </summary>
+    public Type SavingType {
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("The current property code requires that the TypeName property is set to an assembly that the runtime has loaded into. If not , the call will throw an exception.")]
+        get => System.Type.GetType(TypeName, false, true); 
+    }
+
+    /// <summary>
+    /// Gets the encoding specified in the current <see cref="ResXFileRef"/> constructor.
+    /// </summary>
+    public FileReferenceEncoding Encoding => TextFileEncoding == null ? FileReferenceEncoding.Undefined : TextFileEncoding.AsFileEncoding();
+
+    /// <summary>
     ///  path1+result = path2
     ///  A string which is the relative path difference between path1 and
     ///  path2 such that if path1 and the calculated difference are used
@@ -93,7 +106,7 @@ public partial class ResXFileRef
             return string.Empty;
         }
 
-        StringBuilder relPath = new StringBuilder();
+        StringBuilder relPath = new();
 
         for (; i < path1.Length; ++i)
         {

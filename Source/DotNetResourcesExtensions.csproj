@@ -31,7 +31,7 @@
 		<IsPackable>True</IsPackable>
 		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageVersion>1.0.0</PackageVersion>
+		<PackageVersion>1.0.1-beta0</PackageVersion>
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
@@ -39,18 +39,19 @@
 		<PackageProjectUrl>http://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
 		<Authors>mdcdi1315</Authors>
 		<AssemblyName>$(_ProjName)</AssemblyName>
-		<AssemblyVersion>1.0.0.1</AssemblyVersion>
+		<AssemblyVersion>1.0.0.2</AssemblyVersion>
 		<ProductName>$(_ProjName)</ProductName>
 		<Product>$(_ProjName) is a project that defines new possibilities on handling resources of a .NET application.
 Additionally , it defines new types for doing resource serializations never thought of.
 		</Product>
-		<ProductVersion>1.0.0.1-initial</ProductVersion>
+		<ProductVersion>1.0.0.2-beta</ProductVersion>
 		<Company>© MDCDI1315. $(PackageProjectUrl)</Company>
 		<Copyright>© MDCDI1315 (2024). All work is licensed under the MIT License.</Copyright>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<DebugType Condition="'$(Configuration)' == 'Debug'">Full</DebugType>
 		<AssemblyOriginatorKeyFile>..\ProjectKey.snk</AssemblyOriginatorKeyFile>
 		<SignAssembly>True</SignAssembly>
+		<DebugType Condition="'$(Configuration)' == 'Debug'">Full</DebugType>
 		<UseWPF Condition="'$(TargetFramework)' == '$(NetFrameworkIdentifier)' OR '$(TargetFramework)' == '$(NetCoreWindowsIdentifier)'">True</UseWPF>
 	</PropertyGroup>
 
@@ -97,11 +98,8 @@ Additionally , it defines new types for doing resource serializations never thou
 	</Target>
 	
 	<Target Name="DD_PackAdditional" BeforeTargets="GenerateNuspec">
-		<MSBuild Projects="$(MSBuildThisFileDirectory)/../BuildTasks/BuildTasks.csproj"
-			BuildInParallel="false" Properties="Configuration=Release" Targets="Restore;Build" 
-			UseResultsCache="true" />
-		<Error Code="DNTRESEXT0222" Text="You must generate the BuildTasks assembly before packing up."
-			Condition="'$([System.IO.File]::Exists(`$(MSBuildThisFileDirectory)/../BuildTasks/bin/Release/$(NetFrameworkIdentifier)/DotNetResourcesExtensions.BuildTasks.dll`))' != 'true'"  />
+		<MSBuild Projects="$(MSBuildThisFileDirectory)/../BuildTasks/BuildTasks.csproj" BuildInParallel="false" Properties="Configuration=Release" Targets="Restore;Build" UseResultsCache="true" />
+		<Error Code="DNTRESEXT0222" Text="You must generate the BuildTasks assembly before packing up." Condition="'$([System.IO.File]::Exists(`$(MSBuildThisFileDirectory)/../BuildTasks/bin/Release/$(NetFrameworkIdentifier)/DotNetResourcesExtensions.BuildTasks.dll`))' != 'true'" />
 	</Target>
 
 	<!-- Generates a consumption layout to use it in your project directly without referencing the DotNetResourcesExtensions package. -->
@@ -115,17 +113,15 @@ Additionally , it defines new types for doing resource serializations never thou
 		</PropertyGroup>
 		<RemoveDir Directories="$(StaticLayoutIntermediatePath);$(StaticLayoutOutputPath);$(MSBuildThisFileDirectory)bin" />
 		<MakeDir Directories="$(StaticLayoutIntermediatePath);$(StaticLayoutIntermediatePath)/lib" />
-		<Copy SourceFiles="DotNetResourcesExtensions.StaticLayout.targets" 
-			  DestinationFolder="$(StaticLayoutIntermediatePath)" SkipUnchangedFiles="true" />
-		<MSBuild Projects="$(MSBuildProjectFullPath);$(MSBuildThisFileDirectory)/../BuildTasks/BuildTasks.csproj"
-				 BuildInParallel="false" Targets="Restore;Build" RunEachTargetSeparately="true" Properties="Configuration=Release" />
+		<Copy SourceFiles="DotNetResourcesExtensions.StaticLayout.targets" DestinationFolder="$(StaticLayoutIntermediatePath)" SkipUnchangedFiles="true" />
+		<MSBuild Projects="$(MSBuildProjectFullPath);$(MSBuildThisFileDirectory)/../BuildTasks/BuildTasks.csproj" BuildInParallel="false" Targets="Restore;Build" RunEachTargetSeparately="true" Properties="Configuration=Release" />
 		<Copy SourceFiles="$(BuildTasksBaseDirectory)/$(NetFrameworkIdentifier)/DotNetResourcesExtensions.BuildTasks.dll;$(BuildTasksBaseDirectory)/$(NetFrameworkIdentifier)/DotNetResourcesExtensions.dll" DestinationFolder="$(StaticLayoutIntermediatePath)/tools/net472" />
 		<Copy SourceFiles="$(BuildTasksBaseDirectory)/netstandard2.0/DotNetResourcesExtensions.BuildTasks.dll;$(BuildTasksBaseDirectory)/netstandard2.0/DotNetResourcesExtensions.dll" DestinationFolder="$(StaticLayoutIntermediatePath)/tools/netstandard2.0" />
 		<Copy SourceFiles="$(BuildTasksBaseDirectory)/$(NetFrameworkIdentifier)/DotNetResourcesExtensions.targets" DestinationFolder="$(StaticLayoutIntermediatePath)/build" />
-		<Exec Command="1>nul xcopy &quot;$(MSBuildThisFileDirectory)bin/Release&quot; &quot;$(StaticLayoutIntermediatePath)/lib&quot; /S /Q /I" Condition="'$(OS)' == 'Windows_NT'" />
-		<Exec Command="cp -R $(MSBuildThisFileDirectory)bin/Release/ $(StaticLayoutIntermediatePath)/lib > nul" Condition="'$(OS)' != 'Windows_NT'" />
-		<Exec Command="1>nul xcopy &quot;$(StaticLayoutIntermediatePath)&quot; &quot;$(StaticLayoutOutputPath)&quot; /S /Q /I" Condition="'$(OS)' == 'Windows_NT'" />
-		<Exec Command="cp -R $(StaticLayoutIntermediatePath)/ $(StaticLayoutOutputPath) > nul" Condition="'$(OS)' != 'Windows_NT'" />
+		<Exec Command="1&gt;nul xcopy &quot;$(MSBuildThisFileDirectory)bin/Release&quot; &quot;$(StaticLayoutIntermediatePath)/lib&quot; /S /Q /I" Condition="'$(OS)' == 'Windows_NT'" />
+		<Exec Command="cp -R $(MSBuildThisFileDirectory)bin/Release/ $(StaticLayoutIntermediatePath)/lib &gt; nul" Condition="'$(OS)' != 'Windows_NT'" />
+		<Exec Command="1&gt;nul xcopy &quot;$(StaticLayoutIntermediatePath)&quot; &quot;$(StaticLayoutOutputPath)&quot; /S /Q /I" Condition="'$(OS)' == 'Windows_NT'" />
+		<Exec Command="cp -R $(StaticLayoutIntermediatePath)/ $(StaticLayoutOutputPath) &gt; nul" Condition="'$(OS)' != 'Windows_NT'" />
 		<Message Importance="high" Text="The requested static layout was generated at $(StaticLayoutOutputPath) ." />
 	</Target>
 	

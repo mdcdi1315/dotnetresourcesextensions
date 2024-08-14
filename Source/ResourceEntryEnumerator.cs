@@ -311,4 +311,27 @@ namespace DotNetResourcesExtensions.Collections
         public virtual void Dispose() { GC.SuppressFinalize(this); }
     }
 
+    /// <summary>
+    /// Provides a simplified abstract implementation of <see cref="DualResourceEntryEnumerator"/> so as to use it in your own code.
+    /// </summary>
+    public abstract class AbstractSimpleDualResourceEntryEnumerator : AbstractDualResourceEntryEnumerator
+    {
+        /// <summary>
+        /// Default empty constructor. You might probably not even need this one.
+        /// </summary>
+        protected AbstractSimpleDualResourceEntryEnumerator() { }
+
+        /// <inheritdoc />
+        public override DictionaryEntry Entry => new(ResourceEntry.Name , ResourceEntry.Value);
+
+        /// <inheritdoc />
+        public override System.Object Key => ResourceEntry.Name;
+
+        /// <inheritdoc />
+        public override System.Object Value => ResourceEntry.Value;
+
+        /// <summary>By default , this method is empty. If you need to free resources , override this method and provide the disposal routines.</summary>
+        public override void Dispose() { base.Dispose(); }
+    }
+
 }

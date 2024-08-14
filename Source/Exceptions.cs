@@ -197,6 +197,30 @@ namespace DotNetResourcesExtensions
     }
 
     /// <summary>
+    /// Defines the Custom Human-readable Format exception type that is thrown by this format classes.
+    /// </summary>
+    public class HumanReadableFormatException : DotNetResourceParsersException 
+    {
+        /// <summary>
+        /// Creates a new instance of <see cref="HumanReadableFormatException"/> with the specified message 
+        /// and parser error category.
+        /// </summary>
+        /// <param name="msg">The message to show.</param>
+        /// <param name="errortype">The parser error category.</param>
+        public HumanReadableFormatException(System.String msg, ParserErrorType errortype) : base(msg, errortype) { }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="HumanReadableFormatException"/> with the specified message 
+        /// , parser specific error message and parser error category.
+        /// </summary>
+        /// <param name="message">The message to show.</param>
+        /// <param name="errortype">The parser error category.</param>
+        /// <param name="parsermessage">The parser error specific message.</param>
+        public HumanReadableFormatException(System.String message, System.String parsermessage, ParserErrorType errortype)
+            : base(message, parsermessage, errortype) { }
+    }
+
+    /// <summary>
     /// Exception class that it is thrown when a specific resource was not found.
     /// </summary>
     public class ResourceNotFoundException : Internal.DotNetResourcesException
