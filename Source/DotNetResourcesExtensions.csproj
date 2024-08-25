@@ -63,6 +63,13 @@ Additionally , it defines new types for doing resource serializations never thou
 	</PropertyGroup>
 
   <ItemGroup>
+	<Compile Include="Localization\Exceptions.cs" />
+	<Compile Include="Localization\LocalizableReaderWriter.cs" />
+	<Compile Include="Localization\ILocalizedResourceEntry.cs" />
+	<Compile Include="Localization\ILocalizationIndexResourceReaderWriter.cs" />
+	<Compile Include="Localization\ILocalizedResourceEntryEnumerator.cs" />
+	<Compile Include="Localization\LocalizableResourceLoader.cs" />
+	<Compile Include="Localization\LocalizableXMLWriter.cs" />
 	<Compile Include="Properties\AssemblyInfo.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\*.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\Internal\*.cs" />

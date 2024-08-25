@@ -223,7 +223,7 @@ namespace DotNetResourcesExtensions
     /// <summary>
     /// Exception class that it is thrown when a specific resource was not found.
     /// </summary>
-    public class ResourceNotFoundException : Internal.DotNetResourcesException
+    public class ResourceNotFoundException : DotNetResourcesException
     {
         /// <summary>
         /// Create a new instance of <see cref="ResourceNotFoundException"/> with the specified resource name which was not found.
