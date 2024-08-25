@@ -2,6 +2,7 @@
 
 ### Index:
 
+- [See and learn about the repository status](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Status.md)
 - [About the project](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/About.md)
 - [The IResourceLoader Interface - How To Use](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Iresloader.md)
 - [The IResourceTransferer Interface - How To Use](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Irestransferer.md)

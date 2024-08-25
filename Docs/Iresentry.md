@@ -23,6 +23,9 @@ After retrieveing an instance of the `IResourceEntry` , you can:
 - Create a resource loader from single entries.
 - Compare to other resource entries using the `CompareTo` extension method
 
+Apart from these the interface is being used in a number of new resource enumerators defined in the
+`Collections` namespace. 
+
 Just using the `IResourceEntry` is not enough. To access all the features , 
 you must access the extension methods. To access those , you must include
 a import directive to your source file to the `DotNetResourcesExtensions` namespace.
