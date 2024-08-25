@@ -269,6 +269,25 @@ namespace DotNetResourcesExtensions.Internal
             return result;
         }
 
+        public static System.Boolean EqualsWithoutLeadingWhiteSpace(this System.String str , System.String other)
+        {
+            System.String copy = System.String.Empty;
+            foreach (System.Char c in str)
+            {
+                switch (c) {
+                    case ' ':
+                    case '\t':
+                        if (System.String.IsNullOrEmpty(copy)) { break; }
+                        copy += c;
+                        break;
+                    default:
+                        copy += c;
+                        break;
+                }
+            }
+            return copy.Equals(other);
+        }
+
         // The unsafe calls allow us to bypass definite runtime checks for conversions.
         private static unsafe TResult WideningConversion<TInput , TResult>(TInput input) 
             where TResult : unmanaged

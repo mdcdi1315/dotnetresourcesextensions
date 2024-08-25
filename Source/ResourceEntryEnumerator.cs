@@ -46,6 +46,19 @@ namespace DotNetResourcesExtensions.Collections
     }
 
     /// <summary>
+    /// Works in the exact same manner as the <see cref="IResourceEntryEnumerable"/> but it can be used in a 
+    /// <see cref="System.Resources.IResourceReader"/> instance.
+    /// </summary>
+    public interface IResourceEntryImplementable : System.Resources.IResourceReader
+    {
+        /// <summary>
+        /// Gets a resource entry enumerator.
+        /// </summary>
+        /// <returns>An object that implements the <see cref="IResourceEntryEnumerator"/> interface.</returns>
+        public IResourceEntryEnumerator GetResourceEntryEnumerator();
+    }
+
+    /// <summary>
     /// Represents an abstract entry enumerator that acts as a wrapper for other enumerators which do not have support 
     /// or knowledge of <see cref="IResourceEntry"/> interface. <br />
     /// This class cannot be inherited.
@@ -319,7 +332,7 @@ namespace DotNetResourcesExtensions.Collections
         /// <summary>
         /// Default empty constructor. You might probably not even need this one.
         /// </summary>
-        protected AbstractSimpleDualResourceEntryEnumerator() { }
+        protected AbstractSimpleDualResourceEntryEnumerator() : base() { }
 
         /// <inheritdoc />
         public override DictionaryEntry Entry => new(ResourceEntry.Name , ResourceEntry.Value);

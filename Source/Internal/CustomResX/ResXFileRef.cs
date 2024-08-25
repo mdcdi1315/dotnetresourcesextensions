@@ -40,6 +40,11 @@ public partial class ResXFileRef : IFileReference
         TextFileEncoding = textFileEncoding;
     }
 
+    /// <summary>
+    /// Returns a <see langword="null"/> file reference to specify to ResX resource classes that the reference is empty (and thus it should not be included).
+    /// </summary>
+    public static IFileReference Null => new ResXNullRef();
+
     internal ResXFileRef Clone()
         => TextFileEncoding is null ? new(FileName, TypeName) : new(FileName, TypeName, TextFileEncoding);
 

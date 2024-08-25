@@ -30,6 +30,8 @@ namespace DotNetResourcesExtensions
             public System.Object Value => _value;
 
             public System.Type TypeOfValue => _value?.GetType();
+
+            public override string ToString() => $"\'{_name}\': {_value}";
         }
 
         private sealed class TypedFileRef : IFileReference
@@ -67,45 +69,41 @@ namespace DotNetResourcesExtensions
             entry = null;
         }
 
-        private static System.Int64 ReadInt64OrFail(System.Object data)
-        {
-            if (data is System.Int64 value) { return value; }
-            throw new FormatException("The value is not a numeric value.");
-        }
-
-        private static System.Int32 ReadInt32OrFail(System.Object data) => ReadInt64OrFail(data).ToInt32();
-
         private TypedResEntry ReadNext()
         {
             System.Byte[] ReadDataArray(Dictionary<System.String , System.Object> properties) {
-                if (properties.ContainsKey("size") == false || properties.ContainsKey("alignment") == false || 
-                    properties.ContainsKey("chunks") == false) { return null; }
-                return reader.fr.ReadBase64ChunksValue(
-                    ReadInt32OrFail(properties["size"]), 
-                    ReadInt32OrFail(properties["alignment"]), 
-                    ReadInt32OrFail(properties["chunks"]));
+                System.Int32 size = 0, alignment = 0, chunks = 0;
+                try {
+                    size = HumanReadableFormatConstants.Property.GetProperty(properties, "size").Int32Value;
+                    alignment = HumanReadableFormatConstants.Property.GetProperty(properties, "alignment").Int32Value;
+                    chunks = HumanReadableFormatConstants.Property.GetProperty(properties, "chunks").Int32Value;
+                } catch (System.ArgumentException) {
+                    return null;
+                }
+                return reader.fr.ReadBase64ChunksValue(size , alignment , chunks);
             }
             System.String ReadStringValue(Dictionary<System.String , System.Object> props) 
             {
-                System.Int32 length = props.TryGetValue("length", out object? value) ? ReadInt32OrFail(value) : 0;
+                System.Int32 length = props.TryGetValue("length", out object? value) ? HumanReadableFormatConstants.ReadInt32OrFail(value) : 0;
                 System.String result = System.String.Empty , str;
+                reader.fr.SkipInitialTabsOrSpaces();
                 if (length > 0) {
-                    reader.fr.SkipInitialTabsOrSpaces();
                     result = reader.fr.ReadExactlyAndConvertToString(length);
                     reader.fr.Position++; // Required so as to avoid the not-read \n and to help ReadLine read the next line successfully.
                     if (reader.fr.ReadLine() != "end value") {
                         throw new FormatException($"Expected the value to be ended , but the resource value does still continue. Have you forgotten to close the resource?");
                     }
                 } else {
-                    while ((str = reader.fr.ReadLine()) is not null)
+                    List<System.String> data = new();
+                    while ((str = reader.fr.ReadLiteralLine()) is not null)
                     {
-                        if (str.Equals("end value")) {
-                            // The below statement covers cases where strings 'have not newlines'.
-                            if (str.FindCharOccurence('\n') == 1) { result = result.Remove(result.Length - 1); }
-                            break;
-                        }
-                        result += str + "\n"; // The \n is omitted when reading with this way , add it explicitly.
+                        if (str.EqualsWithoutLeadingWhiteSpace("end value")) { break; }
+                        data.Add(str);
                     }
+                    for (System.Int32 I = 0; I < (data.Count-1); I++) { result += $"{data[I]}\n"; }
+                    result += data[data.Count-1];
+                    data.Clear();
+                    data = null;
                 }
                 return result;
             }
@@ -117,7 +115,7 @@ namespace DotNetResourcesExtensions
             while ((str = reader.fr.ReadLine()) is not null) {
                 if (str.Equals("begin resource")) { continue; }
                 if (str.Equals("end resource")) { closed = true; break; }
-                if (!str.Equals("begin value")) { HumanReadableFormatReader.AddProperty(props, str); }
+                if (!str.Equals("begin value")) { HumanReadableFormatConstants.AddProperty(props, str); }
                 else {
                     switch (props["type"]) {
                         case "string":
@@ -192,10 +190,7 @@ namespace DotNetResourcesExtensions
         }
 
         /// <inheritdoc />
-        public override void Reset()
-        {
-            reader.fr.Position = reader.pos;
-        }
+        public override void Reset() { reader.fr.Position = reader.pos; }
     }
 
     /// <summary>
@@ -204,7 +199,7 @@ namespace DotNetResourcesExtensions
     /// The reader is adequately fast and can handle adequately fast ~200 KB of data per resource. <br />
     /// This is the reader counterpart.
     /// </summary>
-    public sealed class HumanReadableFormatReader : IDotNetResourcesExtensionsReader
+    public sealed class HumanReadableFormatReader : IDotNetResourcesExtensionsReader , Collections.IResourceEntryImplementable
     {
         private System.IO.Stream underlying;
         internal System.IO.StringableStream fr;
@@ -240,37 +235,6 @@ namespace DotNetResourcesExtensions
         public HumanReadableFormatReader(System.String path) 
             : this(new System.IO.FileStream(path , FileMode.Open)) { strmown = true; }
 
-        internal static System.Boolean StringsMatch(System.String one , System.String two) => one.Equals(two , StringComparison.InvariantCultureIgnoreCase);
-
-        internal static void AddProperty(IDictionary<System.String, System.Object> properties, System.String value)
-        {
-            static System.Boolean GetNumber(System.String data, out System.Int64 num)
-            {
-                [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-                static System.Boolean IsDigit(System.Char ch) => (System.UInt32)(ch - '0') <= ('9' - '0');
-                if (data.Length > 0 && IsDigit(data[0]))
-                {
-                    num = ParserHelpers.ToNumber(data);
-                    return true;
-                }
-                num = 0;
-                return false;
-            }
-            System.Int32 eqindex = value.IndexOf('=');
-            if (eqindex > -1)
-            {
-                System.String name = value.Remove(eqindex - 1);
-                if (properties.ContainsKey(name)) { return; }
-                System.Object propval = null;
-                System.String data = value.Substring(eqindex + 2);
-                if (GetNumber(data, out System.Int64 number)) { propval = number; } else { propval = data; }
-                data = null;
-                properties.Add(name, propval);
-                propval = null;
-                name = null;
-            }
-        }
-
         private void ReadHeader() 
         {
             System.Boolean cond = true;
@@ -278,19 +242,21 @@ namespace DotNetResourcesExtensions
             Dictionary<System.String, System.Object> properties = new();
             while ((dt = fr.ReadLine()) is not null && cond) 
             {
-                if (StringsMatch(dt , "begin header")) { continue; } // Correct header if this is true
-                if (StringsMatch(dt , "end header")) { cond = false; break; }
-                AddProperty(properties, dt);
+                if (HumanReadableFormatConstants.StringsMatch(dt , "begin header")) { continue; } // Correct header if this is true
+                if (HumanReadableFormatConstants.StringsMatch(dt , "end header")) { cond = false; break; }
+                HumanReadableFormatConstants.AddProperty(properties, dt);
             }
             if (properties.Count != 2) { throw new HumanReadableFormatException($"This is not the custom human-readable format. Error occured." , ParserErrorType.Header); }
-            if (properties["version"] is System.Int64 number) {
-                if (number > 1) {
-                    throw new HumanReadableFormatException("The version read is higher than the version that this reader can read." , ParserErrorType.Versioning);
+            try {
+                HumanReadableFormatConstants.Property prop = HumanReadableFormatConstants.Property.GetProperty(properties, "version");
+                if (prop.Int64Value > HumanReadableFormatConstants.Version.Int64Value)
+                {
+                    throw new HumanReadableFormatException("The version read is higher than the version that this reader can read.", ParserErrorType.Versioning);
                 }
-            } else {
-                throw new HumanReadableFormatException($"Cannot parse the numeric value defined in 'version' header. Internal error occured." , ParserErrorType.Header);
+            } catch (System.Exception e) {
+                throw new HumanReadableFormatException($"Cannot parse the numeric value defined in 'version' header. Internal error occured." , $"{e.GetType().FullName}: {e.Message}", ParserErrorType.Header);
             }
-            if (properties["magic"].ToString() != "mdcdi1315.HRFMT") { throw new HumanReadableFormatException("The magic value given is incorrect." , ParserErrorType.Header); }
+            if (HumanReadableFormatConstants.Property.GetProperty(properties , "schema").ValueEquals(HumanReadableFormatConstants.SchemaName) == false) { throw new HumanReadableFormatException($"The schema {properties["schema"]} cannot be read by this reader." , ParserErrorType.Header); }
             properties = null;
         }
 
@@ -303,6 +269,11 @@ namespace DotNetResourcesExtensions
 
         /// <inheritdoc />
         public IDictionaryEnumerator GetEnumerator() => new HumanReadableFormatEnumerator(this);
+
+        /// <summary>
+        /// Gets an enumerator which has the ability to also get resource entries.
+        /// </summary>
+        public Collections.IResourceEntryEnumerator GetResourceEntryEnumerator() => new HumanReadableFormatEnumerator(this);
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 

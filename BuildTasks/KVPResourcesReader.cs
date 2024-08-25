@@ -38,24 +38,34 @@ namespace DotNetResourcesExtensions.BuildTasks
             System.Int32 rb , idx;
             System.String data = System.String.Empty;
             res = new();
-            while ((rb = stream.ReadByte()) > -1)
+            System.Boolean cond = true;
+            while (cond && (rb = stream.ReadByte()) > -1)
             {
-                if (rb == 10 || rb == 13)
-                {
-                    if (data.Length > 0 && data[0] == '#') { 
-                        data = System.String.Empty;
-                        continue; 
-                    }
-                    data = MsIniStringsEncoder.Decode(data);
-                    idx = data.IndexOf('=');
-                    if (idx == -1) {
-                        data = System.String.Empty;
-                        System.Diagnostics.Debug.WriteLine("KVP parser cannot find the \'=\' sign required for splitting the resources from values.");
-                        continue;
-                    }
-                    res.Add(data.Remove(idx), data.Substring(idx + 1));
-                } else {
-                    data += (System.Char)rb;  
+                switch (rb) {
+                    case 10:
+                    case 13:
+                        data = MsIniStringsEncoder.Decode(data);
+                        idx = data.IndexOf('=');
+                        if (idx == -1) {
+                            data = System.String.Empty;
+                            System.Diagnostics.Debug.WriteLine("KVP parser cannot find the \'=\' sign required for splitting the resources from values.");
+                            continue;
+                        }
+                        res.Add(data.Remove(idx), data.Substring(idx + 1));
+                        break;
+                    case 35:
+                        if (System.String.IsNullOrEmpty(data)) { 
+                            // In such case we will skip up to next line.
+                            while ((rb = stream.ReadByte()) > -1)
+                            {
+                                if (rb == 10 || rb == 13) { break; }
+                            }
+                            // And then FetchData will continue to parse...
+                        }
+                        break;
+                    default:
+                        data += (System.Char)rb;
+                        break;
                 }
             }
         }

@@ -263,6 +263,34 @@ namespace System.IO
             return encoding.GetString(byteview.ToArray());
         }
 
+        /// <summary>
+        /// Reads the next line of characters as-it-is , and including even leading tabs or spaces.
+        /// </summary>
+        /// <returns></returns>
+        public System.String ReadLiteralLine()
+        {
+            if (Position >= Length) { return null; }
+            System.Int32 rb;
+            System.Boolean cond = true;
+            List<System.Byte> byteview = new();
+            while (cond && (rb = ReadByte()) > -1)
+            {
+                switch (rb)
+                {
+                    // The newline characters signify end of line.
+                    case 10:
+                    case 13:
+                        cond = false;
+                        break;
+                    default:
+                        byteview.Add((System.Byte)rb);
+                        break;
+                }
+            }
+            // Convert the byte view to a string and return it
+            return encoding.GetString(byteview.ToArray());
+        }
+
         public void SkipToNextLine()
         {
             if (Position >= Length) { return; }

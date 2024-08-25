@@ -273,4 +273,28 @@ namespace DotNetResourcesExtensions
 
     }
 
+    /// <summary>
+    /// The <see cref="HumanReadableFormatResourcesLoader"/> loads resources written using the <see cref="HumanReadableFormatWriter"/> class.
+    /// </summary>
+    public sealed class HumanReadableFormatResourcesLoader : OptimizedResourceLoader
+    {
+        /// <summary>
+        /// Creates a new instance of the <see cref="HumanReadableFormatResourcesLoader"/> class with the specified path to a file that contains the resource data to read.
+        /// </summary>
+        /// <param name="Path">The file path that contains the resource data to read.</param>
+        public HumanReadableFormatResourcesLoader(System.String Path) : base()
+        {
+            read = new HumanReadableFormatReader(Path);
+        }
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="HumanReadableFormatResourcesLoader"/> class with the specified stream that contains the resource data to read.
+        /// </summary>
+        /// <param name="stream">The stream to read data from.</param>
+        public HumanReadableFormatResourcesLoader(System.IO.Stream stream) : base()
+        {
+            read = new HumanReadableFormatReader(stream);
+        }
+    }
+
 }

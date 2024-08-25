@@ -57,7 +57,7 @@ namespace DotNetResourcesExtensions
             writer.WriteNumber("Version", JSONRESOURCESCONSTANTS.Version);
             writer.WriteString("Magic", JSONRESOURCESCONSTANTS.Magic);
             writer.WriteNumber("SupportedFormatsMask", (System.Int32)JSONRESOURCESCONSTANTS.CurrentMask);
-            writer.WriteNumber("CurrentHeaderVersion", JSONRESOURCESCONSTANTS.HeaderVersion);
+            writer.WriteNumber("CurrentHeaderVersion", JSONRESOURCESCONSTANTS.UsedHeaderVersion);
             writer.WriteEndObject();
             writer.WriteStartArray(JSONRESOURCESCONSTANTS.DataObjectName);
         }
@@ -76,7 +76,7 @@ namespace DotNetResourcesExtensions
                     WriteObjectResource(Name, value);
                     break;
                 case JSONRESResourceType.ByteArray:
-                    WriteByteArrayResource(Name, (System.Byte[])value, JSONRESResourceType.ByteArray);
+                    WriteByteArrayResource(Name, (System.Byte[])value);
                     break;
             }
         }
@@ -87,25 +87,61 @@ namespace DotNetResourcesExtensions
             try {
                t = exf.GetBytesFromObject(value);
             } catch (Internal.CustomFormatter.Exceptions.ConverterNotFoundException e) {
-                throw new FormatException("Could not serialize the given object. Error occured.", e);
+                throw new JSONFormatException("Could not serialize the given object. Error occured.", e.Message , ParserErrorType.Serialization);
             }
             writer.WriteStartObject();
-            writer.WriteNumber("HeaderVersion", JSONRESOURCESCONSTANTS.HeaderVersion);
+            writer.WriteNumber("HeaderVersion", 2); // Version 2 also since it uses the chunked-write method.
             writer.WriteString("ResourceName", Name);
             writer.WriteNumber("ResourceType", (System.UInt16)JSONRESResourceType.Object);
+            writer.WriteNumber("TotalLength", t.LongLength);
+            writer.WriteNumber("Base64Alignment", JSONRESOURCESCONSTANTS.BASE64_SingleLineLength);
             writer.WriteString("DotnetType" , value.GetType().AssemblyQualifiedName);
-            writer.WriteBase64String("Value[0]", t);
+            WriteChunkBasedByteArray(t);
+            t = null;
             writer.WriteEndObject();
         }
 
-        private void WriteByteArrayResource(System.String Name, System.Byte[] value, JSONRESResourceType rt)
+        private void WriteChunkBasedByteArray(System.Byte[] value)
+        {
+            System.Int64 chunks, remaining;
+            System.String data = System.Convert.ToBase64String(value), temp;
+            chunks = System.Math.DivRem(data.Length, JSONRESOURCESCONSTANTS.BASE64_SingleLineLength, out remaining);
+            if (remaining > 0) { chunks++; }
+            // The chunks are base64 code points and each of them provides a portion of the reconstructed information.
+            // Each chunk has a length defined by BASE64_SingleLineLength. Any leftovers are covered by adding a new chunk
+            // and writing to it the final information.
+            writer.WriteNumber("Chunks", chunks);
+            System.Int32 pos = 0;
+            if (remaining > 0) {
+                for (System.Int32 I = 1; I < chunks; I++)
+                {
+                    temp = data.Substring(pos, JSONRESOURCESCONSTANTS.BASE64_SingleLineLength);
+                    writer.WriteString($"Value[{I}]", temp);
+                    pos += JSONRESOURCESCONSTANTS.BASE64_SingleLineLength;
+                }
+                temp = data.Substring(pos);
+                writer.WriteString($"Value[{chunks}]", temp);
+            } else {
+                for (System.Int32 I = 1; I <= chunks; I++)
+                {
+                    temp = data.Substring(pos, JSONRESOURCESCONSTANTS.BASE64_SingleLineLength);
+                    writer.WriteString($"Value[{I}]", temp);
+                    pos += JSONRESOURCESCONSTANTS.BASE64_SingleLineLength;
+                }
+            }
+            data = null; temp = null;
+        }
+
+        private void WriteByteArrayResource(System.String Name, System.Byte[] value)
         {
             writer.WriteStartObject();
-            writer.WriteNumber("HeaderVersion", JSONRESOURCESCONSTANTS.HeaderVersion);
+            // This is version 2 due to the fact that the serialization method is changed.
+            writer.WriteNumber("HeaderVersion", 2);
             writer.WriteString("ResourceName", Name);
-            writer.WriteNumber("ResourceType", (System.UInt16)rt);
-            writer.WriteBase64String("Value[0]" , value);
+            writer.WriteNumber("ResourceType", (System.UInt16)JSONRESResourceType.ByteArray);
             writer.WriteNumber("TotalLength", value.LongLength);
+            writer.WriteNumber("Base64Alignment", JSONRESOURCESCONSTANTS.BASE64_SingleLineLength);
+            WriteChunkBasedByteArray(value);
             writer.WriteEndObject();
         }
 
@@ -147,8 +183,7 @@ namespace DotNetResourcesExtensions
                 writer?.Dispose();
                 writer = null;
             }
-            if (isstreamowner && (mgmt == StreamMixedClassManagement.InitialisedWithStream || 
-                mgmt == StreamMixedClassManagement.FileUsed))
+            if ((isstreamowner && mgmt == StreamMixedClassManagement.InitialisedWithStream) || mgmt == StreamMixedClassManagement.FileUsed)
             { try { targetstream?.Flush(); } catch (ObjectDisposedException) { } targetstream?.Close(); }
         }
 
@@ -158,7 +193,7 @@ namespace DotNetResourcesExtensions
         public void Dispose()
         {
             Close();
-            try { if (isstreamowner && mgmt == StreamMixedClassManagement.InitialisedWithStream)
+            try { if ((isstreamowner && mgmt == StreamMixedClassManagement.InitialisedWithStream) || mgmt == StreamMixedClassManagement.FileUsed)
                 { targetstream?.Dispose(); } } catch (System.ObjectDisposedException) { }
             if (targetstream != null) { targetstream = null; }
             exf?.Dispose();
@@ -166,10 +201,7 @@ namespace DotNetResourcesExtensions
         }
 
         /// <inheritdoc/>
-        public void RegisterTypeResolver(ITypeResolver resolver)
-        {
-            exf.RegisterTypeResolver(resolver);
-        }
+        public void RegisterTypeResolver(ITypeResolver resolver) => exf.RegisterTypeResolver(resolver);
     }
 
 }

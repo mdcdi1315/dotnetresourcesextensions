@@ -19,6 +19,7 @@
 		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
 		<PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
 		<PackageReference Include="System.Memory" Version="4.5.5" />
+		<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
 	</ItemGroup>
 	
 	<PropertyGroup>
@@ -35,8 +36,14 @@
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
-		<PackageReleaseNotes>v$(PackageVersion) release of DotNetResourcesExtensions package. For more details , visit $(PackageProjectUrl) .</PackageReleaseNotes>
 		<PackageProjectUrl>http://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
+		<PackageReleaseNotes>v$(PackageVersion) release of DotNetResourcesExtensions package.
+For more additional details , visit $(PackageProjectUrl) .
+This release releases out the Human Readable Format resource classes
+and changes how the JSON bytearray-based resources are written out.
+Do not worry , you can still read the old method.
+In the BuildTasks project the error handling is improved even further.
+</PackageReleaseNotes>
 		<Authors>mdcdi1315</Authors>
 		<AssemblyName>$(_ProjName)</AssemblyName>
 		<AssemblyVersion>1.0.0.2</AssemblyVersion>

@@ -66,18 +66,13 @@ namespace DotNetResourcesExtensions.BuildTasks
             try {
                 val = UnsafeExecute();
             } catch (Exception ex) {
-                ProduceError("DNTRESEXT0000", $"Unknown error occured during execution: \n{ex}");
+                this.LogExceptionClass(new UnexpectedErrorException(ex));
                 return false;
             }
             transferer?.Dispose();
             target?.Dispose();
             for (System.Int32 I = 0; I < streams.Length; I++) { streams[I]?.Dispose(); }
             return val;
-        }
-
-        private void ProduceError(System.String code , System.String msg)
-        {
-            Log.LogError("", code, "", "", "<Non-Existent>", 0, 0, 0, 0, msg);
         }
 
         private static System.String GetMetadataNames(ICollection collection)
@@ -87,20 +82,15 @@ namespace DotNetResourcesExtensions.BuildTasks
             return result;
         }
 
-        private void ProduceWarning(System.String code, System.String msg)
-        {
-            Log.LogWarning("", code, "", "", "<Non-Existent>", 0, 0, 0, 0, msg);
-        }
-
         private bool UnsafeExecute()
         {
             if (OutputFilePath == null || OutputFilePath.ItemSpec == null) {
-                ProduceError("DNTRESEXT0001" , "A target output file was not specified. Please specify a valid path , then retry. ");
+                this.ThrowMessage(1);
                 // Someone might not have yet included build code so as to generate resources , so return true to continue the build normally.
                 return true;
             }
             if (InputFiles == null) {
-                ProduceError("DNTRESEXT0012", "No input files were supplied. Please check whether all files are supplied correctly.");
+                this.ThrowMessage(2);
                 // Someone might not have yet included build code so as to generate resources , so return true to continue the build normally.
                 return true;
             }
@@ -114,10 +104,10 @@ namespace DotNetResourcesExtensions.BuildTasks
             {
                 target = new JSONResourcesWriter(OutputFilePath.ItemSpec);
             } else {
-                ProduceError("DNTRESEXT0003", $"Unknown output file format specified: {OutputFileType}");
+                this.ThrowMessage(3 , OutputFileType);
                 return false;
             }
-            if (target == null) { ProduceError("DNTRESEXT0010" , "Target should NOT BE NULL AT THIS POINT FAILURE OCCURED"); return false; }
+            if (target == null) { this.ThrowMessage(4); return false; }
 #if DEBUG
             Log.LogMessage(MessageImportance.High, "Succeeded acquiring the target.");
 #endif
@@ -132,7 +122,7 @@ namespace DotNetResourcesExtensions.BuildTasks
                 System.Resources.IResourceReader dd = GetReaderFromPath(file.ItemSpec);
                 if (dd is null) {
                     if (isfirst) {
-                        ProduceError("DNTRESEXT0018", "Primary file for reading must always be valid. Resource generation stopped.");
+                        this.ThrowMessage(5);
                         return false;
                     } else {
                         Log.LogMessage(MessageImportance.Normal, "The file {0} was skipped due to an unexpected error. See the log messages before for more information.", file.ItemSpec);
@@ -171,8 +161,7 @@ namespace DotNetResourcesExtensions.BuildTasks
                     templdr = new(dd);
                     GenerateStrTypedClassForItem(templdr, file);
                 } catch (System.Exception e) {
-                    ProduceWarning("DNTRESEXT0014" , $"The strongly-typed resource class generation for item {file.ItemSpec} has failed due to an unhandled {e.GetType().Name}.\n" +
-                        $"As a result , the final compilation might fail if your code depends on this class generation. \n{e}");
+                    this.ThrowMessage(6 , file.ItemSpec , e.GetType().Name , e);
                 } finally { templdr?.Dispose();  }
             }
 #if DEBUG
@@ -211,23 +200,23 @@ namespace DotNetResourcesExtensions.BuildTasks
             if (item.GetMetadata(expecttofind[0]).ToLower() == "false") { return true; }
             // OK. Now we need to validate all input data.
             if (String.IsNullOrWhiteSpace(item.GetMetadata(expecttofind[3]))) {
-                ProduceError("DNTRESEXT0004", $"Cannot generate code because the {expecttofind[3]} property in {item.ItemSpec} was not specified.");
+                this.ThrowMessage(40 , expecttofind[3] , item.ItemSpec);
                 return false;
             }
             if (String.IsNullOrWhiteSpace(item.GetMetadata(expecttofind[4]))) {
-                ProduceError("DNTRESEXT0005", $"Cannot generate code because a valid output path for {item.ItemSpec} was not specified. Please specify one and retry.");
+                this.ThrowMessage(41 , item.ItemSpec);
                 return false;
             }
             if (String.IsNullOrWhiteSpace(item.GetMetadata(expecttofind[1]))) {
-                ProduceWarning("DNTRESEXT0006", "The strongly typed-class language was not specified. Presuming that it is \'CSharp\'.");
+                this.ThrowMessage(42);
                 item.SetMetadata(expecttofind[1], "CSharp");
             }
             if (String.IsNullOrWhiteSpace(item.GetMetadata(expecttofind[2]))) {
-                ProduceWarning("DNTRESEXT0009", $"The strongly typed-class .NET name was not specified. Presuming that it is the manifest name: \"{item.GetMetadata(expecttofind[3])}\"");
+                this.ThrowMessage(43 , item.GetMetadata(expecttofind[3]));
                 item.SetMetadata(expecttofind[2], item.GetMetadata(expecttofind[3]));
             }
             if (String.IsNullOrWhiteSpace(item.GetMetadata(expecttofind[5]))) {
-                ProduceWarning("DNTRESEXT0011", "The resource class visibility was set to an invalid value. Presuming that it's value is \'Internal\'.");
+                this.ThrowMessage(44);
                 item.SetMetadata(expecttofind[5], "Internal");
             }
             // After verifying everything , next step is to generate our resource class...
@@ -281,6 +270,10 @@ namespace DotNetResourcesExtensions.BuildTasks
                     case ".txt":
                         rdr = new KVPResourcesReader(streams[strindex]);
                         break;
+                    case ".resh":
+                        this.ThrowMessage(118);
+                        rdr = new HumanReadableFormatReader(streams[strindex]);
+                        break;
 #if WF_AVAILABLE
                     case ".resx":
                         rdr = new System.Resources.ResXResourceReader(streams[strindex]);
@@ -289,7 +282,7 @@ namespace DotNetResourcesExtensions.BuildTasks
                     default:
                         streams[strindex]?.Dispose();
                         streams[strindex] = null;
-                        ProduceWarning("DNTRESEXT0213" , $"Could not find a resource reader for the file {FI.FullName}. Resource generation for this item will be skipped. This can cause compilation or run-time errors.");
+                        this.ThrowMessage(213, FI.FullName);
                         break;
                 }
             } catch (System.Exception ex) {
@@ -323,8 +316,8 @@ namespace DotNetResourcesExtensions.BuildTasks
                 try {
                     restype = (OutputResourceType)System.Enum.Parse(typeof(OutputResourceType), value);
                 } catch (ArgumentException e) {
-                    ProduceWarning("DNTRESEXT0007", $"The value specified , {value} was not accepted because of an {e.GetType().Name}: \n {e} .");
-                    ProduceWarning("DNTRESEXT0008", "Setting the OutputFileType back to Resources due to an error. See the previous message for more information.");
+                    this.ThrowMessage(7, value, e.GetType().Name, e);
+                    this.ThrowMessage(8);
                     restype = OutputResourceType.Resources;
                 }
             }
@@ -345,32 +338,38 @@ namespace DotNetResourcesExtensions.BuildTasks
 
         public override bool Execute()
         {
+            try { return UnsafeExecute(); } catch (System.Exception e) { this.LogExceptionClass(e); return false; }
+        }
+
+        private System.Boolean UnsafeExecute()
+        {
             if (System.String.IsNullOrWhiteSpace(PackageRoot)) {
-                if (System.IO.Directory.Exists(DownloadDeps.GeneratePlatformAgnosticPath(DownloadDeps.BuildTasksPath.FullName , "temp"))) {
+                if (System.IO.Directory.Exists(DownloadDeps.GeneratePlatformAgnosticPath(DownloadDeps.BuildTasksPath.FullName, "temp"))) {
                     PackageRoot = DownloadDeps.GeneratePlatformAgnosticPath(DownloadDeps.BuildTasksPath.FullName, "temp");
                 } else {
-                    PackageRoot = DownloadDeps.BuildTasksPath.CreateSubdirectory("temp").FullName; 
+                    PackageRoot = DownloadDeps.BuildTasksPath.CreateSubdirectory("temp").FullName;
                 }
             }
-            Log.LogMessage(MessageImportance.Normal, "Determined package root is {0}." , PackageRoot);
+            Log.LogMessage(MessageImportance.Normal, "Determined package root is {0}.", PackageRoot);
+            System.DateTime current = System.DateTime.Now;
             try {
                 Log.LogMessage(MessageImportance.Normal, "Ensuring 9 packages.");
                 LogPackageInstallStart(DownloadDeps.SystemValueTuple);
-                DownloadDeps.EnsurePackage(DownloadDeps.SystemValueTuple , PackageRoot , RunningFramework);
+                DownloadDeps.EnsurePackage(DownloadDeps.SystemValueTuple, PackageRoot, RunningFramework);
                 LogPackageInstallEnd(DownloadDeps.SystemValueTuple);
                 LogPackageInstallStart(DownloadDeps.SystemBuffers);
-                DownloadDeps.EnsurePackage(DownloadDeps.SystemBuffers , PackageRoot , RunningFramework);
+                DownloadDeps.EnsurePackage(DownloadDeps.SystemBuffers, PackageRoot, RunningFramework);
                 LogPackageInstallEnd(DownloadDeps.SystemBuffers);
                 LogPackageInstallStart(DownloadDeps.MicrosoftBclAsyncInterfaces);
-                DownloadDeps.EnsurePackage(DownloadDeps.MicrosoftBclAsyncInterfaces , PackageRoot , RunningFramework);
+                DownloadDeps.EnsurePackage(DownloadDeps.MicrosoftBclAsyncInterfaces, PackageRoot, RunningFramework);
                 LogPackageInstallEnd(DownloadDeps.MicrosoftBclAsyncInterfaces);
                 LogPackageInstallStart(DownloadDeps.SystemTextJson);
-                DownloadDeps.EnsurePackage(DownloadDeps.SystemTextJson , PackageRoot , RunningFramework);
-                LogPackageInstallEnd (DownloadDeps.SystemTextJson);
+                DownloadDeps.EnsurePackage(DownloadDeps.SystemTextJson, PackageRoot, RunningFramework);
+                LogPackageInstallEnd(DownloadDeps.SystemTextJson);
                 LogPackageInstallStart(DownloadDeps.SystemTextEncodingsWeb);
-                DownloadDeps.EnsurePackage(DownloadDeps.SystemTextEncodingsWeb , PackageRoot , RunningFramework);
+                DownloadDeps.EnsurePackage(DownloadDeps.SystemTextEncodingsWeb, PackageRoot, RunningFramework);
                 LogPackageInstallEnd(DownloadDeps.SystemTextEncodingsWeb);
-                DownloadDeps.EnsurePackage(DownloadDeps.SystemMemory , PackageRoot , RunningFramework);
+                DownloadDeps.EnsurePackage(DownloadDeps.SystemMemory, PackageRoot, RunningFramework);
                 LogPackageInstallStart(DownloadDeps.SystemRuntimeCompilerServicesUnsafe);
                 DownloadDeps.EnsurePackage(DownloadDeps.SystemRuntimeCompilerServicesUnsafe, PackageRoot, RunningFramework);
                 LogPackageInstallEnd(DownloadDeps.SystemRuntimeCompilerServicesUnsafe);
@@ -387,10 +386,17 @@ namespace DotNetResourcesExtensions.BuildTasks
                     DownloadDeps.EnsurePackage(DownloadDeps.SystemDrawingCommon, PackageRoot, RunningFramework);
                     LogPackageInstallEnd(DownloadDeps.SystemDrawingCommon);
                 }
+                Log.LogMessage(MessageImportance.Low, "The operation took {0} seconds to complete.", System.DateTime.Now.Subtract(current).TotalSeconds);
                 return true;
-            } catch (Exception e)  {
-                Log.LogErrorFromException(e , true , true , null);
-                return false;
+            } catch (ArgumentException e) {
+                Log.LogMessage(MessageImportance.Low, "The operation took {0} seconds to fail.", System.DateTime.Now.Subtract(current).TotalSeconds);
+                throw new InvalidInputFromUserException(e);
+            } catch (System.Net.Http.HttpRequestException e) {
+                Log.LogMessage(MessageImportance.Low, "The operation took {0} seconds to fail.", System.DateTime.Now.Subtract(current).TotalSeconds);
+                throw new System.AggregateException("Failed to download one or more packages.", e);
+            } catch (Exception e) {
+                Log.LogMessage(MessageImportance.Low, "The operation took {0} seconds to fail.", System.DateTime.Now.Subtract(current).TotalSeconds);
+                throw new UnexpectedErrorException(e);
             }
         }
 
@@ -415,22 +421,30 @@ namespace DotNetResourcesExtensions.BuildTasks
     // Internal class that downloads and installs dependencies required by BuildTasks.
     internal static class DownloadDeps
     {
-        public record class Package
+        public sealed class Package
         {
-            public System.String LibraryName;
-            public System.String LibraryVersion;
+            private readonly string ln, lnver;
+
+            public Package(System.String libname , System.String libver)
+            {
+                ln = libname;
+                lnver = libver;
+            }
+
+            public System.String LibraryName => ln;
+            public System.String LibraryVersion => lnver;
         }
 
-        public static readonly Package SystemTextJson = new() { LibraryName = "System.Text.Json" , LibraryVersion = "8.0.4" };
-        public static readonly Package SystemNumericsVectors = new() { LibraryName = "System.Numerics.Vectors", LibraryVersion = "4.5.0" };
-        public static readonly Package SystemRuntimeCompilerServicesUnsafe = new() { LibraryName = "System.Runtime.CompilerServices.Unsafe" , LibraryVersion = "6.0.0" };
-        public static readonly Package MicrosoftBclAsyncInterfaces = new() { LibraryName = "Microsoft.Bcl.AsyncInterfaces" , LibraryVersion = "8.0.0" };
-        public static readonly Package SystemBuffers = new() { LibraryName = "System.Buffers" , LibraryVersion = "4.5.1" };
-        public static readonly Package SystemMemory = new() { LibraryName = "System.Memory", LibraryVersion = "4.5.5" };
-        public static readonly Package SystemTextEncodingsWeb = new() { LibraryName = "System.Text.Encodings.Web", LibraryVersion = "8.0.0" };
-        public static readonly Package SystemThreadingTasksExtensions = new() { LibraryName = "System.Threading.Tasks.Extensions", LibraryVersion = "4.5.4" };
-        public static readonly Package SystemValueTuple = new() { LibraryName = "System.ValueTuple", LibraryVersion = "4.5.0" };
-        public static readonly Package SystemDrawingCommon = new() { LibraryName = "System.Drawing.Common", LibraryVersion = "8.0.7" };
+        public static readonly Package SystemTextJson = new("System.Text.Json", "8.0.4");
+        public static readonly Package SystemNumericsVectors = new("System.Numerics.Vectors", "4.5.0");
+        public static readonly Package SystemRuntimeCompilerServicesUnsafe = new("System.Runtime.CompilerServices.Unsafe", "6.0.0");
+        public static readonly Package MicrosoftBclAsyncInterfaces = new("Microsoft.Bcl.AsyncInterfaces", "8.0.0");
+        public static readonly Package SystemBuffers = new("System.Buffers", "4.5.1");
+        public static readonly Package SystemMemory = new("System.Memory", "4.5.5");
+        public static readonly Package SystemTextEncodingsWeb = new("System.Text.Encodings.Web", "8.0.0");
+        public static readonly Package SystemThreadingTasksExtensions = new("System.Threading.Tasks.Extensions", "4.5.4");
+        public static readonly Package SystemValueTuple = new("System.ValueTuple", "4.5.0");
+        public static readonly Package SystemDrawingCommon = new("System.Drawing.Common", "8.0.7");
         public static readonly System.IO.DirectoryInfo BuildTasksPath = new System.IO.FileInfo(typeof(DownloadDeps).Assembly.Location).Directory;
         public static readonly System.Boolean Is_Windows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
 
@@ -542,5 +556,126 @@ namespace DotNetResourcesExtensions.BuildTasks
         }
 
         public override ValueTask DisposeAsync() => new(Task.Run(Dispose));
+    }
+
+    internal static class ErrorHandler
+    {
+        public enum MessageType : System.Byte
+        {
+            Message,
+            Warning,
+            Error,
+            Critical
+        }
+
+        /// <summary>
+        /// A stored type that saves all required data to create and show a message in MSBuild. <br />
+        /// Note: The messages stored here are format strings that are expanded at run-time. Be careful!.
+        /// </summary>
+        public sealed class MessagePiece
+        {
+            private readonly System.String message;
+            private readonly System.UInt32 code;
+            private readonly MessageType type;
+
+            public MessagePiece(System.UInt32 code, System.String message, MessageType msgtype)
+            {
+                this.message = message;
+                this.code = code;
+                this.type = msgtype;
+            }
+
+            public System.String Code => $"{BuildTasksErrorCodePrefix}{code:d4}";
+
+            public System.UInt32 NumericCode => code;
+
+            public MessageType Type => type;
+
+            public System.String Message => message;
+        }
+
+        private const System.Int32 SpecialErrorCode = 7777;
+        private const System.String BuildTasksErrorCodePrefix = "DNTRESEXT";
+        private static readonly System.String SpecialErrorCodeString;
+        private static readonly MessagePiece[] messages;
+
+        static ErrorHandler() {
+            SpecialErrorCodeString = $"{BuildTasksErrorCodePrefix}{SpecialErrorCode}";
+            // Here in this array all messages are temporarily saved.
+            messages = new MessagePiece[] {
+                new(0 , "An unexpected exception has occured during code execution: \n{0}" , MessageType.Critical),
+                new(1 , "A target output file was not specified. Please specify a valid path , then retry. " , MessageType.Error),
+                new(2, "No input files were supplied. Please check whether all files are supplied correctly." , MessageType.Error),
+                new(3 , "Unknown output file format specified: {0}" , MessageType.Error),
+                new(4 , "Target should NOT BE NULL AT THIS POINT FAILURE OCCURED" , MessageType.Critical),
+                new(5 , "Primary file for reading must always be valid. Resource generation stopped." , MessageType.Error),
+                new(6 , "The strongly-typed resource class generation for item {0} has failed due to an unhandled {1}.\nAs a result , the final compilation might fail if your code depends on this class generation. \n{2}" , MessageType.Warning),
+                new(7 , "The value specified , {0} was not accepted because of an {1}: \n {2} ." , MessageType.Warning),
+                new(8 , "Setting the OutputFileType back to Resources due to an error. See the previous message for more information." , MessageType.Warning),
+                new(40 , "Cannot generate code because the {0} property in {1} was not specified." , MessageType.Error),
+                new(41 , "Cannot generate code because a valid output path for {0} was not specified. Please specify one and retry." , MessageType.Error),
+                new(42 , "The strongly typed-class language was not specified. Presuming that it is 'CSharp'." , MessageType.Warning),
+                new(43 , "The strongly typed-class .NET name was not specified. Presuming that it is the manifest name: \"{0}\"" , MessageType.Warning),
+                new(44 , "The resource class visibility was set to an invalid value. Presuming that it's value is 'Internal'." , MessageType.Warning),
+                new(118 , "The specified reader is still on a test phase. Do not trust this reader for saving critical resources." , MessageType.Warning),
+                new(213 , "Could not find a resource reader for the file {0}. Resource generation for this item will be skipped. This may cause compilation or run-time errors." , MessageType.Warning),
+                new(263 , "An internal exception has been detected in one of the BuildTasks task code. See the next error for more information." , MessageType.Critical)
+            };
+        }
+
+        /// <summary>
+        /// Throws the specified internal error message back to MSBuild , based it's code and severity of issue.
+        /// </summary>
+        /// <param name="task">The task object from which this message will be thrown to.</param>
+        /// <param name="code">The unique code of the message to throw.</param>
+        /// <param name="objects">Any formatting arguments that must be passed before the message is thrown.</param>
+        public static void ThrowMessage(this Microsoft.Build.Utilities.Task task , System.UInt32 code , params System.Object[] objects)
+        {
+            foreach (MessagePiece piece in messages) 
+            {
+                if (piece.NumericCode == code) {
+                    switch (piece.Type) {
+                        case MessageType.Message:
+                            task.Log.LogMessage(MessageImportance.High, piece.Message , objects);
+                            break;
+                        case MessageType.Warning:
+                            task.Log.LogWarning("", piece.Code, "", "", "<Non-Existent>", 0, 0, 0, 0, piece.Message , objects);
+                            break;
+                        case MessageType.Error:
+                            task.Log.LogError("", piece.Code, "", "", "<Non-Existent>", 0, 0, 0, 0, piece.Message , objects);
+                            break;
+                        case MessageType.Critical:
+                            task.Log.LogCriticalMessage("", piece.Code, "", "<Non-Existent>", 0, 0, 0, 0, piece.Message , objects);
+                            break;
+                    }
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Throws the internal error 263 followed by the given exception that is a critical exception and signifies that the build must stop.
+        /// </summary>
+        /// <param name="task">The task object from which this message will be thrown to</param>
+        /// <param name="exception">The critical exception to throw.</param>
+        public static void LogExceptionClass(this Microsoft.Build.Utilities.Task task , System.Exception exception) 
+        {
+            ThrowMessage(task, 263);
+            switch (exception) {
+                case InvalidInputFromUserException:
+                    task.Log.LogError("", SpecialErrorCodeString, "", "", "<Non-Existent>", 0, 0, 0, 0, "Invalid argument inside a task call made the task {0} to fail. \nException: {1}" , task.GetType().Name , exception);
+                    break;
+                case UnexpectedErrorException:
+                    task.Log.LogCriticalMessage("", SpecialErrorCodeString, "", "<Non-Existent>", 0, 0, 0, 0, "An unexpected hard error made the task {0} to fail (and consequently fail the build engine). \nException: {1}", task.GetType().Name, exception);
+                    break;
+                case AggregateException:
+                    task.Log.LogError("", SpecialErrorCodeString, "", "", "<Non-Existent>", 0, 0, 0, 0, "One or more hard exceptions made the task {0} to fail. \nException: {1}", task.GetType().Name, exception);
+                    break;
+                default:
+                    task.Log.LogCriticalMessage("", SpecialErrorCodeString, "", "<Non-Existent>", 0, 0, 0, 0, "[INTERNAL ERROR]: Cannot recognize exception type {0} ." , exception.GetType().FullName);
+                    break;
+            }
+        }
+
     }
 }

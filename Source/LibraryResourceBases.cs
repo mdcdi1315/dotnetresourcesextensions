@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Linq;
 using System.Resources;
 using DotNetResourcesExtensions.Internal;
 using DotNetResourcesExtensions.Internal.CustomFormatter;
@@ -88,6 +89,31 @@ namespace DotNetResourcesExtensions
             if (entries == null) { throw new System.ArgumentNullException(nameof(entries)); }
             if (writer == null) { throw new System.ArgumentNullException(nameof(writer)); }
             AddResourceEntries(writer , enumerable: entries);
+        }
+
+        /// <summary>
+        /// Adds the specified resource entries to be written by the <paramref name="writer"/>.
+        /// </summary>
+        /// <param name="writer">The writer to add the resources to.</param>
+        /// <param name="entries">The resource entries to be added to the <paramref name="writer"/>.</param>
+        /// <exception cref="System.ArgumentNullException"><paramref name="entries"/> or <paramref name="writer"/> were <see langword="null"/>.</exception>
+        /// <exception cref="System.ArgumentException">This exception is more generic and is thrown at many cases. See the inner exception that is returned along with this one for more information.</exception>
+        public static void AddResourceEntries(this IDotNetResourcesExtensionsWriter writer , Collections.IResourceEntryImplementable entries)
+        {
+            if (entries is null) { throw new System.ArgumentNullException(nameof(entries)); }
+            if (writer is null) { throw new System.ArgumentNullException(nameof(writer)); }
+            try
+            {
+                Collections.IResourceEntryEnumerator en = entries.GetResourceEntryEnumerator();
+                while (en.MoveNext()) { AddResourceEntry(writer, en.ResourceEntry); }
+                en = null;
+            } catch (System.ArgumentException e) when (e is System.ArgumentNullException)
+            {
+                throw new System.ArgumentException("A resource entry inside the entries was null.", e);
+            } catch (System.ArgumentException e)
+            {
+                throw new System.ArgumentException("An entry inside the entries has as it's value null and cannot be added to the resource list.", e);
+            }
         }
 
         /// <summary>

@@ -342,9 +342,45 @@ namespace DotNetResourcesExtensions
         /// Determines whether the <see cref="IResourceEntry.Value"/> property is effectively <see langword="null"/>.
         /// </summary>
         /// <param name="entry">The resource entry to test.</param>
-        /// <returns><see langword="true"/> if the <see cref="IResourceEntry.Value"/> property is <see langword="null"/>. 
-        /// Otherwise , it returns <see langword="false"/>.</returns>
-        public static System.Boolean ValueIsNull(this IResourceEntry entry) => entry.Value is null;
+        /// <returns><see langword="true"/> if the <see cref="IResourceEntry.Value"/> property is <see langword="null"/>;
+        /// otherwise , it returns <see langword="false"/>. <br />
+        /// The method also returns <see langword="false"/> when <paramref name="entry"/> is <see langword="null"/>.</returns>
+        public static System.Boolean ValueIsNull(this IResourceEntry entry) => entry is not null && entry.Value is null;
+
+        /// <summary>
+        /// Determines whether the <see cref="IResourceEntry.Value"/> property holds a primitive structure. <br />
+        /// Primitive structures are all the .NET numeric types , including the <see cref="System.Boolean">Boolean</see> and the <see cref="System.Char">Character</see> structure.
+        /// </summary>
+        /// <param name="entry">The entry to test.</param>
+        /// <returns><see langword="true"/> if the <see cref="IResourceEntry.Value"/> property holds a primitive structure; otherwise <see langword="false"/>. <br />
+        /// The method also returns <see langword="false"/> when the property is <see langword="null"/>.</returns>
+        public static System.Boolean ValueIsPrimitive(this IResourceEntry entry)
+        {
+            if (ValueIsNull(entry)) { return false; }
+            switch (entry.TypeOfValue.FullName)
+            {
+                case "System.Boolean":
+                case "System.Char":
+                case "System.SByte":
+                case "System.Byte":
+                case "System.Int16":
+                case "System.UInt16":
+                case "System.Int32":
+                case "System.UInt32":
+                case "System.Int64":
+                case "System.UInt64":
+                case "System.Single":
+                case "System.Double":
+                // Although that the below 3 cases are never reached for .NET Framework (because these were not implemented back then) ,
+                // the method will still work as expected.
+                case "System.Half": 
+                case "System.Int128":
+                case "System.UInt128":
+                    return true;
+                default:
+                    return false;
+            }
+        }
 
         /// <summary>
         /// Defines a generalized method to deconstruct an <see cref="IResourceEntry"/>-derived class. <br />
@@ -356,6 +392,7 @@ namespace DotNetResourcesExtensions
         /// <param name="Value">The deconstructed entry value.</param>
         public static void Deconstruct(this IResourceEntry entry , out System.String Name , out System.Object Value)
         {
+            if (entry is null) { Name = System.String.Empty; Value = null; return; }
             Name = entry.Name;
             Value = entry.Value;
         }
