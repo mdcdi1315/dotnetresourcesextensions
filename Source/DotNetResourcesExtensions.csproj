@@ -32,7 +32,7 @@
 		<IsPackable>True</IsPackable>
 		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageVersion>1.0.1</PackageVersion>
+		<PackageVersion>1.0.2</PackageVersion>
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
@@ -51,7 +51,7 @@ In the BuildTasks project the error handling is improved even further.
 		<Product>$(_ProjName) is a project that defines new possibilities on handling resources of a .NET application.
 Additionally , it defines new types for doing resource serializations never thought of.
 		</Product>
-		<ProductVersion>1.0.0.2-beta</ProductVersion>
+		<ProductVersion>$(PackageVersion)</ProductVersion>
 		<Company>© MDCDI1315. $(PackageProjectUrl)</Company>
 		<Copyright>© MDCDI1315 (2024). All work is licensed under the MIT License.</Copyright>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
@@ -63,13 +63,9 @@ Additionally , it defines new types for doing resource serializations never thou
 	</PropertyGroup>
 
   <ItemGroup>
-	<Compile Include="Localization\Exceptions.cs" />
-	<Compile Include="Localization\LocalizableReaderWriter.cs" />
-	<Compile Include="Localization\ILocalizedResourceEntry.cs" />
-	<Compile Include="Localization\ILocalizationIndexResourceReaderWriter.cs" />
-	<Compile Include="Localization\ILocalizedResourceEntryEnumerator.cs" />
-	<Compile Include="Localization\LocalizableResourceLoader.cs" />
-	<Compile Include="Localization\LocalizableXMLWriter.cs" />
+	<Compile Include="Internal\Misc.cs" />
+	<Compile Include="Internal\ParserHelpers.cs" />
+	<Compile Include="Internal\UnsafeMethods.cs" />
 	<Compile Include="Properties\AssemblyInfo.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\*.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\Internal\*.cs" />
