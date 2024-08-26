@@ -63,12 +63,10 @@ Additionally , it defines new types for doing resource serializations never thou
 	</PropertyGroup>
 
   <ItemGroup>
-	<Compile Include="Internal\Misc.cs" />
-	<Compile Include="Internal\ParserHelpers.cs" />
-	<Compile Include="Internal\UnsafeMethods.cs" />
 	<Compile Include="Properties\AssemblyInfo.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\*.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\Internal\*.cs" />
+	<Compile Include="$(MSBuildThisFileDirectory)\Localization\*.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\Internal\CustomResX\*.cs" />
 	<!-- The System.Resources.Extensions code is built for all plaforms and is hosted in a DotNetResourcesExtensions namespace. -->
 	<Compile Include="$(MSBuildThisFileDirectory)\Internal\DotNetResourcesrw\*.cs" />
