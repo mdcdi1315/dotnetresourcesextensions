@@ -137,6 +137,7 @@ namespace DotNetResourcesExtensions.Localization
         /// <exception cref="LocalizationNotFoundException">The specified resource does exist , but the culture specific version of the resource does not exist.</exception>
         /// <exception cref="LocalizedReaderNotFoundException">The requested culture for the resource was not found , because the reader does not exist.</exception>
         /// <exception cref="ResourceNotFoundException">The resource provided was not found in the registered list of resources.</exception>
+        /// <exception cref="ResourceTypeMismatchException">The type of the retrieved resource was not a <see cref="System.String"/>.</exception>
         public System.String GetStringResource(System.String Name, CultureInfo culture) => GetResource<System.String>(Name, culture);
 
         /// <summary>
@@ -150,6 +151,7 @@ namespace DotNetResourcesExtensions.Localization
         /// <exception cref="LocalizationNotFoundException">The specified resource does exist , but the culture specific version of the resource does not exist.</exception>
         /// <exception cref="LocalizedReaderNotFoundException">The requested culture for the resource was not found , because the reader does not exist.</exception>
         /// <exception cref="ResourceNotFoundException">The resource provided was not found in the registered list of resources.</exception>
+        /// <exception cref="ResourceTypeMismatchException">The <typeparamref name="T"/> type was different than the type the resource was defined in.</exception>
         public T GetResource<T>(System.String Name, CultureInfo culture) where T : notnull
         {
             if (System.String.IsNullOrEmpty(Name)) { throw new ArgumentNullException(nameof(Name)); }
@@ -168,7 +170,15 @@ namespace DotNetResourcesExtensions.Localization
                             {
                                 if (rdr.SelectedCulture.LCID == ci.LCID)
                                 {
-                                    foreach (DictionaryEntry res in rdr) { if (res.Key.Equals(Name)) { return (T)res.Value; } }
+                                    foreach (DictionaryEntry res in rdr) { 
+                                        if (res.Key.Equals(Name)) { 
+                                            if (typeof(T) != res.Value.GetType()) {
+                                                // Throw RTME if the resource was attempted to be retrieved in a different type.
+                                                throw new ResourceTypeMismatchException(typeof(T) , res.Value.GetType() , Name);
+                                            }
+                                            return (T)res.Value; 
+                                        } 
+                                    }
                                     // If the reader has reached it's end and the resource does not exist , throw this exception.
                                     throw new LocalizationNotFoundException(Name, culture);
                                 }

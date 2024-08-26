@@ -11,8 +11,8 @@ namespace DotNetResourcesExtensions.Localization
             HeaderVersionAttributeName = "version" , 
             DataNameAttributeName = "dataname" , 
             CultureAttributeName = "lang" , 
-            Version = "1.0" , 
             DataNameElementName = "Data";
+        public static System.Version Version = new("1.0");
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ namespace DotNetResourcesExtensions.Localization
             writer.WriteStartElement(LocalizableXMLReaderWriterConstants.RootElementName);
             writer.WriteStartElement(LocalizableXMLReaderWriterConstants.HeaderElementName);
             writer.WriteAttributeString(LocalizableXMLReaderWriterConstants.HeaderVersionAttributeName,
-                LocalizableXMLReaderWriterConstants.Version);
+                LocalizableXMLReaderWriterConstants.Version.ToString());
             writer.WriteAttributeString(LocalizableXMLReaderWriterConstants.DataNameAttributeName,
                 LocalizableXMLReaderWriterConstants.DataNameElementName);
             writer.WriteAttributeString(LocalizableXMLReaderWriterConstants.CultureAttributeName, culture.Name);
