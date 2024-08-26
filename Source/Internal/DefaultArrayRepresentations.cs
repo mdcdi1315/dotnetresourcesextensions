@@ -34,15 +34,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
     {
         public override Converter<int, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(int value)
-                => System.BitConverter.GetBytes(value);
+            System.Byte[] Method(int value) => value.GetBytes();
             return Method;
         }
 
         public override Converter<byte[], int> GetUntransformMethod()
         {
-            System.Int32 Method(System.Byte[] bytes)
-                => System.BitConverter.ToInt32(bytes, 0);
+            System.Int32 Method(System.Byte[] bytes) => bytes.ToInt32(0);
             return Method;
         }
     }
@@ -68,15 +66,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
     {
         public override Converter<uint, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.UInt32 value)
-                => System.BitConverter.GetBytes(value);
+            System.Byte[] Method(System.UInt32 value) => value.GetBytes();
             return Method;
         }
 
         public override Converter<byte[], uint> GetUntransformMethod()
         {
-            System.UInt32 Method(System.Byte[] bytes)
-                => System.BitConverter.ToUInt32(bytes , 0);
+            System.UInt32 Method(System.Byte[] bytes) => bytes.ToUInt32(0);
             return Method;
         }
     }
@@ -85,15 +81,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
     {
         public override Converter<short, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.Int16 value)
-                => System.BitConverter.GetBytes(value);
+            System.Byte[] Method(System.Int16 value) => value.GetBytes();
             return Method;
         }
 
         public override Converter<byte[], short> GetUntransformMethod()
         {
-            System.Int16 Method(System.Byte[] bytes) 
-                => System.BitConverter.ToInt16(bytes , 0);
+            System.Int16 Method(System.Byte[] bytes) => bytes.ToInt16(0);
             return Method;
         }
     }
@@ -102,15 +96,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
     {
         public override Converter<ushort, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.UInt16 value)
-                => System.BitConverter.GetBytes(value);
+            System.Byte[] Method(System.UInt16 value) => value.GetBytes();
             return Method;
         }
 
         public override Converter<byte[], ushort> GetUntransformMethod()
         {
-            System.UInt16 Method(System.Byte[] bytes)
-                => System.BitConverter.ToUInt16(bytes, 0);
+            System.UInt16 Method(System.Byte[] bytes) => bytes.ToUInt16(0);
             return Method;
         }
     }
@@ -119,15 +111,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
     {
         public override Converter<System.Int64, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.Int64 value)
-                => System.BitConverter.GetBytes(value);
+            System.Byte[] Method(System.Int64 value) => value.GetBytes();
             return Method;
         }
 
         public override Converter<byte[], System.Int64> GetUntransformMethod()
         {
-            System.Int64 Method(System.Byte[] bytes)
-                => System.BitConverter.ToInt64(bytes, 0);
+            System.Int64 Method(System.Byte[] bytes) => bytes.ToInt64(0);
             return Method;
         }
     }
@@ -136,15 +126,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
     {
         public override Converter<System.UInt64, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.UInt64 value)
-                => System.BitConverter.GetBytes(value);
+            System.Byte[] Method(System.UInt64 value) => value.GetBytes();
             return Method;
         }
 
         public override Converter<byte[], System.UInt64> GetUntransformMethod()
         {
-            System.UInt64 Method(System.Byte[] bytes)
-                => System.BitConverter.ToUInt64(bytes, 0);
+            System.UInt64 Method(System.Byte[] bytes) => bytes.ToUInt64(0);
             return Method;
         }
     }
@@ -204,7 +192,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 // The binary data is just a long , we need a length of 8 bytes , so.
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8 bytes." , nameof(bytes)); }
-                return System.DateTime.FromBinary(System.BitConverter.ToInt64(bytes, 0));
+                return System.DateTime.FromBinary(bytes.ToInt64(0));
             }
             return Method;
         }
@@ -220,9 +208,9 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 // ticks for the DateTimeOffset , while the second it refers to the offset itself , which is a TimeSpan.
                 // The TimeSpan itself can also in turn be serialized just with some ticks too.
                 System.Byte[] result = new System.Byte[16];
-                System.Byte[] temp = System.BitConverter.GetBytes(offset.Ticks);
+                System.Byte[] temp = offset.Ticks.GetBytes();
                 Array.ConstrainedCopy(temp, 0, result, 0, 8);
-                temp = System.BitConverter.GetBytes(offset.Offset.Ticks);
+                temp = offset.Offset.Ticks.GetBytes();
                 Array.ConstrainedCopy(temp, 0, result, 8, 8);
                 return result;
             }
@@ -235,8 +223,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             {
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != 16) { throw new ArgumentException("The array size must be exactly 16 bytes.", nameof(bytes)); }
-                return new(System.BitConverter.ToInt64(bytes, 0), 
-                    new TimeSpan(System.BitConverter.ToInt64(bytes, 8)));
+                return new(bytes.ToInt64(0), new TimeSpan(bytes.ToInt64(8)));
             }
             return Method;
         }
@@ -249,7 +236,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             System.Byte[] Method(System.TimeSpan timespan)
             {
                 // TimeSpan can be just initialised with ticks , so only saving the ticks does the work for us.
-                return System.BitConverter.GetBytes(timespan.Ticks);
+                return timespan.Ticks.GetBytes();
             }
             return Method;
         }
@@ -260,7 +247,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             {
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8 bytes.", nameof(bytes)); }
-                return new(System.BitConverter.ToInt64(bytes , 0));
+                return new(bytes.ToInt64(0));
             }
             return Method;
         }
@@ -324,13 +311,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 System.Int32[] bits = System.Decimal.GetBits(dec);
                 // 4 int's * 4 bytes = 16 bytes in total.
                 System.Byte[] result = new System.Byte[16];
-                System.Byte[] temp = System.BitConverter.GetBytes(bits[0]);
+                System.Byte[] temp = bits[0].GetBytes();
                 Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(bits[1]);
+                temp = bits[1].GetBytes();
                 Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                temp = System.BitConverter.GetBytes(bits[2]);
+                temp = bits[2].GetBytes();
                 Array.ConstrainedCopy(temp, 0, result, 8, 4);
-                temp = System.BitConverter.GetBytes(bits[3]);
+                temp = bits[3].GetBytes();
                 Array.ConstrainedCopy(temp, 0, result, 12, 4);
                 return result;
             }
@@ -347,7 +334,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 System.Int32[] bits = new System.Int32[4];
                 for (System.Int32 I = 0; I < 4; I++)
                 {
-                    bits[I] = System.BitConverter.ToInt32(bytes , I * 4);
+                    bits[I] = bytes.ToInt32(I * 4);
                 }
                 return new(bits);
             }
@@ -405,13 +392,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 System.Byte[] result = new System.Byte[LENGTH];
                 // The Version object is encoded as follows:
                 // MajorNumber -> MinorNumber -> BuildNumber -> RevisionNumber.
-                System.Byte[] temp = System.BitConverter.GetBytes(ver.Major);
+                System.Byte[] temp = ver.Major.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(ver.Minor);
+                temp = ver.Minor.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                temp = System.BitConverter.GetBytes(ver.Build);
+                temp = ver.Build.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 8, 4);
-                temp = System.BitConverter.GetBytes(ver.Revision);
+                temp = ver.Revision.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 12, 4);
                 return result;
             }
@@ -427,10 +414,10 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != LENGTH) { throw new ArgumentException($"Array length must be exactly {LENGTH} bytes.", nameof(bytes)); }
                 System.Int32 VMJ, VMI, VB, VR;
-                VMJ = System.BitConverter.ToInt32(bytes, 0);
-                VMI = System.BitConverter.ToInt32(bytes, 4);
-                VB = System.BitConverter.ToInt32(bytes, 8);
-                VR = System.BitConverter.ToInt32(bytes, 12);
+                VMJ = bytes.ToInt32(0);
+                VMI = bytes.ToInt32(4);
+                VB = bytes.ToInt32(8);
+                VR = bytes.ToInt32(12);
                 Version result;
                 if (VB == -1)
                 {
@@ -711,7 +698,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 System.Byte[] result = new System.Byte[Size];
                 result[0] = (System.Byte)(dt.Day); // Encode the day
                 result[1] = (System.Byte)(dt.Month); // Encode the month
-                System.Byte[] temp = System.BitConverter.GetBytes(dt.Year); // Get the year to bytes
+                System.Byte[] temp = dt.Year.GetBytes(); // Get the year to bytes
                 System.Array.ConstrainedCopy(temp, 0, result, 2, 4); // Copy it to the final array
                 return result;
             }
@@ -723,7 +710,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             DateOnly Method(System.Byte[] bytes)
             {
                 if (bytes.LongLength != Size) { throw new ArgumentException($"The array length must be exactly {Size} bytes."); }
-                return new(System.BitConverter.ToInt32(bytes, 2), bytes[1] , bytes[0]);
+                return new(bytes.ToInt32(2), bytes[1] , bytes[0]);
             }
             return Method;
         }
@@ -741,9 +728,9 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 // We know that the int as bytes array length is 4. 
                 // During write , the resulting array will be 8 bytes , 4 for the X point , and 4 for the Y point.
                 System.Byte[] result = new System.Byte[8];
-                System.Byte[] temp = System.BitConverter.GetBytes(point.X);
+                System.Byte[] temp = point.X.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(point.Y);
+                temp = point.Y.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
                 return result;
             }
@@ -759,8 +746,8 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
                 // Create our resulting structure.
                 System.Drawing.Point point = new();
-                point.X = System.BitConverter.ToInt32(bytes, 0);
-                point.Y = System.BitConverter.ToInt32(bytes, 4);
+                point.X = bytes.ToInt32(0);
+                point.Y = bytes.ToInt32(4);
                 return point;
             }
             return Method;
@@ -813,9 +800,9 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 // We know that the int as bytes array length is 4. 
                 // During write , the resulting array will be 8 bytes , 4 for the width and 4 for the height.
                 System.Byte[] result = new System.Byte[8];
-                System.Byte[] temp = System.BitConverter.GetBytes(size.Width);
+                System.Byte[] temp = size.Width.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(size.Height);
+                temp = size.Height.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
                 return result;
             }
@@ -830,8 +817,8 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
                 System.Drawing.Size result = new();
-                result.Width = System.BitConverter.ToInt32(bytes, 0);
-                result.Height = System.BitConverter.ToInt32(bytes, 4);
+                result.Width = bytes.ToInt32(0);
+                result.Height = bytes.ToInt32(4);
                 return result;
             }
             return Method;
@@ -886,13 +873,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 // We do not need to encode other properties , because these are only part of the
                 // Rectangle.
                 System.Byte[] result = new System.Byte[16];
-                System.Byte[] temp = System.BitConverter.GetBytes(rectangle.Width);
+                System.Byte[] temp = rectangle.Width.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(rectangle.Height);
+                temp = rectangle.Height.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                temp = System.BitConverter.GetBytes(rectangle.X);
+                temp = rectangle.X.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 8, 4);
-                temp = System.BitConverter.GetBytes(rectangle.Y);
+                temp = rectangle.Y.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 12, 4);
                 return result;
             }
@@ -906,10 +893,10 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != 16) { throw new ArgumentException("The array size must be exactly 16."); }
                 Rectangle result = new();
-                result.Width = System.BitConverter.ToInt32(bytes, 0);
-                result.Height = System.BitConverter.ToInt32(bytes, 4);
-                result.X = System.BitConverter.ToInt32(bytes, 8);
-                result.Y = System.BitConverter.ToInt32(bytes, 12);
+                result.Width = bytes.ToInt32(0);
+                result.Height = bytes.ToInt32(4);
+                result.X = bytes.ToInt32(8);
+                result.Y = bytes.ToInt32(12);
                 return result;
             }
             return Method;
