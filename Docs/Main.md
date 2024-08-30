@@ -19,3 +19,4 @@
 - [Documentation of the first custom binary resource format of `DotNetResourcesExtensions` project](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/custombinaryresformatdoc.md)
 - [About the `BuildTasks` project](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/BuildTasks/README.md)
 - [Building and using the `DotNetResourcesExtensions` project](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Building.md)
+- [Changes in the V2 `Custom XML` Format](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/aboutchangesin_customxml.md)
