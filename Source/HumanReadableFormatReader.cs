@@ -52,7 +52,7 @@ namespace DotNetResourcesExtensions
                 System.String[] strings = dat.Split(';');
                 return new(ParserHelpers.RemoveQuotes(strings[0]),
                     System.Type.GetType(strings[1] , true , true),
-                    (FileReferenceEncoding)System.Enum.Parse(typeof(FileReferenceEncoding) , strings[2]));
+                    ParserHelpers.ParseEnumerationConstant<FileReferenceEncoding>(strings[2]));
             }
 
             public string FileName => name;
