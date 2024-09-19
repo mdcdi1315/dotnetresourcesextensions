@@ -85,7 +85,7 @@ namespace System.Numerics.Hashing
                 // Rethrow the exception , but as an invalidoperation one , because actually calling unintialised RD is illegal.
                 throw new InvalidOperationException("Could not call Rand.Next. More than one errors occured.", EX);
             }
-            finally { if (RD != null) { RD = null; } }
+            finally { RD = null; }
         };
 
         public static readonly int RandomSeed = RS1();

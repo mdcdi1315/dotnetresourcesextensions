@@ -3,6 +3,7 @@ using System;
 using System.Security;
 using System.Threading;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace DotNetResourcesExtensions.Internal
 {
@@ -92,7 +93,7 @@ namespace DotNetResourcesExtensions.Internal
         public static System.Byte[] ReadBuffered(System.IO.Stream Stream, System.Int64 RequestedBytes)
         {
             // Check for null conditions or whether we can read from this stream
-            if (Stream == null) { return null; }
+            if (Stream is null) { return null; }
             if (Stream.CanRead == false) { return null; }
             // Create a new byte array with the requested size.
             System.Byte[] Contents = new System.Byte[RequestedBytes];
@@ -139,7 +140,7 @@ namespace DotNetResourcesExtensions.Internal
             // If the input array size is not exactly a multiple of BUFSIZE , the rest data will be copied as-it-is.
             // This even works for cases that data.LongLength < BUFSIZE because the while loop
             // will never be entered.
-            if (c > 0) { stream.Write(data, pos, (System.Int32)c); }
+            if (c > 0) { stream.Write(data, pos, c.ToInt32()); }
         }
 
         public static void BlockCopy(System.IO.Stream input, System.IO.Stream output)
@@ -182,7 +183,13 @@ namespace DotNetResourcesExtensions.Internal
 #pragma warning disable 0618 // ExecutionEngineException is obsolete
         public static bool IsSecurityOrCriticalException(Exception ex)
         {
-            if ((ex is not NullReferenceException) && (ex is not StackOverflowException) && (ex is not OutOfMemoryException) && (ex is not ThreadAbortException) && (ex is not ExecutionEngineException) && (ex is not IndexOutOfRangeException) && (ex is not AccessViolationException))
+            if ((ex is not NullReferenceException) && 
+                (ex is not StackOverflowException) && 
+                (ex is not OutOfMemoryException) && 
+                (ex is not ThreadAbortException) && 
+                (ex is not ExecutionEngineException) && 
+                (ex is not IndexOutOfRangeException) && 
+                (ex is not AccessViolationException))
             {
                 return ex is SecurityException;
             }
@@ -191,13 +198,37 @@ namespace DotNetResourcesExtensions.Internal
 
         public static bool IsCriticalException(Exception ex)
         {
-            if ((ex is not NullReferenceException) && (ex is not StackOverflowException) && (ex is not OutOfMemoryException) && (ex is not ThreadAbortException) && (ex is not ExecutionEngineException) && (ex is not IndexOutOfRangeException))
+            if ((ex is not NullReferenceException) && 
+            (ex is not StackOverflowException) && 
+            (ex is not OutOfMemoryException) && 
+            (ex is not ThreadAbortException) && 
+            (ex is not ExecutionEngineException) && 
+            (ex is not IndexOutOfRangeException))
             {
                 return ex is AccessViolationException;
             }
             return true;
         }
 #pragma warning restore 0618
+
+        public static void Copy(this System.Byte[] src , System.Int32 srcidx , 
+        System.Byte[] dest , System.Int32 destidx , System.UInt32 count)
+        {
+            if (src is null) { throw new ArgumentNullException(nameof(src)); }
+            if (dest is null) { throw new ArgumentNullException(nameof(dest)); }
+            if (srcidx < 0 || destidx < 0) { throw new ArgumentOutOfRangeException(nameof(src) , "srcidx and destidx must be greater than or equal to zero."); }
+            if (srcidx >= src.Length) {
+                throw new ArgumentException("srcidx must be less than the array length.");
+            }
+            if (destidx >= dest.Length) {
+                throw new ArgumentException("destidx must be less than the array length.");
+            }
+            if (src.Length - srcidx + 1 > count || dest.Length - destidx + 1 > count)
+            {
+                throw new ArgumentOutOfRangeException("The number of elements to be copied are not available. Either change start index or enlarge the arrays.");
+            }
+            Unsafe.CopyBlockUnaligned(ref dest[destidx] , ref src[srcidx] , count);
+        }
 
         public static System.Byte[] GetBytes(System.Byte[] bytes, System.Int64 idx, System.Int64 count)
         {

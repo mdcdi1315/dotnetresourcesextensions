@@ -84,7 +84,7 @@ namespace DotNetResourcesExtensions
             if (obj is null) { throw new ArgumentNullException(nameof(obj)); }
             System.String dt;
             if (obj is System.Byte[] bt) {
-                dt = System.Convert.ToBase64String(bt);
+                dt = bt.ToBase64();
                 dt = MsIniStringsEncoder.Encode(dt);
                 return (encoding.GetBytes(dt) , obj.GetType());
             } else if (obj is System.String str) {
@@ -92,7 +92,7 @@ namespace DotNetResourcesExtensions
                 return (encoding.GetBytes(dt), obj.GetType());
             } else {
                 System.Byte[] one = fmt.GetBytesFromObject(obj);
-                dt = System.Convert.ToBase64String(one);
+                dt = one.ToBase64();
                 dt = MsIniStringsEncoder.Encode(dt);
                 one = null;
                 return (encoding.GetBytes(dt) , obj.GetType());

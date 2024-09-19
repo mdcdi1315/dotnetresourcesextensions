@@ -37,14 +37,14 @@ namespace DotNetResourcesExtensions.Internal
             System.Array.ConstrainedCopy(RifHeaderAsBytes , 0 , Final , idx , HDRLEN);
             idx += HDRLEN;
             System.Byte[] temp = System.BitConverter.GetBytes(nameasbytes.Length);
-            if (System.BitConverter.IsLittleEndian) { Array.Reverse(temp); }
+            if (System.BitConverter.IsLittleEndian) { temp.Reverse(); }
             Array.ConstrainedCopy(temp, 0, Final, idx, SIZEIDLEN);
             idx += SIZEIDLEN;
             Array.ConstrainedCopy(nameasbytes, 0, Final, idx, nameasbytes.Length);
             idx += nameasbytes.Length;
             nameasbytes = null;
             temp = System.BitConverter.GetBytes(formatteddata.Length);
-            if (System.BitConverter.IsLittleEndian) { Array.Reverse(temp); }
+            if (System.BitConverter.IsLittleEndian) { temp.Reverse(); }
             Array.ConstrainedCopy(temp, 0, Final, idx, SIZEIDLEN);
             idx += SIZEIDLEN;
             Array.ConstrainedCopy(formatteddata , 0 , Final , idx , formatteddata.Length);
@@ -70,8 +70,8 @@ namespace DotNetResourcesExtensions.Internal
             // Read next 4 bytes , reverse them and call BitConverter.
             System.Byte[] temp = new System.Byte[SIZEIDLEN];
             Array.ConstrainedCopy(bytes , I , temp , 0 , SIZEIDLEN);
-            if (System.BitConverter.IsLittleEndian) { Array.Reverse(temp); }
-            System.Int32 len = BitConverter.ToInt32(temp, 0);
+            if (System.BitConverter.IsLittleEndian) { temp.Reverse(); }
+            System.Int32 len = temp.ToInt32(0);
             I += SIZEIDLEN; // Skip the 4 bytes read previously.
             // Read the string.
             System.String typestring = System.Text.Encoding.UTF8.GetString(ParserHelpers.GetBytes(bytes: bytes, I, len));
@@ -80,8 +80,8 @@ namespace DotNetResourcesExtensions.Internal
             I += len;
             // Read next 4 bytes.
             temp = ParserHelpers.GetBytes(bytes: bytes, I, SIZEIDLEN);
-            if (System.BitConverter.IsLittleEndian) { Array.Reverse(temp); }
-            len = BitConverter.ToInt32(temp, 0);
+            if (System.BitConverter.IsLittleEndian) { temp.Reverse(); }
+            len = temp.ToInt32(0);
             // Skip the 4 read bytes read previously.
             I += SIZEIDLEN;
             // Return the object.

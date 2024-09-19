@@ -233,7 +233,7 @@ public sealed class ResXDataNode : ISerializable
     {
         const int lineWrap = 80;
         const string prefix = "        ";
-        string raw = Convert.ToBase64String(data);
+        string raw = data.ToBase64();
         if (raw.Length > lineWrap)
         {
             // Word wrap on lineWrap chars, \r\n
@@ -640,10 +640,10 @@ public sealed class ResXDataNode : ISerializable
                 }
             }
 
-            return Convert.FromBase64String(builder.ToString());
+            return builder.ToString().FromBase64();
         }
 
-        return Convert.FromBase64String(text);
+        return text.FromBase64();
     }
 
     private static Type? ResolveType(string typeName, ITypeResolutionService? typeResolver)

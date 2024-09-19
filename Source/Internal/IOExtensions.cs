@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using DotNetResourcesExtensions.Internal;
 
 namespace System.IO
 {
@@ -43,7 +44,7 @@ namespace System.IO
             if (chwithalignment < (chunks - 1)) {
                 throw new FormatException($"Corrupted byte array was read. Expected to read at least {chunks-1} chunks but instead only the {chwithalignment} chunks were successfully retrieved.");
             }
-            System.Byte[] decoded = System.Convert.FromBase64String(data);
+            System.Byte[] decoded = data.FromBase64();
             data = null;
             temp = null;
             if (decoded.Length != expected) { throw new FormatException($"Expected to read {expected} bytes but read {decoded.Length} bytes."); }
@@ -62,7 +63,7 @@ namespace System.IO
             if (indxe == -1 || indxs == -1) { return -1; }
             System.Int32 ret = 0 , prg = 1;
             for (System.Int32 I = indxe-1; I > indxs; I--) {
-                ret += (((System.Int32)data[I]) - 48) * prg;
+                ret += (data[I].ToInt32() - 48) * prg;
                 prg *= 10;
             }
             return ret;
@@ -85,7 +86,7 @@ namespace System.IO
 
         public static void WriteBase64ChunksValue(this StringableStream writer, byte[] data)
         {
-            System.String base64 = System.Convert.ToBase64String(data);
+            System.String base64 = data.ToBase64();
             System.Int32 chunks = base64.Length / stringlinesize;
             System.Int32 lastrem = base64.Length % stringlinesize;
             writer.WriteTabbedStringLine(1, $"alignment = {stringlinesize}");

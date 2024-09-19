@@ -87,7 +87,7 @@ namespace DotNetResourcesExtensions
                 if (ccc < chunks-1) {
                     throw new JSONFormatException($"Each bytearray chunk must be exactly {alignment} characters.", ParserErrorType.Deserialization);
                 }
-                System.Byte[] bt = System.Convert.FromBase64String(temp);
+                System.Byte[] bt = temp.FromBase64();
                 temp = null;
                 if (bt.LongLength != flen) { throw new JSONFormatException($"The bytes read were not equal to the expected bytes (Expected {flen} while read {bt.LongLength} bytes).", ParserErrorType.Deserialization); }
                 return bt;

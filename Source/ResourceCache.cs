@@ -513,7 +513,7 @@ namespace DotNetResourcesExtensions.Collections
                 // If no changes were performed in the resource index , return false.
                 if (deleted == false) { return false; }
                 // Recreate the index appropriately
-                count = (System.UInt32)resources.Count;
+                count = resources.Count.ToUInt32();
                 index.SetLength(0);
                 indexreadpos = 0;
                 foreach (var resource in resources) {
