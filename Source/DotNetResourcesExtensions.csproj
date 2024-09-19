@@ -8,7 +8,7 @@
 	<ItemGroup> <!-- All global package references used by the project should be here -->
 	  <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
 	  <PackageReference Include="System.Text.Json" Version="8.0.4" />
-	  <!-- Be noted that System.Drawing.Primitives is considered global although that is only useful for non-.NET Core targets. -->
+	  <!-- Be noted that System.Drawing.Primitives is considered global although that is only useful for .NEt Core only and .NET Standard targets. -->
 	  <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" Condition="'$(TargetFramework)' == '$(NetCoreIdentifier)' OR '$(TargetFramework)' == 'netstandard2.0'" />
 	</ItemGroup>
 
@@ -33,22 +33,21 @@
 		<IsPackable>True</IsPackable>
 		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageVersion>1.0.3</PackageVersion>
+		<PackageVersion>1.0.4</PackageVersion>
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
 		<PackageProjectUrl>http://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
 		<PackageReleaseNotes>v$(PackageVersion) release of DotNetResourcesExtensions package.
 For more additional details , visit $(PackageProjectUrl) .
-This release changes the format of Custom XML to be more close to that of
-the upcoming major release of Localizable XML format.
-The V1 resources can be still read using the XMLResourcesReader!
-Additionally , the IFileReference interface is also now supported in Custom XML.
-Finally , more unsafe operations are added and used for faster numeric type casts!
+Some additional unsafe operations are added.
+Added support for internal base-64 encoding , which means that all bundled resource classes
+that use text encodings , will use that internal class to encode their data.
+Additionally , all exception messages will be starting to migrate to the internal resource dictionary so as to reduce the assembly size.
 </PackageReleaseNotes>
 		<Authors>mdcdi1315</Authors>
 		<AssemblyName>$(_ProjName)</AssemblyName>
-		<AssemblyVersion>1.0.0.3</AssemblyVersion>
+		<AssemblyVersion>1.0.0.4</AssemblyVersion>
 		<ProductName>$(_ProjName)</ProductName>
 		<Product>$(_ProjName) is a project that defines new possibilities on handling resources of a .NET application.
 Additionally , it defines new types for doing resource serializations never thought of.
@@ -134,7 +133,7 @@ Additionally , it defines new types for doing resource serializations never thou
 		<Message Importance="high" Text="The requested static layout was generated at $(StaticLayoutOutputPath) ." />
 	</Target>
 
-	<!-- This forwards to GenerateStaticConsumptionLayout , but for new builds the use of GenerateStaticLayout is preferred. -->
+	<!-- This forwards to GenerateStaticConsumptionLayout , but for new designs the use of GenerateStaticLayout is recommended. -->
 	<Target Name="GenerateStaticLayout">
 		<CallTarget Targets="GenerateStaticConsumptionLayout" />
 	</Target>

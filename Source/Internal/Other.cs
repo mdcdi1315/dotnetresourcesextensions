@@ -36,14 +36,14 @@ namespace DotNetResourcesExtensions.Internal
             System.Int32 idx = 0;
             System.Array.ConstrainedCopy(RifHeaderAsBytes , 0 , Final , idx , HDRLEN);
             idx += HDRLEN;
-            System.Byte[] temp = System.BitConverter.GetBytes(nameasbytes.Length);
+            System.Byte[] temp = nameasbytes.Length.GetBytes();
             if (System.BitConverter.IsLittleEndian) { temp.Reverse(); }
             Array.ConstrainedCopy(temp, 0, Final, idx, SIZEIDLEN);
             idx += SIZEIDLEN;
             Array.ConstrainedCopy(nameasbytes, 0, Final, idx, nameasbytes.Length);
             idx += nameasbytes.Length;
             nameasbytes = null;
-            temp = System.BitConverter.GetBytes(formatteddata.Length);
+            temp = formatteddata.Length.GetBytes();
             if (System.BitConverter.IsLittleEndian) { temp.Reverse(); }
             Array.ConstrainedCopy(temp, 0, Final, idx, SIZEIDLEN);
             idx += SIZEIDLEN;

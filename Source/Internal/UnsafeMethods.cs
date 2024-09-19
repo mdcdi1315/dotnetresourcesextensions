@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 // The below warning is disabled because all calls that evolve it are sizeof's which only get sizes of unmanaged types.
@@ -6,11 +7,49 @@ using System.Runtime.CompilerServices;
 
 namespace DotNetResourcesExtensions.Internal
 {
+
+    /// <summary>
+    /// Represents the private data of the official <see cref="System.String"/> structure. <br />
+    /// Use this pinnable when you want to do pointer operations and avoid allocating unnecessarily new arrays.
+    /// </summary>
+    // A pinnable that gets the offset to data when we are on any platform.
+    // Seems that the String has not been structurally changed during the time ...
+    // Required for UnsafeMethods class.
+    [StructLayout(LayoutKind.Explicit, Size = 8)] // As the size of System.String is
+    internal sealed class StringPinnable
+    {
+        /// <summary>
+        /// Gets a new instance of <see cref="StringPinnable"/> from the specified data.
+        /// </summary>
+        /// <param name="data">The data to get from.</param>
+        /// <returns>A new <see cref="StringPinnable"/> that is the unmanaged surface of <paramref name="data"/>.</returns>
+        public static StringPinnable GetAsPinnable(System.String data) => Unsafe.As<StringPinnable>(data);
+
+        // Avoiding direct construction - use the GetAsPinnable method.
+        private StringPinnable() { }
+
+        /// <summary>
+        /// The length of the provided string.
+        /// </summary>
+        [FieldOffset(0)] public System.Int32 Length;
+        /// <summary>
+        /// The first element of the string. Use the &amp; operator to get a pointer to the whole data array.
+        /// </summary>
+        [FieldOffset(4)] public System.Char Data;
+    }
+
     /// <summary>
     /// Provides unsafe extension methods for the <see cref="DotNetResourcesExtensions"/> project
     /// for manipulating primitive information and byte arrays.
     /// </summary>
-    internal static unsafe class UnsafeMethods
+    // The purpose of the UnsafeMethods class is to provide faster alternatives for .NET Framework on raw primitive information , 
+    // while providing a unified and 
+#if DEBUG // Allowed to be reviewed in debug builds to test whether the unsafe operations are producing correct results.
+    public
+#else
+    internal
+#endif
+    static unsafe class UnsafeMethods
     {
         // The unsafe calls allow us to bypass definite runtime checks for conversions.
         // These are also implemented in pure MSIL - which means that these can work in any possible .NET platform.
@@ -93,6 +132,11 @@ namespace DotNetResourcesExtensions.Internal
             }
             return Unsafe.ReadUnaligned<T>(ref span[sidx]);
         }
+
+        /// <summary>
+        /// Gets an instance of the <see cref="DotNetResourcesExtensions"/> project internal base-64 encoding implementation.
+        /// </summary>
+        public static System.Text.Encoding Base64Internal => Base64Encoding.Singleton;
 
         /// <summary>
         /// Gets the managed reference of the first array element in <paramref name="array"/>.
@@ -487,6 +531,46 @@ namespace DotNetResourcesExtensions.Internal
             => GetFromBytesTemplate2<System.UInt16>(array, StartIndex);
 
         /// <summary>
+        /// Uses unsafe schemes to copy a string to a new character array , starting from the specified index and copying <paramref name="count"/> charaters to target.
+        /// </summary>
+        /// <param name="str">The string to copy.</param>
+        /// <param name="index">The index to start copying characters from.</param>
+        /// <param name="count">The number of characters to copy.</param>
+        /// <returns>A new array which has characters copied from <paramref name="str"/>.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> or <paramref name="count"/> were less than zero , or <paramref name="count"/> was greater than the input string.</exception>
+        public static System.Char[] ToCharArrayUnsafe(this System.String str , System.Int32 index , System.Int32 count)
+        {
+            if (str is null) { return System.Array.Empty<System.Char>(); }
+            if (index < 0) { throw new ArgumentOutOfRangeException(nameof(index), "index must not be negative."); }
+            if (count < 0) { throw new ArgumentOutOfRangeException(nameof(index), "count must be positive."); }
+            StringPinnable pnt = StringPinnable.GetAsPinnable(str);
+            if (count == 0 || pnt.Length == 0) { return System.Array.Empty<System.Char>(); }
+            if (count > pnt.Length - index) {
+                throw new ArgumentOutOfRangeException(nameof(count) , $"Count must be less than or equal to {pnt.Length - index} .");
+            }
+            System.Char[] result = new System.Char[count];
+            fixed (System.Char* ptr = result)
+            {
+                // Gets the starting reference of pnt.Data where the user prefers to start copying from.
+                // If index == 0 (might be the most common case btw) , then pnt.Data is returned from Unsafe.Add as-it-is.
+                fixed (System.Char* src = &Unsafe.Add(ref pnt.Data , index))
+                {
+                    // Uses cpblk , fast and efficient.
+                    // Also be noted that we need byte count , and not character count , so we convert it to bytes at run-time.
+                    Unsafe.CopyBlockUnaligned(ptr, src, (count * Unsafe.SizeOf<System.Char>()).ToUInt32());
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Uses unsafe schemes to copy a string to a new character array.
+        /// </summary>
+        /// <param name="str">The string to copy.</param>
+        /// <returns>A new array which has characters copied from <paramref name="str"/>.</returns>
+        public static System.Char[] ToCharArrayUnsafe(this System.String str) => ToCharArrayUnsafe(str, 0, str.Length);
+
+        /// <summary>
         /// Converts the given byte array to a base64 sequence.
         /// </summary>
         /// <param name="bytes">The byte array to convert.</param>
@@ -508,7 +592,7 @@ namespace DotNetResourcesExtensions.Internal
         /// </summary>
         /// <param name="base64">The base64 string to convert.</param>
         /// <returns>The decoded byte information.</returns>
-        public static System.Byte[] FromBase64(this System.String base64) => Base64Encoding.Singleton.GetBytes(base64);
+        public static System.Byte[] FromBase64(this System.String base64) => Base64Encoding.Singleton.GetBytes(base64 , 0, base64.Length);
 
         /// <summary>
         /// Converts the given base64 string to the equivalent byte array representation.
@@ -517,12 +601,8 @@ namespace DotNetResourcesExtensions.Internal
         /// <param name="index">The character index inside <paramref name="base64"/> to start decoding from.</param>
         /// <param name="count">The number of characters to decode.</param>
         /// <returns>The decoded byte information.</returns>
-        public static System.Byte[] FromBase64Selected(this System.String base64 , System.Int32 index, System.Int32 count) 
-#if NETSTANDARD || NET472_OR_GREATER
-        => Base64Encoding.Singleton.GetBytes(base64.ToCharArray() , index , count);
-#else
-        => Base64Encoding.Singleton.GetBytes(base64 , index , count);
-#endif
+        public static System.Byte[] FromBase64Selected(this System.String base64, System.Int32 index, System.Int32 count)
+        => Base64Encoding.Singleton.GetBytes(base64, index , count);
 
         // Parts of bit conversion code also belong from referencesource.microsoft.com/en-us !.
         private static System.Byte GetBitValue(System.Int32 bitidx) => (1 << (bitidx & 7)).ToByte();

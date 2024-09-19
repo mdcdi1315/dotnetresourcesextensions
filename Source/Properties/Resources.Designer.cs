@@ -205,6 +205,231 @@ namespace DotNetResourcesExtensions.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Corrupted Resource Format detected..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_CORRUPTED {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_CORRUPTED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header format version: {0} . This reader can only read up to version {1} ..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_FMT_VER_INVALID {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_FMT_VER_INVALID", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The format version is invalid: {0} . The reader can only read up to {1}..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_HDR_VER_INVALID {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_HDR_VER_INVALID", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot read the resource header. It&apos;s magic value is invalid..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_INVALID_MAGIC {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_INVALID_MAGIC", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. The specified data position alignment is possibly corrupted. This header stream is untrusted..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_INVALIDALIGNMENT {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_INVALIDALIGNMENT", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the CURRENTFORMATS phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_CURRENTFORMATS_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_CURRENTFORMATS_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the DATAPOSALIGNMENT phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_DATAPOSALIGNMENT_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_DATAPOSALIGNMENT_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the DATAPOSITIONS phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_DATAPOSITIONS_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_DATAPOSITIONS_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the DATAPOSITIONSCOUNT phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_DATAPOSITIONSCOUNT_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_DATAPOSITIONSCOUNT_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the DOTNETTYPE phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_DOTNETTYPE_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_DOTNETTYPE_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to detect header end. This suggests that the data are corrupted..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_HEADER_END {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_HEADER_END", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the HEADERVERSION phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_HEADERVERSION_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_HEADERVERSION_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header start. Header must begin with RESOURCE..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_RESOURCE_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_RESOURCE_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the RESOURCENAME phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_RESOURCENAME_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_RESOURCENAME_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the RESOURCESIZE phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_RESOURCESIZE_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_RESOURCESIZE_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the RESOURCETYPE phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_RESOURCETYPE_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_RESOURCETYPE_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the SUPPORTEDHEADERVERSION phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_SUPPORTEDHEADERVERSION_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_SUPPORTEDHEADERVERSION_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the VALUE phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_VALUE_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_VALUE_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header must exactly contain the VERSION phrase..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_NO_VERSION_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_NO_VERSION_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Corrupted resource header format detected..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_RESHEADER_CORRUPTED {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_RESHEADER_CORRUPTED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid header. Header version is {0} , which cannot be read by this reader..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_VER_MISMATCH {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_VER_MISMATCH", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot use an unreadable stream for reading it&apos;s data..
+        /// </summary>
+        internal static string DNTRESEXT_STRCannotBeUsed_Read {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_STRCannotBeUsed_Read", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot use an unwriteable stream for writing data..
+        /// </summary>
+        internal static string DNTRESEXT_STRCannotBeUsed_Write {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_STRCannotBeUsed_Write", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The underlying stream must be a readable stream..
+        /// </summary>
+        internal static string DNTRESEXT_StreamUnreadable {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_StreamUnreadable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The underlying stream must be a writeable stream..
+        /// </summary>
+        internal static string DNTRESEXT_StreamUnwriteable {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_StreamUnwriteable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0}
         ///Resource Name: {1}.
         /// </summary>
