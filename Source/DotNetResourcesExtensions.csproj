@@ -33,7 +33,7 @@
 		<IsPackable>True</IsPackable>
 		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageVersion>2.0.0-alpha0</PackageVersion>
+		<PackageVersion>2.0.0-alpha1</PackageVersion>
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
@@ -61,6 +61,7 @@ Additionally , it defines new types for doing resource serializations never thou
 	</PropertyGroup>
 
   <ItemGroup>
+	<Compile Include="IResourceEntryWithComment.cs" />
 	<Compile Include="Properties\AssemblyInfo.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\*.cs" />
 	<Compile Include="$(MSBuildThisFileDirectory)\Internal\*.cs" />

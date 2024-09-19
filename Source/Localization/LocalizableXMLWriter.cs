@@ -10,9 +10,11 @@ namespace DotNetResourcesExtensions.Localization
             HeaderElementName = "resloc" , 
             HeaderVersionAttributeName = "version" , 
             DataNameAttributeName = "dataname" , 
+            CommentElementName ="comment",
             CultureAttributeName = "lang" , 
-            DataNameElementName = "Data";
-        public static System.Version Version = new("1.0");
+            DataNameElementName = "Data" , 
+            ValueElementName = "value";
+        public static System.Version Version = new("2.0");
     }
 
     /// <summary>
@@ -126,7 +128,7 @@ namespace DotNetResourcesExtensions.Localization
             writer.WriteAttributeString("name", Name);
             writer.WriteAttributeString("type", "string");
             {
-                writer.WriteStartElement("string");
+                writer.WriteStartElement(LocalizableXMLReaderWriterConstants.ValueElementName);
                 writer.WriteValue(Value);
                 writer.WriteEndElement();
             }
@@ -157,8 +159,36 @@ namespace DotNetResourcesExtensions.Localization
             writer.WriteAttributeString("name", entry.Name);
             writer.WriteAttributeString("type", "string");
             {
-                writer.WriteStartElement("string");
+                writer.WriteStartElement(LocalizableXMLReaderWriterConstants.ValueElementName);
                 writer.WriteValue(entry.Value);
+                writer.WriteEndElement();
+            }
+            writer.WriteEndElement();
+        }
+
+        /// <inheritdoc/>
+        public sealed override void AddLocalizableEntry(ILocalizedResourceEntryWithComment entry)
+        {
+            if (entry is null) { throw new System.ArgumentNullException(nameof(entry)); }
+            ParserHelpers.ValidateName(entry.Name);
+            if (entry.TypeOfValue != typeof(System.String))
+            {
+                throw new System.ArgumentException("Currently only string resources are allowed to be written.");
+            }
+            if (entry.Culture.LCID != culture.LCID)
+            {
+                throw new System.InvalidOperationException($"Cannot add to the resource list the resource \'{entry.Name}\' because it has a culture \'{entry.Culture}\' that is different than the currently selected culture \'{culture}\'.");
+            }
+            if (writer is null) { return; }
+            writer.WriteStartElement(LocalizableXMLReaderWriterConstants.DataNameElementName);
+            writer.WriteAttributeString("name", entry.Name);
+            writer.WriteAttributeString("type", "string");
+            {
+                writer.WriteStartElement(LocalizableXMLReaderWriterConstants.ValueElementName);
+                writer.WriteValue(entry.Value);
+                writer.WriteEndElement();
+                writer.WriteStartElement(LocalizableXMLReaderWriterConstants.CommentElementName);
+                writer.WriteValue(entry.Comment);
                 writer.WriteEndElement();
             }
             writer.WriteEndElement();

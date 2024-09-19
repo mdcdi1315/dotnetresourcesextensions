@@ -12,4 +12,10 @@ namespace DotNetResourcesExtensions.Localization
         /// </summary>
         public CultureInfo Culture { get; }
     }
+
+    /// <summary>
+    /// This is a resource entry implementation with a comment that has been already localized. <br />
+    /// Note that the comment is culture-invariant; which it means that it does not been affected by the localization API's.
+    /// </summary>
+    public interface ILocalizedResourceEntryWithComment : ILocalizedResourceEntry , IResourceEntryWithComment { }
 }

@@ -12,6 +12,7 @@ namespace DotNetResourcesExtensions.Localization
     public sealed class LocalizableXMLReader : LocalizedResourceReader
     {
         private System.String dataelementname;
+        private System.Version version;
         private CultureInfo culture;
         private XDocument xdt;
 
@@ -41,9 +42,27 @@ namespace DotNetResourcesExtensions.Localization
                     XElement element = elements.Current;
                     name = element.Attribute("name").Value;
                     type = element.Attribute("type").Value;
-                    return new(name, element.Element(System.Xml.Linq.XName.Get(type)).Value);
+                    if (reader.version == new System.Version("1.0")) {
+                        return new(name, element.Element(XName.Get(type)).Value);
+                    } else {
+                        return new(name, element.Element(LocalizableXMLReaderWriterConstants.ValueElementName).Value);
+                    }
                 }
             }
+
+            public System.String Comment
+            {
+                get {
+                    System.Xml.Linq.XElement cmt;
+                    if ((cmt = elements.Current.Element(LocalizableXMLReaderWriterConstants.CommentElementName)) is null)
+                    {
+                        throw new System.InvalidOperationException("The current entry does not provide or have a comment.");
+                    }
+                    return cmt.Value;
+                }
+            }
+
+            public Collections.DictionaryEntryWithComment EntryWithComment => new(Entry.Key, Entry.Value , Comment);
 
             public object Key => elements.Current.Attribute("name").Value;
 
@@ -59,6 +78,7 @@ namespace DotNetResourcesExtensions.Localization
         private LocalizableXMLReader() : base()
         {
             xdt = null;
+            version = null;
             dataelementname = null;
             culture = CultureInfo.CurrentCulture;
         }
@@ -102,7 +122,7 @@ namespace DotNetResourcesExtensions.Localization
                     case LocalizableXMLReaderWriterConstants.DataNameAttributeName:
                         dataelementname = attr.Value; break;
                     case LocalizableXMLReaderWriterConstants.HeaderVersionAttributeName:
-                        if (LocalizableXMLReaderWriterConstants.Version > new System.Version(attr.Value))
+                        if (LocalizableXMLReaderWriterConstants.Version > (version = new System.Version(attr.Value)))
                         {
                             throw new FormatException($"This reader cannot read this format version. Use instead a reader that supports the format version {attr.Value}.");
                         }

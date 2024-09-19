@@ -59,6 +59,15 @@ namespace DotNetResourcesExtensions.Localization
         /// <exception cref="System.InvalidOperationException">The culture that the <paramref name="entry"/> defines is different of what culture expects to contain only.</exception>
         public abstract void AddLocalizableEntry(ILocalizedResourceEntry entry);
 
+        /// <summary>
+        /// Adds a new localized resource with comment to the list of the resources to be written by using a localized resource entry.
+        /// </summary>
+        /// <param name="entry">The resource entry to add.</param>
+        /// <exception cref="System.ArgumentNullException">The <paramref name="entry"/> parameter or it's name is <see langword="null"/>.</exception>
+        /// <exception cref="System.ArgumentException">The <paramref name="entry"/> parameter has a name that is invalid , or attempted to write a resource other than a string.</exception>
+        /// <exception cref="System.InvalidOperationException">The culture that the <paramref name="entry"/> defines is different of what culture expects to contain only.</exception>
+        public virtual void AddLocalizableEntry(ILocalizedResourceEntryWithComment entry) => AddLocalizableEntry(entry);
+
         /// <inheritdoc />
         public abstract System.Boolean IsStreamOwner { get; set; }
 
