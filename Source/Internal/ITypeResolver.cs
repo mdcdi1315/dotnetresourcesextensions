@@ -42,8 +42,8 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
         {
             if (type is null) { throw new System.ArgumentNullException(nameof(type)); }
             System.Type t = resolver.GetType();
-            System.Reflection.MethodInfo mi = t.GetMethod("GetConverter")?.MakeGenericMethod(type);
-            if (mi is null) { throw new System.MissingMethodException($"The GetConverter method is missing from the current resolver. \nFailing Type: {t.AssemblyQualifiedName}"); }
+            System.Reflection.MethodInfo mi = (t.GetMethod("GetConverter")?.MakeGenericMethod(type)) 
+            ?? throw new System.MissingMethodException($"The GetConverter method is missing from the current resolver. \nFailing Type: {t.AssemblyQualifiedName}");
             return mi.Invoke(resolver, System.Array.Empty<System.Object>()); // A bit hard to fail here.
         }
 

@@ -1,4 +1,6 @@
-﻿namespace DotNetResourcesExtensions
+﻿using DotNetResourcesExtensions.Internal;
+
+namespace DotNetResourcesExtensions
 {
     /// <summary>
     /// Represents an abstract version of a file reference inside a resource data stream. <br />
@@ -109,7 +111,7 @@
                 try {
                     for (System.Int32 I = charIndex; I < charCount + charIndex; I++, bi++)
                     {
-                        bytes[bi] = (byte)chars[I];
+                        bytes[bi] = chars[I].ToByte();
                         wb++;
                     }
                 } catch { }
@@ -127,15 +129,14 @@
 
             public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
             {
-                System.Int32 ch = charIndex , wc = 0;
+                System.Int32 J = byteIndex;
                 try {
-                    for (System.Int32 I = byteIndex; I < byteIndex + byteCount; I++, ch++)
+                    for (System.Int32 I = charIndex; I < chars.Length && J < byteIndex + byteCount; I++, J++)
                     {
-                        bytes[I] = (System.Byte)chars[ch];
-                        wc++;
+                        chars[I] = bytes[J].ToChar(); 
                     }
                 } catch { }
-                return wc - 1;
+                return J - 1;
             }
 
             public override int GetMaxByteCount(int charCount) => charCount;

@@ -89,6 +89,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
         /// <returns>The serialized object in bytes.</returns>
         /// <exception cref="System.ArgumentNullException"><paramref name="obj"/> was null.</exception>
         /// <exception cref="System.MemberAccessException">The formatter passed to the <paramref name="formatter"/> was not a valid instance of the ICustomFormatter.</exception>
+        /// <exception cref="System.MissingMethodException">The GetObject method that is required to be invoked was not exposed by the provided instance.</exception>
         public static System.Byte[] GetBytesFromObject(this ICustomFormatter formatter, System.Object obj)
         {
             if (obj is null) { throw new System.ArgumentNullException(nameof(obj)); }
@@ -103,6 +104,10 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
             } catch (System.Reflection.TargetInvocationException ex)
             {
                 throw ex.InnerException ?? new System.AggregateException("Unknown exception occured when the formatter was called.");
+            } catch (System.NullReferenceException)
+            {
+                // NRE means here that mi is null , and thus the method is missing.
+                throw new System.MissingMethodException("The required generic method GetObject was not found or is private to the current class implementation passed to this method.");
             }
         }
 
@@ -117,6 +122,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
         /// <returns>The deserialized object.</returns>
         /// <exception cref="System.ArgumentNullException">The <paramref name="runtimetype"/> or the <paramref name="typedarray"/> arguments were null.</exception>
         /// <exception cref="System.MemberAccessException">The formatter passed to the <paramref name="formatter"/> was not a valid instance of the ICustomFormatter.</exception>
+        /// <exception cref="System.MissingMethodException">The GetObject method that is required to be invoked was not exposed by the provided instance.</exception>
         public static System.Object GetObjectFromBytes(this ICustomFormatter formatter , 
             System.Byte[] typedarray , System.Type runtimetype)
         {
@@ -132,6 +138,10 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
             } catch (System.Reflection.TargetInvocationException ex)
             {
                 throw ex.InnerException ?? new System.AggregateException("Unknown exception occured when the formatter was called.");
+            } catch (System.NullReferenceException)
+            {
+                // NRE means here that mi is null , and thus the method is missing.
+                throw new System.MissingMethodException("The required generic method GetObject was not found or is private to the current class implementation passed to this method.");
             }
         }
     }

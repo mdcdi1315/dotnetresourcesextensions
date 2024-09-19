@@ -105,7 +105,7 @@ namespace DotNetResourcesExtensions
 
         private void WriteChunkedBase64(System.Byte[] array)
         {
-            System.String str = System.Convert.ToBase64String(array);
+            System.String str = array.ToBase64();
             System.Int32 chunks = str.Length / XMLResourcesConstants.SingleBase64ChunkCharacterLength , 
                 rem = str.Length % XMLResourcesConstants.SingleBase64ChunkCharacterLength;
             writer.WriteElementString("Chunks", (rem > 0 ? chunks+1 : chunks).ToString());

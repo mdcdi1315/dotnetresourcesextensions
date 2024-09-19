@@ -11,3 +11,6 @@ using System.Runtime.CompilerServices;
 // The following GUID is for the ID of the typelib if this project is exposed to COM.
 
 [assembly: Guid("ebeab497-d80a-4a81-bb52-3a3633f0ec62")]
+// The below attribute is added if DotNetResourcesExtensions does ever add
+// the ability to read compiled native Windows RC files.
+[assembly: DefaultDllImportSearchPaths(DllImportSearchPath.ApplicationDirectory | DllImportSearchPath.System32)]

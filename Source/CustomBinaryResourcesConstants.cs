@@ -72,14 +72,14 @@ namespace DotNetResourcesExtensions.Internal
 
         private void WriteNumericValue(System.Int64 val)
         {
-            System.Byte[] f = System.BitConverter.GetBytes(val);
+            System.Byte[] f = val.GetBytes();
             rwstream.Write(f , 0 , f.Length);
             f = null;
         }
 
         public System.Int64 WriteResource(BinResourceBlob blob , CustomFormatter.ICustomFormatter fmt)
         {
-            if (rwstream.CanWrite == false) { throw new ArgumentException("The underlying stream must be a writeable stream."); }
+            if (rwstream.CanWrite == false) { throw new ArgumentException(Properties.Resources.DNTRESEXT_StreamUnwriteable); }
             System.Int64 sposition = rwstream.Position;
             WriteString(CustomBinaryResourcesConstants.ResourceHeader);
             WriteString($"{CustomBinaryResourcesConstants.ResourceName}{CustomBinaryResourcesConstants.ValueStartChar}{blob.Name}");
@@ -138,7 +138,7 @@ namespace DotNetResourcesExtensions.Internal
             System.Byte[] d = new System.Byte[8];
             rwstream.Read(d, 0, d.Length);
             if (EnsureHeaderEnd() == false) { throw new CustomBinaryFormatException("Corrupted resource format detected.", ParserErrorType.Deserialization); }
-            return System.BitConverter.ToInt64(d, 0);
+            return d.ToInt64(0);
         }
 
         private System.Boolean StringMatchesThis(System.String str)
@@ -338,7 +338,7 @@ namespace DotNetResourcesExtensions.Internal
 
         private void WriteNumericValue(System.Int64 val)
         {
-            System.Byte[] f = System.BitConverter.GetBytes(val);
+            System.Byte[] f = val.GetBytes();
             rwstream.Write(f, 0, f.Length);
             f = null;
         }
@@ -348,7 +348,7 @@ namespace DotNetResourcesExtensions.Internal
             System.Byte[] d = new System.Byte[8];
             rwstream.Read(d, 0, d.Length);
             if (EnsureHeaderEnd() == false) { throw new CustomBinaryFormatException("Corrupted resource header format detected.", ParserErrorType.Deserialization); }
-            return System.BitConverter.ToInt64(d, 0);
+            return d.ToInt64(0);
         }
 
         private System.Boolean StringMatchesThis(System.String str)
@@ -512,7 +512,7 @@ namespace DotNetResourcesExtensions.Internal
                 System.Int64[] dps = new System.Int64[v]; // we know the exact resource count , just create the array directly.
                 for (System.Int32 I = 0; I < dps.Length; I++) // with this algorithm , set all data positions.
                 {
-                    dps[I] = System.BitConverter.ToInt64(temp , I * ret.DataPositionsAlignment);
+                    dps[I] = temp.ToInt64(I * ret.DataPositionsAlignment);
                 }
                 ret.DataPositions = dps;
                 temp = null; // Destroy temp we do not need it anymore.

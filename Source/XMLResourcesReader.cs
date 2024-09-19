@@ -1,7 +1,6 @@
 ﻿
 using System;
 using System.Linq;
-using System.Collections.Generic;
 
 namespace DotNetResourcesExtensions
 {
@@ -115,7 +114,7 @@ namespace DotNetResourcesExtensions
                 {
                     throw new XMLFormatException("The byte array contents could not be read because not all expected chunks were read." , ParserErrorType.Deserialization);
                 }
-                System.Byte[] bt = System.Convert.FromBase64String(sb.ToString());
+                System.Byte[] bt = sb.ToString().FromBase64();
                 sb.Clear();
                 sb = null;
                 rc = (System.Int32)GetElementAttribute("length");
@@ -181,17 +180,17 @@ namespace DotNetResourcesExtensions
             switch (tpp)
             {
                 case XMLRESResourceType.String:
-                    result.Value = (System.String)GetChildElement("Value_0");
+                    result.Value = GetChildElement("Value_0").Value;
                     break;
                 case XMLRESResourceType.ByteArray:
-                    result.Value = System.Convert.FromBase64String((System.String)GetChildElement("Value_0"));
+                    result.Value = GetChildElement("Value_0").Value.FromBase64();
                     break;
                 case XMLRESResourceType.Object:
                     // We will not use the DataContractSerializer. Instead , we will depend on ExtensibleFormatter.
                     // Why? To avoid complexity and having XML and code transparency.
-                    System.Type dotnettype = System.Type.GetType((System.String)GetChildElement("DotnetType"));
+                    System.Type dotnettype = System.Type.GetType(GetChildElement("DotnetType").Value);
                     try {
-                        result.Value = reader.exf.GetObjectFromBytes(System.Convert.FromBase64String((System.String)GetChildElement("Value_0")), dotnettype);
+                        result.Value = reader.exf.GetObjectFromBytes(GetChildElement("Value_0").Value.FromBase64(), dotnettype);
                     } catch (Internal.CustomFormatter.Exceptions.ConverterNotFoundException e) {
                         throw new XMLFormatException("A resource object deserialization error occured.", e.Message, ParserErrorType.Deserialization);
                     }

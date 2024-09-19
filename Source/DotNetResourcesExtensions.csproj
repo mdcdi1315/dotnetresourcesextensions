@@ -8,6 +8,7 @@
 	<ItemGroup> <!-- All global package references used by the project should be here -->
 	  <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
 	  <PackageReference Include="System.Text.Json" Version="8.0.4" />
+	  <!-- Be noted that System.Drawing.Primitives is considered global although that is only useful for non-.NET Core targets. -->
 	  <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" Condition="'$(TargetFramework)' == '$(NetCoreIdentifier)' OR '$(TargetFramework)' == 'netstandard2.0'" />
 	</ItemGroup>
 
@@ -113,7 +114,7 @@ Additionally , it defines new types for doing resource serializations never thou
 
 	<!-- Generates a consumption layout to use it in your project directly without referencing the DotNetResourcesExtensions package. -->
 	<!-- This allows you to consume nightly builds of DotNetResourcesExtensions. -->
-	<!-- Additionally it will remove any package reference to DotNetResourcesExtensions if one is detected. -->
+	<!-- Note: GenerateStaticConsumptionLayout is a legacy name now , just remains that way for any CI compatibility. The target that should be called is GenerateStaticLayout. -->
 	<Target Name="GenerateStaticConsumptionLayout">
 		<PropertyGroup>
 			<StaticLayoutIntermediatePath>$(MSBuildThisFileDirectory)$(BaseIntermediateOutputPath)staticlayout</StaticLayoutIntermediatePath>
@@ -128,10 +129,15 @@ Additionally , it defines new types for doing resource serializations never thou
 		<Copy SourceFiles="$(BuildTasksBaseDirectory)/netstandard2.0/DotNetResourcesExtensions.BuildTasks.dll;$(BuildTasksBaseDirectory)/netstandard2.0/DotNetResourcesExtensions.dll" DestinationFolder="$(StaticLayoutIntermediatePath)/tools/netstandard2.0" />
 		<Copy SourceFiles="$(BuildTasksBaseDirectory)/$(NetFrameworkIdentifier)/DotNetResourcesExtensions.targets" DestinationFolder="$(StaticLayoutIntermediatePath)/build" />
 		<Exec Command="1&gt;nul xcopy &quot;$(MSBuildThisFileDirectory)bin/Release&quot; &quot;$(StaticLayoutIntermediatePath)/lib&quot; /S /Q /I" Condition="'$(OS)' == 'Windows_NT'" />
-		<Exec Command="cp -R $(MSBuildThisFileDirectory)bin/Release/ $(StaticLayoutIntermediatePath)/lib &gt; nul" Condition="'$(OS)' != 'Windows_NT'" />
+		<Exec Command="cp -R $(MSBuildThisFileDirectory)bin/Release/* $(StaticLayoutIntermediatePath)/lib &gt; nul" Condition="'$(OS)' != 'Windows_NT'" />
 		<Exec Command="1&gt;nul xcopy &quot;$(StaticLayoutIntermediatePath)&quot; &quot;$(StaticLayoutOutputPath)&quot; /S /Q /I" Condition="'$(OS)' == 'Windows_NT'" />
 		<Exec Command="cp -R $(StaticLayoutIntermediatePath)/ $(StaticLayoutOutputPath) &gt; nul" Condition="'$(OS)' != 'Windows_NT'" />
 		<Message Importance="high" Text="The requested static layout was generated at $(StaticLayoutOutputPath) ." />
+	</Target>
+
+	<!-- This forwards to GenerateStaticConsumptionLayout , but for new builds the use of GenerateStaticLayout is preferred. -->
+	<Target Name="GenerateStaticLayout">
+		<CallTarget Targets="GenerateStaticConsumptionLayout" />
 	</Target>
 	
 </Project>

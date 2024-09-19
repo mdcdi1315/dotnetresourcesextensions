@@ -17,15 +17,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
     {
         public override Converter<double, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.Double value)
-                => System.BitConverter.GetBytes(value);
+            System.Byte[] Method(System.Double value) => value.GetBytes();
             return Method;
         }
 
         public override Converter<byte[], double> GetUntransformMethod()
         {
-            System.Double Method(System.Byte[] data)
-                => System.BitConverter.ToDouble(data, 0);
+            System.Double Method(System.Byte[] data) => data.ToDouble(0);
             return Method;
         }
     }
@@ -49,15 +47,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
     {
         public override Converter<float, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.Single value)
-                => System.BitConverter.GetBytes(value);
+            System.Byte[] Method(System.Single value) => value.GetBytes();
             return Method;
         }
 
         public override Converter<byte[], float> GetUntransformMethod()
         {
-            System.Single Method(System.Byte[] bytes)
-                => System.BitConverter.ToSingle(bytes , 0);
+            System.Single Method(System.Byte[] bytes) => bytes.ToSingle(0);
             return Method;
         }
     }
@@ -259,15 +255,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
         {
             // Serializing a System.Type is also easy: we just get the
             // AssemblyQualifiedTypeName for that instance , convert it to UTF-8 bytes and we are done.
-            System.Byte[] Method(System.Type type)
-            {
-                return Encoding.UTF8.GetBytes(type.AssemblyQualifiedName);
-            }
+            System.Byte[] Method(System.Type type) => Encoding.UTF8.GetBytes(type.AssemblyQualifiedName);
             return Method;
         }
 
         public override Converter<byte[], Type> GetUntransformMethod()
         {
+            [RequiresUnreferencedCode("The type mentioned in bytes might have not been loaded in the runtime during retrieval and the method might fail to return the original serialized object.")]
             System.Type Method(System.Byte[] bytes)
             {
                 // Any exceptions about the array is thrown by GetString , we will only handle the case if the bytes array is null.
@@ -310,15 +304,12 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 // to bytes and return it.
                 System.Int32[] bits = System.Decimal.GetBits(dec);
                 // 4 int's * 4 bytes = 16 bytes in total.
-                System.Byte[] result = new System.Byte[16];
-                System.Byte[] temp = bits[0].GetBytes();
-                Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = bits[1].GetBytes();
-                Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                temp = bits[2].GetBytes();
-                Array.ConstrainedCopy(temp, 0, result, 8, 4);
-                temp = bits[3].GetBytes();
-                Array.ConstrainedCopy(temp, 0, result, 12, 4);
+                System.Int32 int32size = sizeof(System.Int32);
+                System.Byte[] result = new System.Byte[bits.Length * int32size];
+                for (System.Int32 I = 0 , pos = 0; I < bits.Length; I++ , pos += int32size)
+                {
+                    Array.ConstrainedCopy(bits[I].GetBytes() , 0 , result , pos , int32size);
+                }
                 return result;
             }
             return Method;
@@ -614,7 +605,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 System.Int32 len = (sign == 1) ? DigitLength : DigitLength - 1;
                 for (System.Int32 I = (sign == 1) ? 1 : 0; I < len && I < i128.Length; I++)
                 {
-                    result[J] = (System.Byte)(i128[I] - 48); J++; // ch-48 is the formula for accessing a number as a character , for example '0' - 48 would give 0.
+                    result[J] = (i128[I] - 48).ToByte(); J++; // ch-48 is the formula for accessing a number as a character , for example '0' - 48 would give 0.
                 }
                 i128 = null; // Destroy the allocated string
                 result[0] = sign; // Include the final sign value
@@ -835,9 +826,9 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 // We know that the int as bytes array length is 4. 
                 // During write , the resulting array will be 8 bytes , 4 for the width and 4 for the height.
                 System.Byte[] result = new System.Byte[8];
-                System.Byte[] temp = System.BitConverter.GetBytes(size.Width);
+                System.Byte[] temp = size.Width.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(size.Height);
+                temp = size.Height.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
                 return result;
             }
@@ -851,10 +842,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 // The array size must be exactly 8.
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != 8) { throw new ArgumentException("The array size must be exactly 8."); }
-                System.Drawing.SizeF result = new();
-                result.Width = System.BitConverter.ToSingle(bytes, 0);
-                result.Height = System.BitConverter.ToSingle(bytes, 4);
-                return result;
+                return new(bytes.ToSingle(0) , bytes.ToSingle(4));
             }
             return Method;
         }
@@ -892,12 +880,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             {
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != 16) { throw new ArgumentException("The array size must be exactly 16."); }
-                Rectangle result = new();
-                result.Width = bytes.ToInt32(0);
-                result.Height = bytes.ToInt32(4);
-                result.X = bytes.ToInt32(8);
-                result.Y = bytes.ToInt32(12);
-                return result;
+                return new(bytes.ToInt32(8) , bytes.ToInt32(12) , bytes.ToInt32(0) , bytes.ToInt32(4));
             }
             return Method;
         }
@@ -917,13 +900,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 // because the Rectangle object only depends on these
                 // 4 properties.
                 System.Byte[] result = new System.Byte[16];
-                System.Byte[] temp = System.BitConverter.GetBytes(rectangle.Width);
+                System.Byte[] temp = rectangle.Width.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(rectangle.Height);
+                temp = rectangle.Height.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                temp = System.BitConverter.GetBytes(rectangle.X);
+                temp = rectangle.X.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 8, 4);
-                temp = System.BitConverter.GetBytes(rectangle.Y);
+                temp = rectangle.Y.GetBytes();
                 System.Array.ConstrainedCopy(temp, 0, result, 12, 4);
                 return result;
             }
@@ -936,12 +919,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             {
                 if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
                 if (bytes.LongLength != 16) { throw new ArgumentException("The array size must be exactly 16."); }
-                RectangleF result = new();
-                result.Width = System.BitConverter.ToSingle(bytes, 0);
-                result.Height = System.BitConverter.ToSingle(bytes, 4);
-                result.X = System.BitConverter.ToSingle(bytes, 8);
-                result.Y = System.BitConverter.ToSingle(bytes, 12);
-                return result;
+                return new(bytes.ToSingle(8) , bytes.ToSingle(12) , bytes.ToSingle(0) , bytes.ToSingle(4));
             }
             return Method;
         }
@@ -1011,10 +989,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 imageFormat = ImageFormat.Png;
             }
             ImageCodecInfo imageCodecInfo = FindEncoder(imageFormat);
-            if (imageCodecInfo == null)
-            {
-                imageCodecInfo = FindEncoder(ImageFormat.Png);
-            }
+            imageCodecInfo ??= FindEncoder(ImageFormat.Png);
             img.Save(stream, imageCodecInfo, null);
         }
 
@@ -1253,15 +1228,13 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 if (bytes is null) { throw new ArgumentNullException("bytes"); }
                 if (bytes.LongLength != LENGTH) { throw new ArgumentException($"Array length must be exactly {LENGTH} bytes." , nameof(bytes)); }
                 // Decode language and string format flags to pass to the constructor.
-                System.Int32 lang = System.BitConverter.ToInt32(bytes, 0);
-                StringFormatFlags flg1 = (StringFormatFlags)System.BitConverter.ToInt32(bytes, 4);
-                StringFormat result = new(flg1, lang);
+                StringFormat result = new((StringFormatFlags)bytes.ToInt32(4), bytes.ToInt32(0));
                 // Then , everything else are set through properties and methods...
-                result.Alignment = (StringAlignment)System.BitConverter.ToInt32(bytes, 8);
-                result.LineAlignment = (StringAlignment)System.BitConverter.ToInt32(bytes, 12);
-                result.HotkeyPrefix = (System.Drawing.Text.HotkeyPrefix)System.BitConverter.ToInt32(bytes, 16);
-                result.Trimming = (StringTrimming)System.BitConverter.ToInt32(bytes, 24);
-                result.SetDigitSubstitution(lang, (StringDigitSubstitute)System.BitConverter.ToInt32(bytes, 20));
+                result.Alignment = (StringAlignment)bytes.ToInt32(8);
+                result.LineAlignment = (StringAlignment)bytes.ToInt32(12);
+                result.HotkeyPrefix = (System.Drawing.Text.HotkeyPrefix)bytes.ToInt32(16);
+                result.Trimming = (StringTrimming)bytes.ToInt32(24);
+                result.SetDigitSubstitution(bytes.ToInt32(0), (StringDigitSubstitute)bytes.ToInt32(20));
                 return result;
             }
             return Method;

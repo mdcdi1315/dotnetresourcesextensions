@@ -117,7 +117,7 @@ namespace DotNetResourcesExtensions
                     else
                     {
                         // Directly decode base64 data , we will need them in both cases.
-                        ent.Data = System.Convert.FromBase64String(dec);
+                        ent.Data = dec.FromBase64();
                         if (ent.ResourceType.FullName == "System.Byte[]")
                         {
                             // It is a byte array , return it decoded as base64
