@@ -203,6 +203,7 @@
             this.Controls.Add(this.L2);
             this.Controls.Add(this.SelectPathButton);
             this.Controls.Add(this.L1);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "SaveAsAdvanced";

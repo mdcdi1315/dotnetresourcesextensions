@@ -239,7 +239,6 @@ IL_06e0:  call       int32 System.Numerics.Hashing.HashHelpers::Combine(int32[])
         /// <param name="three">The third hash code.</param>
         /// <returns>The combined result.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static System.Int32 Combine(int one, int two, int three)
-         => Combine(Combine(one, two), three);
+        public static System.Int32 Combine(int one, int two, int three) => Combine(Combine(one, two), three);
     }
 }
