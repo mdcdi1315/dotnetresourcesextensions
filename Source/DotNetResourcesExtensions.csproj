@@ -33,21 +33,18 @@
 		<IsPackable>True</IsPackable>
 		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageVersion>1.0.4</PackageVersion>
+		<PackageVersion>2.0.0-alpha0</PackageVersion>
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
 		<PackageProjectUrl>http://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
 		<PackageReleaseNotes>v$(PackageVersion) release of DotNetResourcesExtensions package.
 For more additional details , visit $(PackageProjectUrl) .
-Some additional unsafe operations are added.
-Added support for internal base-64 encoding , which means that all bundled resource classes
-that use text encodings , will use that internal class to encode their data.
-Additionally , all exception messages will be starting to migrate to the internal resource dictionary so as to reduce the assembly size.
+This is a pre-release package. Any API changes performed are subject to change without notice.
 </PackageReleaseNotes>
 		<Authors>mdcdi1315</Authors>
 		<AssemblyName>$(_ProjName)</AssemblyName>
-		<AssemblyVersion>1.0.0.4</AssemblyVersion>
+		<AssemblyVersion>2.0.0.0</AssemblyVersion>
 		<ProductName>$(_ProjName)</ProductName>
 		<Product>$(_ProjName) is a project that defines new possibilities on handling resources of a .NET application.
 Additionally , it defines new types for doing resource serializations never thought of.
