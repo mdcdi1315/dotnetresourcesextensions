@@ -394,6 +394,123 @@ namespace DotNetResourcesExtensions.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The FileReferenceEncoding enumeration does not support or honor the usage of &apos;{0}&apos; as a file encoding..
+        /// </summary>
+        internal static string DNTRESEXT_FILEREFENC_INVALIDENC {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_FILEREFENC_INVALIDENC", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to encoding must be a named constant of FileReferenceEncoding enumeration..
+        /// </summary>
+        internal static string DNTRESEXT_FILEREFENC_OOR {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_FILEREFENC_OOR", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The provided file with name {0} cannot be found by the system. Check whether the given path is correct and retry..
+        /// </summary>
+        internal static string DNTRESEXT_FILEREFEXT_OPENFILE_FILENOTFOUND {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_FILEREFEXT_OPENFILE_FILENOTFOUND", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Serialization to string failed. See/Consult the inner exception for more details..
+        /// </summary>
+        internal static string DNTRESEXT_FILEREFEXT_SERSTRING_FAILED {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_FILEREFEXT_SERSTRING_FAILED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Serialization failed for type &apos;{0}&apos;. See the internal parser error message for more information..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_COULDNOTSER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_COULDNOTSER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The bytes read were not equal to the expected bytes (Expected {0} while read {1} bytes)..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_INVALID_DATA_LENMISMATCH {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_INVALID_DATA_LENMISMATCH", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Each bytearray chunk must be exactly {0} characters..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_INVALID_DATA_TOPIC_ALIGNMENT {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_INVALID_DATA_TOPIC_ALIGNMENT", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The resource type element must be either a number or a string that describes the resource type..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_INVALID_RESTYPEDATATYPE {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_INVALID_RESTYPEDATATYPE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Magic value was incorrect - this reader cannot read this resources format..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_INVALIDMAGIC {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_INVALIDMAGIC", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This file or stream might not be the mdcdi1315 Resource JSON format , and cannot be read..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_MSG_GENERIC {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_MSG_GENERIC", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The type read in ResourceType field was invalid..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_RESTYPE_INVALID {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_RESTYPE_INVALID", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot read a newer version of the JSON resources file. Version found was {0} . Either this reader does not currently have such information or the stream is corrupted..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_VERMISMATCH {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_VERMISMATCH", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot write additional resources after Close() is called..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_WRITER_CLOSED {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_WRITER_CLOSED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot use an unreadable stream for reading it&apos;s data..
         /// </summary>
         internal static string DNTRESEXT_STRCannotBeUsed_Read {

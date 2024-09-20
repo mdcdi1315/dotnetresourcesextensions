@@ -68,15 +68,17 @@ Also some of the most stable layouts are also delivered in the [Releases Tab](ht
 
 Building and using such a layout:
 
-First execute this command:
+First cd a terminal inside the `Source` sub-directory of your cloned repo.
+
+Then execute this command:
 ~~~cmd
-dotnet msbuild -t:GenerateStaticConsumptionLayout
+dotnet msbuild -t:GenerateStaticLayout
 ~~~
 
 which will create a static layout from the just built `DotNetResourcesExtensions` library.
 
 If you see in the end an output like `The requested static layout was generated at <PATH>` then the 
-Static Layout resides in a folder that the message specifies.
+Static Layout resides in a folder that the message specifies in `<PATH>`.
 
 Navigate to that path , and copy the folder somewhere else.
 
@@ -90,14 +92,15 @@ An example of how to import is here:
 </Project>
 ~~~
 
-**NOTE** The import directive must be before the project's close tag and after all your project items , properties and targets.
+**NOTE** The import directive must be before the project's close tag and after all your project items , properties and targets , 
+otherwise the Static Layout will __fail__ to configure itself.
 
 Anything else are performed by the Static Layout. You do not need to take any further actions.
 If you have accidentally added a reference to the NuGet package , the layout will override that , delete the package reference and
 use it's own references.
 
 If you decide instead to use Static Layouts provided in the repo's [Releases Tab](https://github.com/mdcdi1315/dotnetresourcesextensions/releases) , then you just take 
-that release zipped file and do the same actions after the command issue.
+that release zipped file , extract the zip somewhere and import the extracted layout to your project as shown above.
 
 Method 4: Use Visual Studio
 

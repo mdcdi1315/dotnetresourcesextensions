@@ -1,5 +1,4 @@
 ﻿
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,15 +11,48 @@ namespace DotNetResourcesExtensions
     /// <summary>
     /// The JSON Resources Enumerator is used only with the <see cref="JSONResourcesReader"/> class. <br />
     /// You cannot create an instance of this class. Instead , to get an instance you must use the 
-    /// <see cref="JSONResourcesReader.GetEnumerator()"/> method.
+    /// <see cref="JSONResourcesReader.GetEnumerator()"/> method , and cast to this class.
     /// </summary>
-    public sealed class JSONResourcesEnumerator : IDictionaryEnumerator, IEnumerator
+    public sealed class JSONResourcesEnumerator : Collections.AbstractDualResourceEntryEnumerator
     {
         private JSONResourcesReader reader;
         private System.Int32 ElementsCount;
         private System.Int32 CurrentIndex;
-        private DictionaryEntry cachedresource;
+        private JSONResourceEntry cachedresource;
         private System.Boolean resourceread;
+
+        // In the future it will support the V2 IResourceEntryWithComment , but we can now include that support safely in our implementation of course.
+        private sealed class JSONResourceEntry : IResourceEntry
+        {
+            private System.String name , cmt;
+            private System.Object value;
+
+            public JSONResourceEntry(System.String Name , System.Object Value , System.String Comment) 
+            {
+                name = Name;
+                value = Value;
+                cmt = Comment;
+            }
+
+            public JSONResourceEntry() { }
+
+            public System.String Name { get => name; set => name = value; }
+
+            public System.Object Value { get => value; set => this.value = value; }
+
+            public System.String Comment { get => cmt; set => cmt = value; }
+
+            public System.Type TypeOfValue => value?.GetType();
+        }
+
+        private static JSONRESResourceType ParseType(System.String stringdat) => stringdat.ToLowerInvariant() switch { 
+            "string" => JSONRESResourceType.String,
+            "bytearray" => JSONRESResourceType.ByteArray,
+            "object" => JSONRESResourceType.Object,
+            "filereference" => JSONRESResourceType.FileReference,
+            "fileref" => JSONRESResourceType.FileReference,
+            _ => ParserHelpers.ParseEnumerationConstant<JSONRESResourceType>(stringdat)
+        };
 
         private JSONResourcesEnumerator()
         {
@@ -33,10 +65,10 @@ namespace DotNetResourcesExtensions
         internal JSONResourcesEnumerator(JSONResourcesReader rd) : this()
         { reader = rd; ElementsCount = reader.JE.GetProperty("Data").GetArrayLength(); }
 
-        private DictionaryEntry GetResource()
+        private JSONResourceEntry GetResource()
         {
             var jdt = reader.JE.GetProperty("Data")[CurrentIndex];
-            DictionaryEntry result;
+            JSONResourceEntry result;
             // To determine what to decode , we must get first the header version.
             System.UInt16 ver = jdt.GetProperty("HeaderVersion").GetUInt16();
             // Throw exception if the read header has greater version than the allowed
@@ -46,20 +78,131 @@ namespace DotNetResourcesExtensions
                 $"This header cannot be read with this version of the class. Please use a reader that supports header version {ver} or higher." ,
                 ParserErrorType.Deserialization);
             }
+            DictionaryEntry tmp;
             // Now , switch through cases to find the appropriate decoder.
             switch (ver)
             {
                 case 1:
-                    result = GetV1Resource(jdt);
+                    tmp = GetV1Resource(jdt);
+                    result = new(tmp.Key.ToString() , tmp.Value , System.String.Empty);
                     break;
                 case 2:
-                    result = GetV2Resource(jdt);
+                    tmp = GetV2Resource(jdt);
+                    result = new(tmp.Key.ToString(), tmp.Value, System.String.Empty);
+                    break;
+                case 3:
+                    result = GetV3Resource(jdt);
                     break;
                 default:
                     throw new JSONFormatException("A decoder version was not found. Internal error detected." , $"Version string was {ver}." , ParserErrorType.Deserialization);
             }
             resourceread = true;
             return result;
+        }
+
+        // This method only reads V3 resources.
+        private JSONResourceEntry GetV3Resource(System.Text.Json.JsonElement JSE)
+        {
+            [System.Diagnostics.DebuggerHidden]
+            static System.Byte[] GetV3ByteArray(System.Text.Json.JsonElement JE)
+            {
+                System.Int64 flen = JE.GetProperty("TotalLength").GetInt64(),
+                        chunks = JE.GetProperty("Chunks").GetInt64(),
+                        alignment = JE.GetProperty("Base64Alignment").GetInt64(),
+                        // Means Correct Chunk Count. 
+                        // At least chunks-1 must be chunks with correct alignment.
+                        // The last is excluded because it might not save all characters (due to divide operations).
+                        ccc = 0;
+                System.Text.Json.JsonElement array = JE.GetProperty("Value");
+                System.Text.StringBuilder sb = new((chunks * alignment).ToInt32());
+                System.String t2;
+                for (System.Int32 I = 0; I < chunks; I++)
+                {
+                    // We had perf issues in V2 in byte arrays. The V3 method is much faster than the V2 one , although that V2 is also optimized
+                    // but not still so fast as now V3 is.
+                    t2 = array[I].GetString();
+                    if (t2.Length == alignment) { ccc++; }
+                    sb.Append(t2);
+                }
+                t2 = null;
+                if (ccc < chunks - 1)
+                {
+                    throw new JSONFormatException(System.String.Format(Properties.Resources.DNTRESEXT_JSONFMT_INVALID_DATA_TOPIC_ALIGNMENT , alignment), ParserErrorType.Deserialization);
+                }
+                System.Byte[] bt = sb.ToString().FromBase64();
+                sb = null;
+                if (bt.LongLength != flen) { throw new JSONFormatException(System.String.Format(Properties.Resources.DNTRESEXT_JSONFMT_INVALID_DATA_LENMISMATCH , flen , bt.LongLength), ParserErrorType.Deserialization); }
+                return bt;
+            }
+            static System.String GetFullPath(System.String fn)
+            {
+                System.String ret = System.String.Empty;
+                if (System.String.IsNullOrEmpty(fn)) { return ret; }
+                if (fn.Length == 0) { return ret; }
+                ret = ParserHelpers.RemoveQuotes(fn);
+                return System.IO.Path.GetFullPath(ret);
+            }
+            // For first stage , get the resource type to read.
+            System.Text.Json.JsonElement restype = JSE.GetProperty("ResourceType");
+            JSONRESResourceType type;
+            if (restype.ValueKind == System.Text.Json.JsonValueKind.String) {
+                type = ParseType(restype.GetString());
+            } else if (restype.ValueKind == System.Text.Json.JsonValueKind.Number) {
+                type = (JSONRESResourceType)restype.GetInt64();
+            } else {
+                throw new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_INVALID_RESTYPEDATATYPE, ParserErrorType.Deserialization);
+            }
+            if (type > reader.CurrentActiveMask) { goto g_640; }
+            JSONResourceEntry result = new();
+            result.Name = JSE.GetProperty("ResourceName").GetString();
+            // The Comment property is an optional property , so always attempt to get it and do only assign if it was found.
+            if (JSE.TryGetProperty("Comment", out var jdt)) { result.Comment = jdt.GetString(); }
+            switch (type) {
+                case JSONRESResourceType.String:
+                    result.Value = JSE.GetProperty("Value").GetString();
+                    break;
+                case JSONRESResourceType.ByteArray:
+                    result.Value = GetV3ByteArray(JSE);
+                    break;
+                case JSONRESResourceType.Object:
+                    // We have a serialised object. Deserialise it using the CustomFormatter.
+                    // Get the type for the object to return.
+                    System.String ObjType = JSE.GetProperty("DotnetType").GetString();
+                    // Get the object itself.
+                    result.Value = reader.exf.GetObjectFromBytes(GetV3ByteArray(JSE), 
+                        System.Type.GetType(ObjType, true, true));
+                    break;
+                case JSONRESResourceType.FileReference:
+                    // We have a file reference. Read it , so.
+                    System.Text.Json.JsonElement fileref = JSE.GetProperty("Value");
+                    // OK. We have the file reference. Now , open the file and the encoding will determine whether we will read in binary style or will be returned as a string.
+                    System.IO.FileStream FS = null;
+                    try {
+                        FS = new System.IO.FileStream(GetFullPath(fileref[0].GetString()) , System.IO.FileMode.Open);
+                        System.Byte[] temp = ParserHelpers.ReadBuffered(FS, FS.Length);
+                        FS.Close();
+                        System.Type underlying = System.Type.GetType(fileref[1].GetString(), true, false);
+                        result.Value = underlying.FullName switch
+                        {
+                            // This applies for strings.
+                            "System.String" => ParserHelpers.ParseEnumerationConstant<FileReferenceEncoding>(fileref[2].GetString()).AsEncoding().GetString(temp),
+                            // Byte arrays.
+                            "System.Byte[]" => temp,
+                            // Serialized objects.
+                            _ => reader.exf.GetObjectFromBytes(temp, underlying),
+                        };
+                    } finally {
+                        FS?.Dispose();
+                        FS = null;
+                        fileref = default;
+                    }
+                    break;
+                default:
+                    goto g_640;        
+            }
+            return result;
+        g_640:
+            throw new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_RESTYPE_INVALID, ParserErrorType.Deserialization);
         }
 
         // This method only reads V2 resources.
@@ -74,27 +217,29 @@ namespace DotNetResourcesExtensions
                         // Means Correct Chunk Count. 
                         // At least chunks-1 must be chunks with correct alignment.
                         // The last is excluded because it might not save all characters (due to divide operations).
-                        ccc = 0; 
-                System.String temp = System.String.Empty, t2;
+                        ccc = 0;
+                System.Text.StringBuilder sb = new((chunks * alignment).ToInt32());
+                System.String t2;
                 for (System.Int32 I = 1; I <= chunks; I++) {
                     // Because the compiler-generated code for this method boxes the chunk index , 
                     // we will construct the string for GetProperty ourselves.
                     t2 = JE.GetProperty(System.String.Concat("Value[" , I.ToString() , "]")).GetString();
                     if (t2.Length == alignment) { ccc++; }
-                    temp += t2;
+                    sb.Append(t2);
                 }
                 t2 = null;
                 if (ccc < chunks-1) {
-                    throw new JSONFormatException($"Each bytearray chunk must be exactly {alignment} characters.", ParserErrorType.Deserialization);
+                    throw new JSONFormatException(System.String.Format(Properties.Resources.DNTRESEXT_JSONFMT_INVALID_DATA_TOPIC_ALIGNMENT, alignment), ParserErrorType.Deserialization);
                 }
-                System.Byte[] bt = temp.FromBase64();
-                temp = null;
-                if (bt.LongLength != flen) { throw new JSONFormatException($"The bytes read were not equal to the expected bytes (Expected {flen} while read {bt.LongLength} bytes).", ParserErrorType.Deserialization); }
+                System.Byte[] bt = sb.ToString().FromBase64();
+                sb.Clear();
+                sb = null;
+                if (bt.LongLength != flen) { throw new JSONFormatException(System.String.Format(Properties.Resources.DNTRESEXT_JSONFMT_INVALID_DATA_LENMISMATCH , flen , bt.LongLength), ParserErrorType.Deserialization); }
                 return bt;
             }
             // For first stage , get the resource type to read.
             JSONRESResourceType type = (JSONRESResourceType)JE.GetProperty("ResourceType").GetUInt16();
-            if (type > reader.CurrentActiveMask) { throw new JSONFormatException($"The type {type} is not currently supported in the reader.", ParserErrorType.Deserialization); }
+            if (type > reader.CurrentActiveMask) { throw new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_RESTYPE_INVALID, ParserErrorType.Deserialization); }
             DictionaryEntry result = new();
             result.Key = JE.GetProperty("ResourceName").GetString();
             switch (type) {
@@ -122,12 +267,12 @@ namespace DotNetResourcesExtensions
                 // The byte array is written into base64's.
                 System.Int32 expl = JE.GetProperty("TotalLength").GetInt32();
                 System.Byte[] data = JE.GetProperty("Value[0]").GetBytesFromBase64();
-                if (data.LongLength != expl) { throw new JSONFormatException("Could not get correct array length on byte string data. The data might be corrupted." , ParserErrorType.Deserialization); }
+                if (data.LongLength != expl) { throw new JSONFormatException(System.String.Format(Properties.Resources.DNTRESEXT_JSONFMT_INVALID_DATA_LENMISMATCH ,expl , data.LongLength) , ParserErrorType.Deserialization); }
                 return data;
             }
             // For first stage , get the resource type to read.
             JSONRESResourceType type = (JSONRESResourceType)JE.GetProperty("ResourceType").GetUInt16();
-            if (type > reader.CurrentActiveMask) { throw new JSONFormatException($"The type {type} is not currently supported in the reader." , ParserErrorType.Deserialization); }
+            if (type > reader.CurrentActiveMask) { throw new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_RESTYPE_INVALID , ParserErrorType.Deserialization); }
             DictionaryEntry result = new();
             result.Key = JE.GetProperty("ResourceName").GetString();
             switch (type)
@@ -152,10 +297,10 @@ namespace DotNetResourcesExtensions
         }
 
         /// <inheritdoc />
-        public void Reset() => CurrentIndex = -1;
+        public override void Reset() => CurrentIndex = -1;
 
         /// <inheritdoc />
-        public bool MoveNext()
+        public override bool MoveNext()
         {
             resourceread = false;
             CurrentIndex++;
@@ -164,30 +309,43 @@ namespace DotNetResourcesExtensions
 
         /// <inheritdoc />
         // For accessing directly the resource name if you do not want to read the resource.
-        public object Key {
+        public override object Key {
             get {
                 if (CurrentIndex == -1) { throw new InvalidOperationException("The enumerator is uninitialized."); }
-                if (resourceread) { return cachedresource.Key; }
+                if (resourceread) { return cachedresource.Name; }
                 return reader.JE.GetProperty("Data")[CurrentIndex].GetProperty("ResourceName").GetString();
             }
         }
 
         /// <inheritdoc />
-        public object Value => Entry.Value;
+        // Unfortunately , accessing the value requires the resource to be read.
+        public override object Value => ResourceEntry.Value;
 
         /// <inheritdoc />
-        public DictionaryEntry Entry
+        public override DictionaryEntry Entry => ResourceEntry.AsDictionaryEntry();
+
+        /// <inheritdoc />
+        public override IResourceEntry ResourceEntry
         {
-            get
-            {
+            get {
                 if (CurrentIndex == -1) { throw new InvalidOperationException("The enumerator is uninitialized."); }
-                if (resourceread) { return cachedresource; }
-                else { return (cachedresource = GetResource()); }
+                if (resourceread == false) { cachedresource = GetResource(); }
+                return cachedresource;
             }
         }
 
-        /// <inheritdoc />
-        public object Current => Entry;
+        /// <summary>
+        /// Disposes the enumerator instance.
+        /// </summary>
+        public sealed override void Dispose()
+        {
+            reader = null;
+            resourceread = false;
+            CurrentIndex = 0;
+            ElementsCount = 0;
+            cachedresource = null;
+            base.Dispose();
+        }
     }
 
     /// <summary>
@@ -241,13 +399,13 @@ namespace DotNetResourcesExtensions
                 System.UInt16 placeholder;
                 if ((placeholder = header.GetProperty("Version").GetUInt16()) < JSONRESOURCESCONSTANTS.Version)
                 {
-                    g = new JSONFormatException($"Cannot read a newer version of the JSON resources file. Version found was {placeholder} ." , ParserErrorType.Header);
+                    g = new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_VERMISMATCH, ParserErrorType.Header);
                     goto g_639;
                 }
                 CurrentActiveMask = (JSONRESResourceType)header.GetProperty("SupportedFormatsMask").GetUInt16();
                 if (header.GetProperty("Magic").GetString() != JSONRESOURCESCONSTANTS.Magic)
                 {
-                    g = new JSONFormatException("Magic value was incorrect - this reader cannot read this resources format." , ParserErrorType.Header);
+                    g = new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_INVALIDMAGIC, ParserErrorType.Header);
                     goto g_639;
                 }
                 CurrentHeaderVersion = header.GetProperty("CurrentHeaderVersion").GetUInt16();
@@ -255,7 +413,7 @@ namespace DotNetResourcesExtensions
             catch (KeyNotFoundException DD1) { g = DD1; goto g_639; }
             return;
         g_639:
-            if (g != null) { throw new JSONFormatException("This is not a mdcdi1315 JSON Resource Format stream.", g.Message , ParserErrorType.Header); }
+            if (g != null) { throw new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_MSG_GENERIC, g.Message , ParserErrorType.Header); }
         }
 
         /// <inheritdoc />
@@ -273,10 +431,7 @@ namespace DotNetResourcesExtensions
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         /// <inheritdoc />
-        public void RegisterTypeResolver(ITypeResolver resolver)
-        {
-            exf.RegisterTypeResolver(resolver);
-        }
+        public void RegisterTypeResolver(ITypeResolver resolver) => exf.RegisterTypeResolver(resolver);
 
         System.Boolean IStreamOwnerBase.IsStreamOwner { get; set; }
     }

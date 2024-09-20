@@ -5,8 +5,10 @@ namespace DotNetResourcesExtensions
     /// <summary>
     /// Represents an abstract version of a file reference inside a resource data stream. <br />
     /// Any users of this interface must know that any implementation that will use this interface must
-    /// support code for these cases. Additionally , this reference must be embedded in the binary resource files
-    /// as a 'final' form , for example a string or a object or a bytearray resource.
+    /// support code for these cases. <br />
+    /// Unlike the original ResX classes , these file references are expected their resulting type to be given
+    /// when these are read out by any reader , and not returning the original read file reference. <br />
+    /// To implement and use the <see cref="IFileReference"/> to your own resource reader , you should consult the Docs first.
     /// </summary>
     public interface IFileReference
     {
@@ -166,7 +168,7 @@ namespace DotNetResourcesExtensions
         /// <exception cref="System.IO.FileNotFoundException">The file name specified in this reference was not found.</exception>
         public static System.IO.FileStream OpenStreamToFile(this IFileReference reference) {
             System.IO.FileInfo info = GetFileNameInfo(reference);
-            if (info.Exists == false) { throw new System.IO.FileNotFoundException($"The specified file cannot be found on disk. Check that the {reference.FileName} is correct and retry." , reference.FileName); }
+            if (info.Exists == false) { throw new System.IO.FileNotFoundException(System.String.Format(Properties.Resources.DNTRESEXT_FILEREFEXT_OPENFILE_FILENOTFOUND , info.Name) , reference.FileName); }
             return info.OpenRead();
         }
 
@@ -176,7 +178,7 @@ namespace DotNetResourcesExtensions
         /// <param name="reference">The file reference to use.</param>
         /// <returns>The file information on disk.</returns>
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public static System.IO.FileInfo GetFileNameInfo(this IFileReference reference) => new System.IO.FileInfo(AsFullPath(reference));
+        public static System.IO.FileInfo GetFileNameInfo(this IFileReference reference) => new(AsFullPath(reference));
 
         /// <summary>
         /// Returns the <see cref="IFileReference.Encoding"/> property as a instance of a <see cref="System.Text.Encoding"/>.
@@ -201,7 +203,7 @@ namespace DotNetResourcesExtensions
                 FileReferenceEncoding.UTF16BE => new System.Text.UnicodeEncoding(true, false),
                 FileReferenceEncoding.UTF32LE => new System.Text.UTF32Encoding(false, false),
                 FileReferenceEncoding.UTF32BE => new System.Text.UTF32Encoding(true, false),
-                _ => throw new System.ArgumentOutOfRangeException(nameof(encoding))
+                _ => throw new System.ArgumentOutOfRangeException(nameof(encoding) , Properties.Resources.DNTRESEXT_FILEREFENC_OOR)
         };
 
         /// <summary>
@@ -226,7 +228,7 @@ namespace DotNetResourcesExtensions
                 } else { result = $"\"{AsFullPath(reference)}\""; }
                 result += $";{reference.SavingType.AssemblyQualifiedName};{(reference.Encoding == FileReferenceEncoding.Undefined ? FileReferenceEncoding.Binary : reference.Encoding)}";
             } catch (System.Exception e) {
-                throw new System.AggregateException("Serialization failed. See the inner exception for more information.", e);
+                throw new System.AggregateException(Properties.Resources.DNTRESEXT_FILEREFEXT_SERSTRING_FAILED, e);
             }
             return result;
         }
@@ -253,7 +255,7 @@ namespace DotNetResourcesExtensions
                 case System.Text.UTF32Encoding en:
                     if (en.CodePage == 12001) { return FileReferenceEncoding.UTF32BE; } else { return FileReferenceEncoding.UTF32LE; }
                 default:
-                    throw new System.ArgumentException($"This encoding is not supported by the enumeration: {encoding.EncodingName}");
+                    throw new System.ArgumentException(System.String.Format(Properties.Resources.DNTRESEXT_FILEREFENC_INVALIDENC , encoding.EncodingName));
             }
         }
 

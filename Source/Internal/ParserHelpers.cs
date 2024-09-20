@@ -319,25 +319,31 @@ namespace DotNetResourcesExtensions.Internal
         // Optimized method for reading fast byte arrays encoded as base64's. 
         // Here I use yield return and IEnumerable because: 
         // -> I avoid calling FindCharOccurence and creating a new string array
+        // -> I use a default buffer with StringBuilder to fast-up the process.
         // -> Each new iteration will be evaluated back to the foreach loop.
-        // -> It's results can be saved to a System.Text.StringBuilder , and since the
+        // -> Uses System.Text.StringBuilder internally for better performance.
+        // The buffer capacity is configurable , maximizing the performance as most as possible.
+        // -> It's results can be saved to a System.Text.StringBuilder
         // base64 length is known appending is done adequately fast.
-        public static IEnumerable<System.String> GetStringSplittedData(this System.String str , System.Char ch) 
+        public static IEnumerable<System.String> GetStringSplittedData(this System.String str , System.Char ch , System.Int32 recsize = 5192) 
         {
-            System.String temp = System.String.Empty;
+            System.Text.StringBuilder sbtemp = new(recsize);
             foreach (System.Char c in str)
             {
                 if (c == ch) {
-                    yield return temp;
-                    temp = System.String.Empty;
+                    yield return sbtemp.ToString();
+                    sbtemp.Clear();
                 } else {
-                    temp += c;
+                    sbtemp.Append(c);
                 }
             }
             // Return any data that are positioned at the end of the string.
             // If no data exist or are just whitespaces , do not return them.
-            if (System.String.IsNullOrWhiteSpace(temp) == false) { yield return temp; }
-            temp = null;
+            System.String tmp = sbtemp.ToString();
+            if (System.String.IsNullOrWhiteSpace(tmp) == false) { yield return tmp; }
+            tmp = null;
+            sbtemp.Clear();
+            sbtemp = null;
         }
 
         [System.Diagnostics.DebuggerHidden]

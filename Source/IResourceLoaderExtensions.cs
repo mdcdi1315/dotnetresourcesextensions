@@ -172,10 +172,7 @@ namespace DotNetResourcesExtensions
         {
             foreach (var entry in ldr)
             {
-                if (entry.Name == Name && underlyingtype == entry.TypeOfValue)
-                {
-                    return entry;
-                }
+                if (entry.Name == Name && underlyingtype == entry.TypeOfValue) { return entry.Value; }
             }
             throw new ResourceNotFoundException(Name);
         }
@@ -191,10 +188,7 @@ namespace DotNetResourcesExtensions
         {
             foreach (var entry in ldr)
             {
-                if (entry.Name == Name)
-                {
-                    return entry.Value;
-                }
+                if (entry.Name == Name) { return entry.Value; }
             }
             throw new ResourceNotFoundException(Name);
         }
