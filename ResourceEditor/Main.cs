@@ -239,7 +239,8 @@ namespace ResourceEditor
 
         private void G_CMS_OPENING(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (ResourceView.SelectedIndices.Count < 0) { e.Cancel = true; return; }
+            if (ResourceView.Items.Count <= 0) { e.Cancel = true; return; }
+            e.Cancel = ResourceView.SelectedIndices.Count < 0;
         }
 
         private void CMS_CLICKED(object sender, ToolStripItemClickedEventArgs e)
@@ -277,6 +278,7 @@ namespace ResourceEditor
             if (EnsureNotReadOnly()) { return; }
             if (sender == RemResource)
             {
+                if (fileisopened == false) { Helper.ShowErrorMessage("You may only remove a resource after selecting a file!"); return; }
                 if (ResourceView.SelectedIndices.Count != 1)
                 {
                     Helper.ShowErrorMessage("You must select a resource so as to be deleted.");
@@ -331,6 +333,7 @@ namespace ResourceEditor
 
         private void ADDRES_CLICK(object sender, EventArgs e)
         {
+            if (fileisopened == false) { Helper.ShowErrorMessage("You may only add a resource after selecting a file!"); return; }
             if (EnsureNotReadOnly()) { return; }
             ResourceEntryEditor ED = new();
             ED.ShowDialog();

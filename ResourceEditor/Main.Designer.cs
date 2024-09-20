@@ -36,6 +36,7 @@
             this.FEButton = new System.Windows.Forms.ToolStripMenuItem();
             this.SaveOpenedButton = new System.Windows.Forms.ToolStripMenuItem();
             this.SaveAsFileButton = new System.Windows.Forms.ToolStripMenuItem();
+            this.AdvancedSaveButton = new System.Windows.Forms.ToolStripMenuItem();
             this.ExitButton = new System.Windows.Forms.ToolStripMenuItem();
             this.TSM_resources = new System.Windows.Forms.ToolStripMenuItem();
             this.AddResButton = new System.Windows.Forms.ToolStripMenuItem();
@@ -49,7 +50,6 @@
             this.RCMS_2 = new System.Windows.Forms.ToolStripMenuItem();
             this.EXTRButton = new System.Windows.Forms.ToolStripMenuItem();
             this.RCMS_3 = new System.Windows.Forms.ToolStripMenuItem();
-            this.AdvancedSaveButton = new System.Windows.Forms.ToolStripMenuItem();
             this.MainMenu.SuspendLayout();
             this.ResourceCMS.SuspendLayout();
             this.SuspendLayout();
@@ -114,6 +114,13 @@
             this.SaveAsFileButton.Size = new System.Drawing.Size(236, 22);
             this.SaveAsFileButton.Text = "Save As...";
             this.SaveAsFileButton.Click += new System.EventHandler(this.SAVEFILE_CLICK);
+            // 
+            // AdvancedSaveButton
+            // 
+            this.AdvancedSaveButton.Name = "AdvancedSaveButton";
+            this.AdvancedSaveButton.Size = new System.Drawing.Size(236, 22);
+            this.AdvancedSaveButton.Text = "Save As... (Advanced)";
+            this.AdvancedSaveButton.Click += new System.EventHandler(this.ADV_SAVE_CLICK);
             // 
             // ExitButton
             // 
@@ -223,13 +230,6 @@
             this.RCMS_3.Size = new System.Drawing.Size(189, 22);
             this.RCMS_3.Text = "Delete...";
             // 
-            // AdvancedSaveButton
-            // 
-            this.AdvancedSaveButton.Name = "AdvancedSaveButton";
-            this.AdvancedSaveButton.Size = new System.Drawing.Size(236, 22);
-            this.AdvancedSaveButton.Text = "Save As... (Advanced)";
-            this.AdvancedSaveButton.Click += new System.EventHandler(this.ADV_SAVE_CLICK);
-            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -238,6 +238,7 @@
             this.Controls.Add(this.ResourceView);
             this.Controls.Add(this.MainMenu);
             this.MainMenuStrip = this.MainMenu;
+            this.MinimumSize = new System.Drawing.Size(816, 489);
             this.Name = "Main";
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;

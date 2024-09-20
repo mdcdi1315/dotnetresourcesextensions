@@ -20,3 +20,5 @@
 - [About the `BuildTasks` project](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/BuildTasks/README.md)
 - [Building and using the `DotNetResourcesExtensions` project](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Building.md)
 - [Changes in the V2 `Custom XML` Format](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/aboutchangesin_customxml.md)
+- [Changes in the V3 `Custom JSON` Format Resources](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/aboutchangesin_customjson.md)
+- [The IFileReference Interface](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Ifileref.md)

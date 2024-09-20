@@ -105,7 +105,7 @@ namespace DotNetResourcesExtensions
                 System.String dat = GetChildElement("Value").Value;
                 System.Text.StringBuilder sb = new(dat.Length , dat.Length);
                 System.Int32 rc = 0;
-                foreach (System.String dt in ParserHelpers.GetStringSplittedData(dat , '\n')) {
+                foreach (System.String dt in ParserHelpers.GetStringSplittedData(dat , '\n' , Alignment * 2)) {
                     if (dt.Length == Alignment) { rc++; }
                     sb.Append(dt);
                 }

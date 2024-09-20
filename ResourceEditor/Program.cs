@@ -13,7 +13,18 @@ namespace ResourceEditor
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Main());
+            Main startf = null;
+            try
+            {
+                startf = new();
+                Application.Run(startf);
+            }
+            catch { return; }
+            finally
+            {
+                startf?.Dispose();
+                startf = null;
+            }
         }
     }
 

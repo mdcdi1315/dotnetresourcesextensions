@@ -339,4 +339,43 @@ Resource Name: {3}</value>
   <data name="DNTRESEXT_BINFMT_NO_DATAPOSITIONSCOUNT_HEADER" xml:space="preserve">
     <value>Invalid header. Header must exactly contain the DATAPOSITIONSCOUNT phrase.</value>
   </data>
+  <data name="DNTRESEXT_FILEREFENC_OOR" xml:space="preserve">
+    <value>encoding must be a named constant of FileReferenceEncoding enumeration.</value>
+  </data>
+  <data name="DNTRESEXT_FILEREFENC_INVALIDENC" xml:space="preserve">
+    <value>The FileReferenceEncoding enumeration does not support or honor the usage of '{0}' as a file encoding.</value>
+  </data>
+  <data name="DNTRESEXT_FILEREFEXT_SERSTRING_FAILED" xml:space="preserve">
+    <value>Serialization to string failed. See/Consult the inner exception for more details.</value>
+  </data>
+  <data name="DNTRESEXT_FILEREFEXT_OPENFILE_FILENOTFOUND" xml:space="preserve">
+    <value>The provided file with name {0} cannot be found by the system. Check whether the given path is correct and retry.</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_MSG_GENERIC" xml:space="preserve">
+    <value>This file or stream might not be the mdcdi1315 Resource JSON format , and cannot be read.</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_VERMISMATCH" xml:space="preserve">
+    <value>Cannot read a newer version of the JSON resources file. Version found was {0} . Either this reader does not currently have such information or the stream is corrupted.</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_INVALIDMAGIC" xml:space="preserve">
+    <value>Magic value was incorrect - this reader cannot read this resources format.</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_INVALID_DATA_TOPIC_ALIGNMENT" xml:space="preserve">
+    <value>Each bytearray chunk must be exactly {0} characters.</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_INVALID_DATA_LENMISMATCH" xml:space="preserve">
+    <value>The bytes read were not equal to the expected bytes (Expected {0} while read {1} bytes).</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_INVALID_RESTYPEDATATYPE" xml:space="preserve">
+    <value>The resource type element must be either a number or a string that describes the resource type.</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_RESTYPE_INVALID" xml:space="preserve">
+    <value>The type read in ResourceType field was invalid.</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_COULDNOTSER" xml:space="preserve">
+    <value>Serialization failed for type '{0}'. See the internal parser error message for more information.</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_WRITER_CLOSED" xml:space="preserve">
+    <value>Cannot write additional resources after Close() is called.</value>
+  </data>
 </root>

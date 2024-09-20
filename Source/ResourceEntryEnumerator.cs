@@ -283,9 +283,7 @@ namespace DotNetResourcesExtensions.Collections
     /// <summary>
     /// Provides an abstract implementation of <see cref="DualResourceEntryEnumerator"/> so as to use it in your own code.
     /// </summary>
-    public abstract class AbstractDualResourceEntryEnumerator : IResourceEntryEnumerator ,
-        IEnumerator<IResourceEntry>, IEnumerator<DictionaryEntry>,
-        IEnumerator<KeyValuePair<System.String, System.Object>>
+    public abstract class AbstractDualResourceEntryEnumerator : IDualResourceEntryEnumerator
     {
         /// <summary>
         /// Default empty constructor. You might probably not even need this one.
@@ -346,5 +344,13 @@ namespace DotNetResourcesExtensions.Collections
         /// <summary>By default , this method is empty. If you need to free resources , override this method and provide the disposal routines.</summary>
         public override void Dispose() { base.Dispose(); }
     }
+
+    /// <summary>
+    /// Provides the base abstraction level for all dual resource entry enumerators. <br />
+    /// In V2 this enumerator will be used as the base implementation for the <see cref="IResourceEnumerable"/> interface.
+    /// </summary>
+    public interface IDualResourceEntryEnumerator : IResourceEntryEnumerator,
+        IEnumerator<IResourceEntry>, IEnumerator<DictionaryEntry>,
+        IEnumerator<KeyValuePair<System.String, System.Object>> , IDisposable { }
 
 }

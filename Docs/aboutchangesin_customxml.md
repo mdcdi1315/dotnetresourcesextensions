@@ -100,8 +100,8 @@ Be noted that the `XMLResourcesReader` can still read the old V1 format so as to
 
 __Performance Notes__
 
-I noticed out at some time that the `Custom JSON` reader cannot read so fast a large byte array resource due to the fact that 
-I cannot write a single base64 chunk without writing a new string element.
+I noticed out at some time that the V2 `Custom JSON` reader cannot read so fast a large byte array resource due to the fact that 
+It is not possible in JSON to write a single base64 chunk without writing a new string element or defining a new array element at least.
 
 However XML allows such case and this is what is implemented currently in
 the reader. As it seems , the `Custom XML` has currently better performance than

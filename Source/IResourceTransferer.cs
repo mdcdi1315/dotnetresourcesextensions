@@ -13,7 +13,6 @@ namespace DotNetResourcesExtensions
     /// </summary>
     public interface IResourceTransferer : System.Resources.IResourceWriter , IAsyncDisposable
     {
-
         /// <summary>
         /// Gets all the resource names that are available from the reader.
         /// </summary>
@@ -45,8 +44,7 @@ namespace DotNetResourcesExtensions
         /// Generates asyncronously the resources to the target. <br />
         /// This was added because you might need to transfer a lot of resources!
         /// </summary>
-        /// <returns>A <see cref="ValueTask"/> that represents the resource generation steps.</returns>
+        /// <returns>A <see cref="ValueTask"/> that contains the progress of resource generation.</returns>
         public ValueTask GenerateAsync();
-
     }
 }
