@@ -36,6 +36,11 @@ namespace DotNetResourcesExtensions.Internal
         /// The first element of the string. Use the &amp; operator to get a pointer to the whole data array.
         /// </summary>
         [FieldOffset(4)] public System.Char Data;
+
+        /// <summary>
+        /// Reconverts back to the original string if you want it again...
+        /// </summary>
+        public override string ToString() => Unsafe.As<System.String>(this);
     }
 
     /// <summary>
@@ -43,7 +48,7 @@ namespace DotNetResourcesExtensions.Internal
     /// for manipulating primitive information and byte arrays.
     /// </summary>
     // The purpose of the UnsafeMethods class is to provide faster alternatives for .NET Framework on raw primitive information , 
-    // while providing a unified and 
+    // while providing a unified and reliable for the developers of the library.
 #if DEBUG // Allowed to be reviewed in debug builds to test whether the unsafe operations are producing correct results.
     public
 #else
@@ -385,6 +390,13 @@ namespace DotNetResourcesExtensions.Internal
         }
 
         /// <summary>
+        /// Returns the equivalent byte array representation of this number.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        /// <returns>The equivalent array representation of <paramref name="number"/>.</returns>
+        public static System.Byte[] GetBytes(this System.Decimal number) => GetBytesTemplate(number);
+
+        /// <summary>
         /// Converts the double-precision floating <paramref name="number"/> given to it's equivalent 64 bits , stored in a <see cref="System.Int64"/>. 
         /// </summary>
         /// <param name="number">The double-precision floating <paramref name="number"/> to convert.</param>
@@ -421,6 +433,14 @@ namespace DotNetResourcesExtensions.Internal
             System.Int64 rn = GetFromBytesTemplate<System.Int64>(array , StartIndex);
             return LinearConversion<System.Int64 , System.Double>(rn);
         }
+
+        /// <summary>
+        /// Gets a <see cref="System.Decimal"/> from a byte array returned from <c>GetBytes</c> method.
+        /// </summary>
+        /// <param name="array">The array that contains the information to create a <see cref="System.Decimal"/>.</param>
+        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
+        /// <returns>The read number.</returns>
+        public static System.Decimal ToDecimal(this System.Byte[] array, System.Int32 StartIndex) => GetFromBytesTemplate<System.Decimal>(array, StartIndex);
 
         /// <summary>
         /// Gets a <see cref="System.Int16"/> from a byte array returned from <c>GetBytes</c> method.
@@ -529,6 +549,14 @@ namespace DotNetResourcesExtensions.Internal
         /// <returns>The read number.</returns>
         public static System.UInt16 ToUInt16(this System.Span<System.Byte> array, System.Int32 StartIndex)
             => GetFromBytesTemplate2<System.UInt16>(array, StartIndex);
+
+        /// <summary>
+        /// Gets a <see cref="System.Decimal"/> from a byte array returned from <c>GetBytes</c> method.
+        /// </summary>
+        /// <param name="array">The array that contains the information to create a <see cref="System.Decimal"/>.</param>
+        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
+        /// <returns>The read number.</returns>
+        public static System.Decimal ToDecimal(this System.Span<System.Byte> array, System.Int32 StartIndex) => GetFromBytesTemplate2<System.Decimal>(array, StartIndex);
 
         /// <summary>
         /// Uses unsafe schemes to copy a string to a new character array , starting from the specified index and copying <paramref name="count"/> charaters to target.

@@ -52,6 +52,9 @@ namespace DotNetResourcesExtensions.Internal
             return new(chars.ToArray()); // Although it will return a value like of full zeroes (If it is zero) , we are not being bothered by that.
         }
 
+        // Obtained from JsonHelpers from System.Text.Json package.
+        public static System.Boolean IsDigit(System.Char c) => (System.UInt32)(c - '0') <= ('9' - '0');
+
         /// <summary>
         /// Tests if the resource name given is valid.
         /// </summary>
@@ -262,7 +265,12 @@ namespace DotNetResourcesExtensions.Internal
 
         public static System.Byte[] GetBytes(System.Byte[] bytes, System.Int64 idx) => GetBytes(bytes, idx, bytes.LongLength - idx);
 
-        private static System.Boolean AreQuotesAtStartEnd(System.String chk) => ((chk[0] == '\"' || chk[0] == '\'') && (chk[^1] == '\"' || chk[^1] == '\''));
+        /// <summary>
+        /// Detects whether are single or double quotes at the start and the end of the string.
+        /// </summary>
+        /// <param name="chk">The string to check.</param>
+        /// <returns>The <see cref="System.Boolean"/> indicating whether the string given has single or double quotes as desribed.</returns>
+        public static System.Boolean AreQuotesAtStartEnd(System.String chk) => ((chk[0] == '\"' || chk[0] == '\'') && (chk[^1] == '\"' || chk[^1] == '\''));
 
         /// <summary>
         /// Removes single or double quotes , if these are found in the start and in the end of <paramref name="str"/> , 

@@ -45,7 +45,8 @@ namespace DotNetResourcesExtensions
             public System.Type TypeOfValue => value?.GetType();
         }
 
-        private static JSONRESResourceType ParseType(System.String stringdat) => stringdat.ToLowerInvariant() switch { 
+        private static JSONRESResourceType ParseType(System.String stringdat) 
+        => stringdat.ToLowerInvariant() switch { 
             "string" => JSONRESResourceType.String,
             "bytearray" => JSONRESResourceType.ByteArray,
             "object" => JSONRESResourceType.Object,
@@ -74,9 +75,7 @@ namespace DotNetResourcesExtensions
             // Throw exception if the read header has greater version than the allowed
             if (ver > reader.CurrentHeaderVersion)
             {
-                throw new JSONFormatException(
-                $"This header cannot be read with this version of the class. Please use a reader that supports header version {ver} or higher." ,
-                ParserErrorType.Deserialization);
+                throw new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_CANNOT_READ_HEADER, ParserErrorType.Deserialization);
             }
             DictionaryEntry tmp;
             // Now , switch through cases to find the appropriate decoder.
@@ -94,7 +93,7 @@ namespace DotNetResourcesExtensions
                     result = GetV3Resource(jdt);
                     break;
                 default:
-                    throw new JSONFormatException("A decoder version was not found. Internal error detected." , $"Version string was {ver}." , ParserErrorType.Deserialization);
+                    throw new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_DECODE_VERSION_NOT_FOUND, $"Version string was {ver}." , ParserErrorType.Deserialization);
             }
             resourceread = true;
             return result;
@@ -364,6 +363,9 @@ namespace DotNetResourcesExtensions
         private JSONResourcesReader()
         {
             exf = new();
+            CurrentActiveMask = 0;
+            CurrentHeaderVersion = 0;
+            JDT = null;
         }
 
         /// <summary>
@@ -425,15 +427,17 @@ namespace DotNetResourcesExtensions
         /// </summary>
         public void Dispose() { JE = default; JDT?.Dispose(); }
         
-        /// <inheritdoc />
-        public IDictionaryEnumerator GetEnumerator() => new JSONResourcesEnumerator(this);
+        /// <inheritdoc cref="System.Resources.IResourceReader.GetEnumerator" />
+        public JSONResourcesEnumerator GetEnumerator() => new(this);
+
+        IDictionaryEnumerator System.Resources.IResourceReader.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         /// <inheritdoc />
         public void RegisterTypeResolver(ITypeResolver resolver) => exf.RegisterTypeResolver(resolver);
 
-        System.Boolean IStreamOwnerBase.IsStreamOwner { get; set; }
+        System.Boolean IStreamOwnerBase.IsStreamOwner { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
     }
 
 }

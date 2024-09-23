@@ -58,28 +58,54 @@ namespace DotNetResourcesExtensions
 
     /// <summary>
     /// This is the enumerator implementation that the <see cref="MsIniResourcesReader"/> currently uses. <br />
-    /// You cannot create an instance of this class; Instead , use the <see cref="MsIniResourcesReader.GetEnumerator"/> method , then cast to this type.
+    /// You cannot create an instance of this class; Instead , use the <see cref="MsIniResourcesReader.GetEnumerator"/> method.
     /// </summary>
-    public sealed class MsIniResourcesEnumerator : Collections.IResourceEntryEnumerator
+    public sealed class MsIniResourcesEnumerator : Collections.AbstractDualResourceEntryEnumerator
     {
         private Internal.CustomFormatter.ICustomFormatter fmt;
         private System.String[,] entdata;
         private System.Int32 idx, idx2;
         private System.Int32 count;
 
+        private sealed class TypedFileReference : IFileReference
+        {
+            private readonly System.String name;
+            private readonly System.Type type;
+            private readonly FileReferenceEncoding encoding;
+
+            public TypedFileReference(string name, Type type, FileReferenceEncoding encoding)
+            {
+                this.name = name;
+                this.type = type;
+                this.encoding = encoding;
+            }
+
+            public static TypedFileReference ParseFromSerializedString(System.String dat)
+            {
+                System.String[] strings = dat.Split(';');
+                return new(ParserHelpers.RemoveQuotes(strings[0]),
+                    System.Type.GetType(strings[1], true, true),
+                    ParserHelpers.ParseEnumerationConstant<FileReferenceEncoding>(strings[2]));
+            }
+
+            public string FileName => name;
+            public FileReferenceEncoding Encoding => encoding;
+            public System.Type SavingType => type;
+        }
+
         internal MsIniResourcesEnumerator(System.String[,] entitydata , Internal.CustomFormatter.ICustomFormatter inst)
         {
             fmt = inst;
             idx = idx2 = -1;
             entdata = entitydata;
-            count = entdata.Length / 4;
+            count = entdata.GetLength(0) / 4;
         }
 
         /// <summary>
         /// Moves to the next resource found.
         /// </summary>
-        /// <returns><see langword="true"/> if the moving to the next resource succeeded; otherwise <see langword="false"/>.</returns>
-        public System.Boolean MoveNext()
+        /// <returns><see langword="true"/> if moving to the next resource succeeded; otherwise <see langword="false"/>.</returns>
+        public override System.Boolean MoveNext()
         {
             if (idx2 == -1) { idx = 0; } else { idx += 4; }
             idx2++;
@@ -89,14 +115,13 @@ namespace DotNetResourcesExtensions
         private MsIniEntry GetEntry()
         {
             MsIniEntry ent = new();
+            System.String typestr = System.String.Empty;
             ent.Length = -3;
             ent.ResourceName = entdata[idx, 1];
             if (System.String.Equals(entdata[idx + 2, 0], $"{ent.ResourceName}.Type"))
             {
-                System.String tp = entdata[idx + 2, 1];
-                tp = tp[1..];
-                tp.Remove(tp.Length - 1);
-                ent.ResourceType = System.Type.GetType(tp, true, true);
+                typestr = MsIniStringsEncoder.Decode(entdata[idx + 2, 1]);
+                if (typestr != MsIniConstants.SpecialIFileReferenceTypeStr) { ent.ResourceType = System.Type.GetType(typestr, true, false); }
             }
             if (System.String.Equals(entdata[idx + 1, 0], $"{ent.ResourceName}.Length"))
             {
@@ -104,11 +129,11 @@ namespace DotNetResourcesExtensions
             }
             if (entdata[idx + 3, 0] == MsIniConstants.ResourceValue)
             {
-                // We have a problen here. We cannot know if the string contains \n or \r characters which break the implementation.
+                // We have a problem here. We cannot know if the string contains \n or \r characters which break the implementation.
                 // For that reason , we will create an encoder/decoder that will encode-decode the data strings properly.
                 if (ent.ResourceType != null && ent.Length != -3)
                 {
-                    System.String dec = Internal.MsIniStringsEncoder.Decode(entdata[idx + 3, 1]);
+                    System.String dec = MsIniStringsEncoder.Decode(entdata[idx + 3, 1]);
                     if (ent.ResourceType.FullName == "System.String")
                     {
                         // It is an encoded string , return it plainly
@@ -126,11 +151,29 @@ namespace DotNetResourcesExtensions
                         // This is an object encoded using the ExtensibleFormatter.
                         ent.Data = fmt.GetObjectFromBytes((System.Byte[])ent.Data, ent.ResourceType);
                     }
-                }
-                else
-                {
+                } else if (typestr == MsIniConstants.SpecialIFileReferenceTypeStr && ent.Length != -3) {
+                    // Oh. we have bumped into an encoded IFileReference.
+                    // Decode the reference , then.
+                    TypedFileReference tfr = TypedFileReference.ParseFromSerializedString(MsIniStringsEncoder.Decode(entdata[idx + 3, 1]));
+                    System.IO.FileStream FS = null;
+                    try {
+                        FS = tfr.OpenStreamToFile();
+                        System.Byte[] data = ParserHelpers.ReadBuffered(FS, FS.Length);
+                        ent.Data = tfr.SavingType.FullName switch
+                        {
+                            "System.String" => tfr.AsEncoding().GetString(data),
+                            "System.Byte[]" => data,
+                            _ => fmt.GetObjectFromBytes(data, tfr.SavingType),
+                        };
+                        data = null;
+                    } finally {
+                        FS?.Dispose();
+                        FS = null;
+                    }
+                    tfr = null;
+                } else {
                     // Cannot do nothing here!
-                    throw new MSINIFormatException("Cannot parse the resource because impartial data were retrieved.", ParserErrorType.Deserialization);
+                    throw new MSINIFormatException(Properties.Resources.DNTRESEXT_MSINIFMT_CANNOT_PARSE, ParserErrorType.Deserialization);
                 }
             }
             return ent;
@@ -139,13 +182,7 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Gets a <see cref="DictionaryEntry"/> for this resource entry.
         /// </summary>
-        public DictionaryEntry Entry
-        {
-            get {
-                MsIniEntry ent = AsMsIniEntry;
-                return new(ent.ResourceName, ent.Data);
-            }
-        }
+        public override DictionaryEntry Entry => AsMsIniEntry.AsDictionaryEntry();
 
         /// <summary>
         /// Gets the current entry as a instance of the <see cref="MsIniEntry"/> structure.
@@ -155,29 +192,24 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Gets the current entry as a instance of the <see cref="IResourceEntry"/> interface.
         /// </summary>
-        public IResourceEntry ResourceEntry => GetEntry();
+        public override IResourceEntry ResourceEntry => GetEntry();
 
         /// <summary>
         /// Gets the resource name of the current entry.
         /// </summary>
         // Avoid calling GetEntry which can have heavy workloads , find it as GetEntry would have done.
-        public System.Object Key => entdata[idx, 1];
+        public override System.Object Key => entdata[idx, 1];
 
         /// <summary>
         /// Gets the resource value of the current entry.
         /// </summary>
         // We need to call it now so as to get the data.
-        public System.Object Value => GetEntry().Data;
-
-        /// <summary>
-        /// Returns a casted <see cref="DictionaryEntry"/> object. Equal to calling the <see cref="Entry"/> property.
-        /// </summary>
-        public System.Object Current => Entry;
+        public override System.Object Value => GetEntry().Data;
 
         /// <summary>
         /// Resets the resource enumerator back to it's original state , which is before the first resource entry.
         /// </summary>
-        public void Reset() => idx2 = -1;
+        public override void Reset() => idx2 = -1;
     }
 
     /// <summary>
@@ -187,10 +219,10 @@ namespace DotNetResourcesExtensions
     /// </summary>
     public sealed class MsIniResourcesReader : IDotNetResourcesExtensionsReader
     {
-        private System.IO.Stream stream;
+        private System.IO.StringableStream stream;
         private System.Text.Encoding encoding;
-        private System.Boolean strmown;
         private System.Int32 ver, sppmask;
+        private System.Boolean isfile;
         private ExtensibleFormatter formatter;
 
         private MsIniResourcesReader()
@@ -198,9 +230,9 @@ namespace DotNetResourcesExtensions
             formatter = ExtensibleFormatter.Create();
             stream = null;
             encoding = System.Text.Encoding.UTF8;
-            strmown = false;
             ver = 0;
             sppmask = 0;
+            isfile = false;
         }
 
         /// <summary>
@@ -210,7 +242,7 @@ namespace DotNetResourcesExtensions
         /// <param name="str">The stream to read from.</param>
         public MsIniResourcesReader(System.IO.Stream str) : this()
         {
-            stream = str;
+            stream = new(str , encoding);
             GetHeader();
         }
 
@@ -221,26 +253,35 @@ namespace DotNetResourcesExtensions
         /// <param name="savepath">The file to open to read the resources from.</param>
         public MsIniResourcesReader(System.String savepath) : this()
         {
-            stream = new System.IO.FileStream(savepath, System.IO.FileMode.Open);
-            strmown = true;
+            stream = new(new System.IO.FileStream(savepath, System.IO.FileMode.Open) , encoding);
+            stream.IsStreamOwner = true;
+            isfile = true;
             GetHeader();
         }
 
         /// <inheritdoc />
-        public System.Boolean IsStreamOwner { get => strmown; set => strmown = value; }
+        public System.Boolean IsStreamOwner 
+        { 
+            get => stream?.IsStreamOwner ?? false; 
+            set { 
+                if (stream is null) { throw new ObjectDisposedException(nameof(MsIniResourcesReader)); }
+                stream.IsStreamOwner = value; 
+            }
+        }
 
         private void DetermineEncoding()
         {
             const System.String EncConstant = "; ENCODING: ";
-            System.String ln = GetNextLine();
+            System.String ln = stream.ReadLiteralLine();
             if (ln is not null && ln.StartsWith(EncConstant))
             {
                 ln = ln.Substring(EncConstant.Length + 2);
-                ln = ln.Remove(ln.IndexOf((System.Char)MsIniConstants.Quote));
+                ln = ln.Remove(ln.IndexOf(MsIniConstants.Quote.ToChar()));
                 try
                 {
-                    encoding = System.Text.Encoding.GetEncoding((System.Int32)ParserHelpers.ToNumber(ln));
+                    encoding = System.Text.Encoding.GetEncoding(ParserHelpers.ToNumber(ln).ToInt32());
                 } catch (System.ArgumentOutOfRangeException) { }
+                stream.Encoding = encoding;
             }
         }
 
@@ -254,33 +295,23 @@ namespace DotNetResourcesExtensions
             {
                 if (hdr[I , 1] == "Version")
                 {
-                    data = System.Convert.FromBase64String(MsIniStringsEncoder.Decode(hdr[I + 3, 1]));
+                    data = MsIniStringsEncoder.Decode(hdr[I + 3, 1]).FromBase64();
                     ver = EF.GetObject<System.UInt16>(data);
                 } else if (hdr[I , 1] == MsIniConstants.ResMask)
                 {
-                    data = System.Convert.FromBase64String(MsIniStringsEncoder.Decode(hdr[I + 3, 1]));
+                    data = MsIniStringsEncoder.Decode(hdr[I + 3, 1]).FromBase64();
                     sppmask = EF.GetObject<System.Int32>(data);
                 }
             }
             EF?.Dispose();
             if (ver > MsIniConstants.Version)
             {
-                throw new MSINIFormatException($"This reader cannot read this format version ({ver})." , ParserErrorType.Header);
+                throw new MSINIFormatException(System.String.Format(Properties.Resources.DNTRESEXT_MSINIFMT_VER_MISMATCH , ver) , ParserErrorType.Header);
             } else if (ver == 0 && sppmask == 0)
             {
-                throw new MSINIFormatException("Could not read header data. This might not be the MS-INI DotNetResourcesExtensions format." , ParserErrorType.Header);
+                throw new MSINIFormatException(Properties.Resources.DNTRESEXT_MSINIFMT_INVALID_DATA, ParserErrorType.Header);
             }
         }
-        
-        /// <summary>
-        /// The format version that this reader currently reads out.
-        /// </summary>
-        public System.Int32 Version => ver;
-
-        /// <summary>
-        /// Returns the supported resource formats mask defined in the resource file.
-        /// </summary>
-        public System.Int32 SupportedFormatsMask => sppmask;
 
         private System.String GetNextLine()
         {
@@ -305,22 +336,38 @@ namespace DotNetResourcesExtensions
             return result;
         }
 
+        /// <summary>
+        /// The format version that this reader currently reads out.
+        /// </summary>
+        public System.Int32 Version => ver;
+
+        /// <summary>
+        /// Returns the supported resource formats mask defined in the resource file.
+        /// </summary>
+        public System.Int32 SupportedFormatsMask => sppmask;
+
         private System.String[,] FetchEntityWithName(System.String name)
         {
             System.Int64 posbef , entend , streamatbegginning = stream.Position;
-            System.String di , tmp;
+            System.String di = null , tmp , td;
             stream.Position = 0;
             do
             {
-                tmp = GetNextLine();
-                if (tmp.Length > 0 && tmp[0] == '[' && tmp[^1] == ']') // First and last index
+                tmp = stream.ReadLine();
+                if (tmp.Length > 0)
                 {
-                    // We found an entity. Test it...
-                    tmp = tmp[1..];
-                    di = tmp.Remove(tmp.Length - 1);
-                } else {
-                    // skip line , get to next one.
-                    di = null; 
+                    if (tmp[0] == '[' && tmp[^1] == ']') // First and last index
+                    {
+                        // We found an entity. Test it...
+                        tmp = tmp[1..];
+                        di = tmp.Remove(tmp.Length - 1);
+                    } else if (tmp.StartsWith(";")) { 
+                        // Comment , skip the line.
+                        di = null;
+                    } else {
+                        // skip line , get to next one.
+                        di = null;
+                    }
                 }
             } while (di != name && stream.Position < stream.Length);
             if (di != name) { throw new ArgumentException($"Specified entity was not found: {name}"); }
@@ -341,8 +388,8 @@ namespace DotNetResourcesExtensions
                 List<System.String> names = new() , values = new();
                 while (stream.Position <= entend)
                 {
-                    System.String td = GetNextLine();
-                    rb = td.IndexOf((System.Char)MsIniConstants.ValueDelimiter);
+                    td = GetNextLine();
+                    rb = td.IndexOf(MsIniConstants.ValueDelimiter.ToChar());
                     if (rb == -1) { continue; }
                     names.Add(td.Remove(rb)); 
                     values.Add(td.Substring(rb + 1));
@@ -362,12 +409,19 @@ namespace DotNetResourcesExtensions
                 stream.Position = streamatbegginning;
                 return strings;
             } else {
-                throw new FormatException("Could not find entity end. The entity might have been misconstructed.");
+                throw new MSINIFormatException(Properties.Resources.DNTRESEXT_MSINIFMT_ENT_INVALID, ParserErrorType.Deserialization);
             }
         }
 
-        /// <inheritdoc />
-        public IDictionaryEnumerator GetEnumerator() => new MsIniResourcesEnumerator(FetchEntityWithName("ResourceIndex") , formatter);
+        /// <inheritdoc cref="System.Resources.IResourceReader.GetEnumerator" />
+        /// <exception cref="ObjectDisposedException">This reader has been effectively disposed and cannot access the original instance data.</exception>
+        public MsIniResourcesEnumerator GetEnumerator()
+        {
+            if (stream is null) { throw new ObjectDisposedException(nameof(MsIniResourcesReader)); }
+            return new(FetchEntityWithName("ResourceIndex"), formatter);
+        }
+
+        IDictionaryEnumerator System.Resources.IResourceReader.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -376,10 +430,8 @@ namespace DotNetResourcesExtensions
         /// </summary>
         public void Close()
         {
-            if (strmown)
-            {
-                stream?.Close();
-            }
+            if (isfile && IsStreamOwner == false) { IsStreamOwner = true; }
+            stream?.Close();
         }
 
         /// <summary>
@@ -387,19 +439,17 @@ namespace DotNetResourcesExtensions
         /// </summary>
         public void Dispose()
         {
-            if (strmown)
-            {
+            if (IsStreamOwner) {
                 stream?.Dispose();
-                stream = null;
             }
+            stream = null;
             encoding = null;
+            formatter?.Dispose();
+            formatter = null;
         }
 
         /// <inheritdoc />
-        public void RegisterTypeResolver(ITypeResolver resolver)
-        {
-            formatter.RegisterTypeResolver(resolver);
-        }
+        public void RegisterTypeResolver(ITypeResolver resolver) => formatter.RegisterTypeResolver(resolver);
     }
 
 }

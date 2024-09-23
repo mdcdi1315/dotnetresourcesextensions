@@ -72,6 +72,21 @@ namespace DotNetResourcesExtensions
         private System.Xml.Linq.XAttribute GetElementAttribute(System.String Name)
             => resources[currentindex].Attribute(System.Xml.Linq.XName.Get(Name));
 
+        private static XMLRESResourceType ParseType(System.Xml.Linq.XAttribute typeattr)
+        {
+            System.String val = typeattr.Value;
+            if (val.Length > 0 && ParserHelpers.IsDigit(val[0])) {
+                return (XMLRESResourceType)(System.Int32)typeattr;
+            }
+            return val.ToLowerInvariant() switch {
+                "string" => XMLRESResourceType.String,
+                "bytearray" => XMLRESResourceType.ByteArray,
+                "object" => XMLRESResourceType.Object,
+                "filereference" => XMLRESResourceType.FileReference,
+                _ => throw new XMLFormatException(Properties.Resources.DNTRESEXT_XMLFMT_CANNOT_PARSE_TYPE, ParserErrorType.Deserialization)
+            };
+        }
+
         private DictionaryEntry GetResource()
         {
             if (currentindex <= -1) { throw new InvalidOperationException("The enumeration has not started yet."); }
@@ -112,23 +127,23 @@ namespace DotNetResourcesExtensions
                 dat = null;
                 if (rc < Chunks - 1) // Chunks - 1 to avoid the rem issue
                 {
-                    throw new XMLFormatException("The byte array contents could not be read because not all expected chunks were read." , ParserErrorType.Deserialization);
+                    throw new XMLFormatException(Properties.Resources.DNTRESEXT_XMLFMT_INVALID_CHUNK_NUMBER, ParserErrorType.Deserialization);
                 }
                 System.Byte[] bt = sb.ToString().FromBase64();
                 sb.Clear();
                 sb = null;
                 rc = (System.Int32)GetElementAttribute("length");
                 if (bt.Length != rc) {
-                    throw new XMLFormatException($"Corrupted byte array detected. Expected to read {rc} bytes while read {bt.Length} bytes." , ParserErrorType.Deserialization);
+                    throw new XMLFormatException(System.String.Format(Properties.Resources.DNTRESEXT_XMLFMT_INVALID_RESULT_LENGTH , rc , bt.Length) , ParserErrorType.Deserialization);
                 }
                 return bt;
             }
             DictionaryEntry result = new();
             result.Key = GetElementAttribute("name").Value;
-            XMLRESResourceType tpp = (XMLRESResourceType)(System.Int32)GetElementAttribute("type");
+            XMLRESResourceType tpp = ParseType(GetElementAttribute("type"));
             if (tpp > reader.supportedformatsmask) {
                 // The supported formats mask is still true!
-                throw new XMLFormatException($"This resource object type is not supported in version 2: {tpp}", ParserErrorType.Deserialization);
+                throw new XMLFormatException(Properties.Resources.DNTRESEXT_XMLFMT_TYPENOTSUPPORTED_V2, ParserErrorType.Deserialization);
             }
             switch (tpp)
             {
@@ -143,7 +158,7 @@ namespace DotNetResourcesExtensions
                     try {
                         result.Value = reader.exf.GetObjectFromBytes(GetBytes(), dnttype);
                     } catch (Internal.CustomFormatter.Exceptions.ConverterNotFoundException e) {
-                        throw new XMLFormatException("A resource object deserialization error occured.", e.Message, ParserErrorType.Deserialization);
+                        throw new XMLFormatException(Properties.Resources.DNTRESEXT_XMLFMT_DESER_FAILED, e.Message, ParserErrorType.Deserialization);
                     }
                     break;
                 case XMLRESResourceType.FileReference:
@@ -175,7 +190,7 @@ namespace DotNetResourcesExtensions
             result.Key = resources[currentindex].Name.LocalName;
             XMLRESResourceType tpp = (XMLRESResourceType)(System.Int32)GetChildElement("ResourceType");
             if (tpp > reader.supportedformatsmask) {
-                throw new XMLFormatException($"This resource object type is not supported in version 1: {tpp}" , ParserErrorType.Deserialization);
+                throw new XMLFormatException(Properties.Resources.DNTRESEXT_XMLFMT_TYPENOTSUPPORTED_V1, ParserErrorType.Deserialization);
             }
             switch (tpp)
             {
@@ -192,7 +207,7 @@ namespace DotNetResourcesExtensions
                     try {
                         result.Value = reader.exf.GetObjectFromBytes(GetChildElement("Value_0").Value.FromBase64(), dotnettype);
                     } catch (Internal.CustomFormatter.Exceptions.ConverterNotFoundException e) {
-                        throw new XMLFormatException("A resource object deserialization error occured.", e.Message, ParserErrorType.Deserialization);
+                        throw new XMLFormatException(Properties.Resources.DNTRESEXT_XMLFMT_DESER_FAILED, e.Message, ParserErrorType.Deserialization);
                     }
                     break;
             }
@@ -284,7 +299,7 @@ namespace DotNetResourcesExtensions
         {
             if (xdoc.Root.Name != XMLResourcesConstants.GlobalNameSpaceName) 
             { throw new XMLFormatException(XMLResourcesConstants.DefaultExceptionMsg , 
-                "The XML Resources header was not found." , ParserErrorType.Header); }
+                Properties.Resources.DNTRESEXT_XMLFMT_NO_CXML_HEADER_FOUND, ParserErrorType.Header); }
             System.Boolean found = false;
             foreach (var di in xdoc.Root.Nodes())
             {
@@ -300,15 +315,14 @@ namespace DotNetResourcesExtensions
                                 case "Version":
                                     if ((versionread = ((System.UInt32)el).ToUInt16()) > XMLResourcesConstants.Version)
                                     { throw new XMLFormatException(XMLResourcesConstants.DefaultExceptionMsg , 
-                                        $"You attempted to load a version not supported by this class. Please use a reader that supports version {el.Value} or later."
+                                        System.String.Format(Properties.Resources.DNTRESEXT_XMLFMT_VER_MISMATCH , el.Value) 
                                         , ParserErrorType.Header); }
                                     break;
                                 case "Magic":
                                     if (el.Value != XMLResourcesConstants.Magic)
                                     {
                                         throw new XMLFormatException(XMLResourcesConstants.DefaultExceptionMsg,
-                                        "The magic value of the header is either unsupported or represents data corruption."
-                                        , ParserErrorType.Header);
+                                        Properties.Resources.DNTRESEXT_XMLFMT_INVALID_MAGIC, ParserErrorType.Header);
                                     }
                                     break;
                                 case "SupportedFormatsMask":
@@ -328,7 +342,7 @@ namespace DotNetResourcesExtensions
             }
             if (found == false) {
                 throw new XMLFormatException(XMLResourcesConstants.DefaultExceptionMsg,
-                "The XML Resources header was not found.", ParserErrorType.Header);
+                Properties.Resources.DNTRESEXT_XMLFMT_NO_CXML_HEADER_FOUND, ParserErrorType.Header);
             }
         }
 

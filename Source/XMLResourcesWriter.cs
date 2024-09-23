@@ -88,7 +88,7 @@ namespace DotNetResourcesExtensions
         {
             writer.WriteStartElement(XMLResourcesConstants.SingleResourceObjName);
             writer.WriteAttributeString("name", Name);
-            writer.WriteAttributeString("type" , ((System.Byte)XMLRESResourceType.String).ToString());
+            writer.WriteAttributeString("type" , XMLRESResourceType.String.ToString());
             writer.WriteElementString("Value" , Value);
             writer.WriteEndElement();
         }
@@ -97,7 +97,7 @@ namespace DotNetResourcesExtensions
         {
             writer.WriteStartElement(XMLResourcesConstants.SingleResourceObjName);
             writer.WriteAttributeString("name", Name);
-            writer.WriteAttributeString("type", ((System.Byte)XMLRESResourceType.ByteArray).ToString());
+            writer.WriteAttributeString("type", XMLRESResourceType.ByteArray.ToString());
             writer.WriteAttributeString("length", value.LongLength.ToString());
             WriteChunkedBase64(value);
             writer.WriteEndElement();
@@ -138,7 +138,7 @@ namespace DotNetResourcesExtensions
         {
             writer.WriteStartElement(XMLResourcesConstants.SingleResourceObjName);
             writer.WriteAttributeString("name", Name);
-            writer.WriteAttributeString("type", ((System.Byte)XMLRESResourceType.Object).ToString());
+            writer.WriteAttributeString("type", XMLRESResourceType.Object.ToString());
             System.Byte[] data = formatter.GetBytesFromObject(value);
             writer.WriteAttributeString("length", data.LongLength.ToString());
             writer.WriteAttributeString("dotnettype", value.GetType().AssemblyQualifiedName);
@@ -166,7 +166,7 @@ namespace DotNetResourcesExtensions
             ParserHelpers.ValidateName(name);
             writer.WriteStartElement(XMLResourcesConstants.SingleResourceObjName);
             writer.WriteAttributeString("name", name);
-            writer.WriteAttributeString("type", ((System.Byte)XMLRESResourceType.FileReference).ToString());
+            writer.WriteAttributeString("type", XMLRESResourceType.FileReference.ToString());
             writer.WriteElementString("Value", reference.ToSerializedString());
             writer.WriteEndElement();
         }

@@ -91,7 +91,7 @@ namespace DotNetResourcesExtensions
                     result = reader.fr.ReadExactlyAndConvertToString(length);
                     reader.fr.Position++; // Required so as to avoid the not-read \n and to help ReadLine read the next line successfully.
                     if (reader.fr.ReadLine() != "end value") {
-                        throw new FormatException($"Expected the value to be ended , but the resource value does still continue. Have you forgotten to close the resource?");
+                        throw new FormatException(Properties.Resources.DNTRESEXT_HRFMT_INVALID_RESOURCEVAL_LAYOUT);
                     }
                 } else {
                     List<System.String> data = new();
@@ -125,7 +125,7 @@ namespace DotNetResourcesExtensions
                             // We have the file reference string , let's parse it.
                             TypedFileRef fr = TypedFileRef.ParseFromSerializedString(ReadStringValue(props));
                             if (fr.FileNameIsHttpUri()) {
-                                throw new HumanReadableFormatException("The human-readable format reader does not currently support downloading data from the Internet." , ParserErrorType.Deserialization);
+                                throw new HumanReadableFormatException(Properties.Resources.DNTRESEXT_HRFMT_FILEREF_DOWNLOAD_UNSUPPORTED, ParserErrorType.Deserialization);
                             }
                             // OK. Now read the file and get the object.
                             System.IO.FileStream FS = null;
@@ -246,15 +246,15 @@ namespace DotNetResourcesExtensions
                 if (HumanReadableFormatConstants.StringsMatch(dt , "end header")) { cond = false; break; }
                 HumanReadableFormatConstants.AddProperty(properties, dt);
             }
-            if (properties.Count != 2) { throw new HumanReadableFormatException($"This is not the custom human-readable format. Error occured." , ParserErrorType.Header); }
+            if (properties.Count != 2) { throw new HumanReadableFormatException(Properties.Resources.DNTRESEXT_HRFMT_GENERIC_ERROR, ParserErrorType.Header); }
             try {
                 HumanReadableFormatConstants.Property prop = HumanReadableFormatConstants.Property.GetProperty(properties, "version");
                 if (prop.Int64Value > HumanReadableFormatConstants.Version.Int64Value)
                 {
-                    throw new HumanReadableFormatException("The version read is higher than the version that this reader can read.", ParserErrorType.Versioning);
+                    throw new HumanReadableFormatException(Properties.Resources.DNTRESEXT_HRFMT_VER_MISMATCH, ParserErrorType.Versioning);
                 }
             } catch (System.Exception e) {
-                throw new HumanReadableFormatException($"Cannot parse the numeric value defined in 'version' header. Internal error occured." , $"{e.GetType().FullName}: {e.Message}", ParserErrorType.Header);
+                throw new HumanReadableFormatException(Properties.Resources.DNTRESEXT_HRFMT_VERHDR_UNPARSEABLE, $"{e.GetType().FullName}: {e.Message}", ParserErrorType.Header);
             }
             if (HumanReadableFormatConstants.Property.GetProperty(properties , "schema").ValueEquals(HumanReadableFormatConstants.SchemaName) == false) { throw new HumanReadableFormatException($"The schema {properties["schema"]} cannot be read by this reader." , ParserErrorType.Header); }
             properties = null;

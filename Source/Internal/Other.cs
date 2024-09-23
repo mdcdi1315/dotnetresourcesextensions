@@ -124,7 +124,7 @@ namespace DotNetResourcesExtensions.Internal
         /// <returns>The encoded string equal to <paramref name="enc"/> parameter.</returns>
         public static System.String Encode(System.String enc)
         {
-            System.String result = System.String.Empty;
+            System.Text.StringBuilder result = new(enc.Length);
             System.Boolean quotes = false;
             for (System.Int32 I = 0; I < enc.Length; I++)
             {
@@ -132,22 +132,21 @@ namespace DotNetResourcesExtensions.Internal
                 {
                     if (enc[I] == InvalidChars[J]) { quotes = true; }
                 }
-                result += enc[I] switch
+                result.Append(enc[I] switch
                 {
                     '\n' => "-n",
                     '\r' => "-r",
                     '\t' => "-t",
                     '-' => "--",
-                    _ => enc[I]
-                };
+                    _ => enc[I].ToString()
+                });
             }
-            if (quotes)
-            {
-                return $"\"{result}\"";
-            }
-            else
-            {
-                return result;
+            if (quotes) {
+                result.Insert(0, '\"');
+                result.Append('\"');
+                return result.ToString();
+            } else {
+                return result.ToString();
             }
         }
 
@@ -159,42 +158,32 @@ namespace DotNetResourcesExtensions.Internal
         /// <exception cref="MSINIFormatException">An invalid escaped sequence was found.</exception>
         public static System.String Decode(System.String enc)
         {
-            System.String decoded = System.String.Empty, dc;
-            if (enc.Length > 0 && enc[0] == '\"' && enc[enc.Length - 1] == '\"')
+            System.String dc;
+            System.Text.StringBuilder dec = new(enc.Length);
+            if (enc.Length > 0 && ParserHelpers.AreQuotesAtStartEnd(enc))
             {
                 dc = enc.Substring(1);
                 dc = dc.Remove(dc.Length - 1);
-            }
-            else { dc = enc; }
+            } else { dc = enc; }
             for (System.Int32 I = 0; I < dc.Length; I++)
             {
                 if (dc[I] == '-' && (I + 1) < dc.Length)
                 {
-                    switch (dc[I + 1])
-                    { // switch through cases
-                        case 'n':
-                            decoded += "\n";
-                            break;
-                        case 'r':
-                            decoded += "\r";
-                            break;
-                        case 't':
-                            decoded += "\t";
-                            break;
-                        case '-':
-                            decoded += "-";
-                            break;
-                        default:
-                            throw new MSINIFormatException($"Invalid or unknown sequence detected: \'-{dc[I + 1]}\'", ParserErrorType.Deserialization);
-                    }
+                    // switch through cases
+                    dec.Append(dc[I + 1] switch { 
+                        'n' => '\n',
+                        'r' => '\r',
+                        't' => '\t',
+                        '-' => '-',
+                        _ => throw new MSINIFormatException(System.String.Format(Properties.Resources.DNTRESEXT_MSINIFMT_INVALID_ENCODE_SEQUENCE , dc[I+1]), ParserErrorType.Deserialization)
+                    });
                     I++; // We are very much sure about it. In worst case , it throws an exception and we are done.
-                }
-                else
-                { // Otherwise just make sure to copy it to the result
-                    decoded += dc[I];
+                } else { 
+                    // Otherwise just make sure to copy it to the result
+                    dec.Append(dc[I]);
                 }
             }
-            return decoded;
+            return dec.ToString();
         }
     }
 }

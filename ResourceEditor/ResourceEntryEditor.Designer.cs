@@ -85,14 +85,16 @@
             // 
             // ResValue
             // 
+            this.ResValue.AcceptsReturn = true;
             this.ResValue.Location = new System.Drawing.Point(16, 172);
+            this.ResValue.Multiline = true;
             this.ResValue.Name = "ResValue";
-            this.ResValue.Size = new System.Drawing.Size(261, 20);
+            this.ResValue.Size = new System.Drawing.Size(253, 99);
             this.ResValue.TabIndex = 5;
             // 
             // SaveButton
             // 
-            this.SaveButton.Location = new System.Drawing.Point(275, 211);
+            this.SaveButton.Location = new System.Drawing.Point(284, 212);
             this.SaveButton.Name = "SaveButton";
             this.SaveButton.Size = new System.Drawing.Size(75, 23);
             this.SaveButton.TabIndex = 6;
@@ -103,7 +105,7 @@
             // CButton
             // 
             this.CButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.CButton.Location = new System.Drawing.Point(275, 241);
+            this.CButton.Location = new System.Drawing.Point(284, 241);
             this.CButton.Name = "CButton";
             this.CButton.Size = new System.Drawing.Size(75, 23);
             this.CButton.TabIndex = 7;
@@ -150,6 +152,7 @@
             this.Controls.Add(this.L1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.Name = "ResourceEntryEditor";
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;

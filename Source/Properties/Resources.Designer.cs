@@ -232,11 +232,29 @@ namespace DotNetResourcesExtensions.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Read {0} bytes while expecting to read {1} bytes..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_INVALID_DATA_LENGTH {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_INVALID_DATA_LENGTH", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot read the resource header. It&apos;s magic value is invalid..
         /// </summary>
         internal static string DNTRESEXT_BINFMT_INVALID_MAGIC {
             get {
                 return ResourceManager.GetString("DNTRESEXT_BINFMT_INVALID_MAGIC", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The format specifies that the resource types allowed are all up to {0} but read a value of {1} that is higher than the mask..
+        /// </summary>
+        internal static string DNTRESEXT_BINFMT_INVALID_TYPEID {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_BINFMT_INVALID_TYPEID", resourceCulture);
             }
         }
         
@@ -430,11 +448,101 @@ namespace DotNetResourcesExtensions.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Expected the chunk to be closed but instead it is malformed..
+        /// </summary>
+        internal static string DNTRESEXT_HRFMT_CHUNK_INVALID {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_HRFMT_CHUNK_INVALID", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Corrupted byte array was read. Expected to read at least {0} chunks but instead only the {1} chunks were successfully retrieved..
+        /// </summary>
+        internal static string DNTRESEXT_HRFMT_DATA_CORRUPTED {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_HRFMT_DATA_CORRUPTED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The human-readable format reader does not currently support downloading data from the Internet..
+        /// </summary>
+        internal static string DNTRESEXT_HRFMT_FILEREF_DOWNLOAD_UNSUPPORTED {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_HRFMT_FILEREF_DOWNLOAD_UNSUPPORTED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This is not the custom human-readable format. Error occured..
+        /// </summary>
+        internal static string DNTRESEXT_HRFMT_GENERIC_ERROR {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_HRFMT_GENERIC_ERROR", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Expected to read {0} bytes but read {1} bytes..
+        /// </summary>
+        internal static string DNTRESEXT_HRFMT_INVALID_DATA_LEN {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_HRFMT_INVALID_DATA_LEN", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Expected the value to be ended , but the resource value does still continue. Have you forgotten to close the resource?.
+        /// </summary>
+        internal static string DNTRESEXT_HRFMT_INVALID_RESOURCEVAL_LAYOUT {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_HRFMT_INVALID_RESOURCEVAL_LAYOUT", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The version read is higher than the version that this reader can read..
+        /// </summary>
+        internal static string DNTRESEXT_HRFMT_VER_MISMATCH {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_HRFMT_VER_MISMATCH", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot parse the numeric value defined in &apos;version&apos; header. Internal error occured..
+        /// </summary>
+        internal static string DNTRESEXT_HRFMT_VERHDR_UNPARSEABLE {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_HRFMT_VERHDR_UNPARSEABLE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This header cannot be read with this version of the class. Please use a reader that supports header version {0} or higher..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_CANNOT_READ_HEADER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_CANNOT_READ_HEADER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Serialization failed for type &apos;{0}&apos;. See the internal parser error message for more information..
         /// </summary>
         internal static string DNTRESEXT_JSONFMT_COULDNOTSER {
             get {
                 return ResourceManager.GetString("DNTRESEXT_JSONFMT_COULDNOTSER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A decoder version was not found. Internal error detected..
+        /// </summary>
+        internal static string DNTRESEXT_JSONFMT_DECODE_VERSION_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_JSONFMT_DECODE_VERSION_NOT_FOUND", resourceCulture);
             }
         }
         
@@ -511,6 +619,51 @@ namespace DotNetResourcesExtensions.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cannot parse the resource because impartial data were retrieved..
+        /// </summary>
+        internal static string DNTRESEXT_MSINIFMT_CANNOT_PARSE {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_MSINIFMT_CANNOT_PARSE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find entity end. The entity might have been misconstructed..
+        /// </summary>
+        internal static string DNTRESEXT_MSINIFMT_ENT_INVALID {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_MSINIFMT_ENT_INVALID", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not read header data. This might not be the MS-INI DotNetResourcesExtensions format..
+        /// </summary>
+        internal static string DNTRESEXT_MSINIFMT_INVALID_DATA {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_MSINIFMT_INVALID_DATA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid or unknown sequence detected: &apos;-{0}&apos;.
+        /// </summary>
+        internal static string DNTRESEXT_MSINIFMT_INVALID_ENCODE_SEQUENCE {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_MSINIFMT_INVALID_ENCODE_SEQUENCE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This reader cannot read this format version ({0})..
+        /// </summary>
+        internal static string DNTRESEXT_MSINIFMT_VER_MISMATCH {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_MSINIFMT_VER_MISMATCH", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot use an unreadable stream for reading it&apos;s data..
         /// </summary>
         internal static string DNTRESEXT_STRCannotBeUsed_Read {
@@ -543,6 +696,87 @@ namespace DotNetResourcesExtensions.Properties {
         internal static string DNTRESEXT_StreamUnwriteable {
             get {
                 return ResourceManager.GetString("DNTRESEXT_StreamUnwriteable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not parse the type defined in the &apos;type&apos; attribute. Value was invalid..
+        /// </summary>
+        internal static string DNTRESEXT_XMLFMT_CANNOT_PARSE_TYPE {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_XMLFMT_CANNOT_PARSE_TYPE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A resource object deserialization error occured..
+        /// </summary>
+        internal static string DNTRESEXT_XMLFMT_DESER_FAILED {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_XMLFMT_DESER_FAILED", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The byte array contents could not be read because not all expected chunks were read..
+        /// </summary>
+        internal static string DNTRESEXT_XMLFMT_INVALID_CHUNK_NUMBER {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_XMLFMT_INVALID_CHUNK_NUMBER", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The magic value of the header is either unsupported or indicates data corruption..
+        /// </summary>
+        internal static string DNTRESEXT_XMLFMT_INVALID_MAGIC {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_XMLFMT_INVALID_MAGIC", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Corrupted byte array detected. Expected to read {0} bytes while read {1} bytes..
+        /// </summary>
+        internal static string DNTRESEXT_XMLFMT_INVALID_RESULT_LENGTH {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_XMLFMT_INVALID_RESULT_LENGTH", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The XML Resources header was not found..
+        /// </summary>
+        internal static string DNTRESEXT_XMLFMT_NO_CXML_HEADER_FOUND {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_XMLFMT_NO_CXML_HEADER_FOUND", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This resource object type is not supported in version 1: {0}.
+        /// </summary>
+        internal static string DNTRESEXT_XMLFMT_TYPENOTSUPPORTED_V1 {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_XMLFMT_TYPENOTSUPPORTED_V1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This resource object type is not supported in version 2: {0}.
+        /// </summary>
+        internal static string DNTRESEXT_XMLFMT_TYPENOTSUPPORTED_V2 {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_XMLFMT_TYPENOTSUPPORTED_V2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Attempted to load a version not supported by this class. These data require a reader that support version {0} or later..
+        /// </summary>
+        internal static string DNTRESEXT_XMLFMT_VER_MISMATCH {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_XMLFMT_VER_MISMATCH", resourceCulture);
             }
         }
         

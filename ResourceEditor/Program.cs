@@ -99,7 +99,7 @@ namespace ResourceEditor
             // The last try statement does not need goto since it will unconditionally go there.
             try { ret = System.Double.Parse(Value, System.Globalization.NumberStyles.Integer); } catch { }
             G_Ret:
-            if (ret == null) { throw new FormatException("Could not parse the number. Maybe the string input is not a number?"); }
+            if (ret is null) { throw new FormatException("Could not parse the number. Maybe the string input is not a number?"); }
             return ret;
         }
 
@@ -149,6 +149,7 @@ namespace ResourceEditor
                 ".rescx" => ResourceClasses.CustomResX,
                 ".resxx" => ResourceClasses.CustomXml,
                 ".resources" => ResourceClasses.DotNetResources,
+                ".resh" => ResourceClasses.HumanReadableFormat,
                 _ => ResourceClasses.Unknown
             };
         }
@@ -173,6 +174,8 @@ namespace ResourceEditor
                     return new DotNetResourcesExtensions.CustomBinaryResourceWriter(FileName);
                 case ResourceClasses.CustomJSON:
                     return new DotNetResourcesExtensions.JSONResourcesWriter(FileName);
+                case ResourceClasses.HumanReadableFormat:
+                    return new DotNetResourcesExtensions.HumanReadableFormatWriter(FileName);
                 default:
                     throw new InvalidOperationException("Attempted to create an unknown writer. This is invalid.");
             }
@@ -198,6 +201,8 @@ namespace ResourceEditor
                     return new DotNetResourcesExtensions.CustomBinaryResourceReader(FileName);
                 case ResourceClasses.CustomJSON:
                     return new DotNetResourcesExtensions.JSONResourcesReader(FileName);
+                case ResourceClasses.HumanReadableFormat:
+                    return new DotNetResourcesExtensions.HumanReadableFormatReader(FileName);
                 default:
                     throw new InvalidOperationException("Attempted to create an unknown writer. This is invalid.");
             }
@@ -239,7 +244,8 @@ namespace ResourceEditor
         CustomBinary,
         CustomResX,
         ResX,
-        DotNetResources
+        DotNetResources,
+        HumanReadableFormat
     }
 
     // Copied from BuildTasks.cs

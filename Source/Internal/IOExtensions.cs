@@ -28,26 +28,28 @@ namespace System.IO
 
         public static System.Byte[] ReadBase64ChunksValue(this StringableStream reader , System.Int32 expected , System.Int32 alignment , System.Int32 chunks)
         {
-            System.String data = System.String.Empty , temp;
+            System.String temp;
             System.Boolean cond = true;
             System.Int32 chwithalignment = 0;
+            System.Text.StringBuilder sb = new(chunks * alignment);
             while (cond && (temp = reader.ReadLine()) is not null) {
                 if (temp.StartsWith("chunk")) {
                     if (GetChunkIndex(temp) > chunks) { cond = false; break; }
                     temp = reader.ReadLine();
-                    data += temp;
+                    sb.Append(temp);
                     if (temp.Length == alignment) { chwithalignment++; }
-                    if (reader.ReadLine() != "end chunk") { throw new FormatException("Expected the chunk to be closed but instead it is malformed."); }
+                    if (reader.ReadLine() != "end chunk") { throw new FormatException(DotNetResourcesExtensions.Properties.Resources.DNTRESEXT_HRFMT_CHUNK_INVALID); }
                 }
                 if (temp.Equals("end value")) { cond = false; }
             }
             if (chwithalignment < (chunks - 1)) {
-                throw new FormatException($"Corrupted byte array was read. Expected to read at least {chunks-1} chunks but instead only the {chwithalignment} chunks were successfully retrieved.");
+                throw new FormatException(System.String.Format(DotNetResourcesExtensions.Properties.Resources.DNTRESEXT_HRFMT_DATA_CORRUPTED , chunks-1 , chwithalignment));
             }
-            System.Byte[] decoded = data.FromBase64();
-            data = null;
+            System.Byte[] decoded = sb.ToString().FromBase64();
+            sb.Clear();
+            sb = null;
             temp = null;
-            if (decoded.Length != expected) { throw new FormatException($"Expected to read {expected} bytes but read {decoded.Length} bytes."); }
+            if (decoded.Length != expected) { throw new FormatException(System.String.Format(DotNetResourcesExtensions.Properties.Resources.DNTRESEXT_HRFMT_INVALID_DATA_LEN , expected , decoded.Length)); }
             return decoded;
         }
 
@@ -96,8 +98,9 @@ namespace System.IO
             System.Int32 cgs = 0;
             System.String dt;
             for (System.Int32 I = 1; I <= chunks; I++) {
-                dt = base64.Substring(cgs);
-                dt = dt.Remove(stringlinesize);
+                if (cgs + stringlinesize > base64.Length) 
+                { dt = base64.Substring(cgs, base64.Length - stringlinesize); } else 
+                { dt = base64.Substring(cgs, stringlinesize); }
                 writer.WriteTabbedStringLine(2, $"chunk[{I}]");
                 writer.WriteTabbedStringLine(3, dt);
                 writer.WriteTabbedStringLine(2, "end chunk");

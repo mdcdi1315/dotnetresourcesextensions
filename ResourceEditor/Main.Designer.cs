@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Main));
             this.MainMenu = new System.Windows.Forms.MenuStrip();
             this.TSM_actions = new System.Windows.Forms.ToolStripMenuItem();
             this.OpenFileButton = new System.Windows.Forms.ToolStripMenuItem();
@@ -237,10 +238,10 @@
             this.ClientSize = new System.Drawing.Size(800, 450);
             this.Controls.Add(this.ResourceView);
             this.Controls.Add(this.MainMenu);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.MainMenu;
             this.MinimumSize = new System.Drawing.Size(816, 489);
             this.Name = "Main";
-            this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Resource Creator & Editor for DotNetResourcesExtensions";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.F_CLOSING);

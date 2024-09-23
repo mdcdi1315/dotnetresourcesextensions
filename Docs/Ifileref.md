@@ -40,4 +40,80 @@ Additionally , any readers and writers must conform to a set of specified condit
 At the V2 version of DotNetResourcesExtensions is expected an interface to be added that will add the support of using
 file references inside any marked resource writer.
 
+Currently , there are some resources readers and writers that can handle this interface.
+
+The examples will present the usage of the `Custom JSON` format.
+
+All of these examples will require the following code:
+~~~C#
+using DotNetResourcesExtensions;
+
+public class DefaultFileReference : IFileReference
+{
+	public System.String FileName { get; set; }
+
+	public System.Type SavingType { get; set; }
+
+	public FileReferenceEncoding Encoding { get; set; }
+}
+~~~
+
+Example 1: Use a text file that contains plain text and get it's data as a string.
+
+Let's say that we have a file in the root of drive C named cats.txt , which contains cat names delimited with newlines.
+You want this file to be saved as a string.
+
+~~~C#
+using DotNetResourcesExtensions;
+
+public void Any(JSONResourcesWriter writer)
+{
+	DefaultFileReference reference = new() { FileName = "C:\\cats.txt" , SavingType = typeof(string) , Encoding = FileReferenceEncoding.UTF8 };
+	writer.AddFileReference("name" , reference);
+}
+~~~
+
+Note that the file may have any possible encoding; make sure that you provide the correct file encoding in Encoding property.
+
+Example 2: Use any file to be included in the list of resources.
+
+Supposing that in a build you want to embed an executable inside a resource file to be executed by the app that has the resources later.
+
+You specify , so a file reference that it's `SavingType` gets a value of `typeof(byte[])`:
+~~~C#
+using DotNetResourcesExtensions;
+
+public void Any(JSONResourcesWriter writer)
+{
+	DefaultFileReference reference = new() { FileName = "Path/To/File" , SavingType = typeof(byte[]) };
+	writer.AddFileReference("name" , reference);
+}
+~~~
+
+Be noted that setting the `Encoding` property is not useful here: 
+You want binary data , not a string resource. 
+
+Be noted that the `Encoding` property is only supported for those file references which their `SavingType` 
+property is `System.String` and nothing else. By default , it will give a value to serialize it. This property is never reached for other types.
+
+Example 3: Use an image file but get it as a `System.Drawing.Bitmap` object.
+
+In WinForms is very much common to see that any image is always encapsulated in a `System.Drawing.Bitmap` object.
+
+Supposing that we want to include an image file to be embedded in the list of resources.
+
+Instead of defining the bytearray type , you define in it's place the `Bitmap` class:
+
+~~~C#
+using DotNetResourcesExtensions;
+
+public void Any(JSONResourcesWriter writer)
+{
+	DefaultFileReference reference = new() { FileName = "Path/To/Image/File" , SavingType = typeof(System.Drawing.Bitmap) };
+	writer.AddFileReference("name" , reference);
+}
+~~~
+
+So , when you will retrieve the resource with name 'name' you will see that you have instead a `Bitmap` instead of arbitrary information.
+
 [Back to Index](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Main.md)

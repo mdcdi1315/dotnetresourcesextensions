@@ -49,6 +49,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
 #endif
 #if NET7_0_OR_GREATER // For all .NET Core flavors only
                 typeof(System.DateOnly).AssemblyQualifiedName,
+                typeof(System.TimeOnly).AssemblyQualifiedName,
                 typeof(System.Half).AssemblyQualifiedName,
                 typeof(System.UInt128).AssemblyQualifiedName,
                 typeof(System.Int128).AssemblyQualifiedName,
@@ -139,9 +140,9 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter
         public System.Boolean Satisfies(AssemblyQualifiedNamesBreaker other)
         {
             if (other is null) { throw new ArgumentNullException(nameof(other)); }
-            System.Diagnostics.Debug.WriteLine(
-                $"SATISFIES: this.FullTypeName={FullTypeName} other.FullTypeName={other.FullTypeName} other.name.Version={other.name.Version} this.MinimumRequiredVersion={MinimumRequiredVersion}");
-            return other.FullTypeName == FullTypeName && other.name.Version >= MinimumRequiredVersion;
+            System.Boolean result = other.FullTypeName == FullTypeName && other.name.Version >= MinimumRequiredVersion;
+            System.Diagnostics.Debug.WriteLine($"SATISFIES: ({FullTypeName} and {other.FullTypeName}): {result}");
+            return result;
         }
 
         public System.Boolean Equals(AssemblyQualifiedNamesBreaker other)
