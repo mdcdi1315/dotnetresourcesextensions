@@ -79,23 +79,24 @@ namespace DotNetResourcesExtensions
         /// <inheritdoc />
         public System.Boolean IsStreamOwner { get => strmown; set => strmown = value; }
 
-        private (System.Byte[] , System.Type) GetObjectAsBytes(System.Object obj)
+        private (System.Byte[] , System.String) GetObjectAsBytes(System.Object obj)
         {
             if (obj is null) { throw new ArgumentNullException(nameof(obj)); }
             System.String dt;
             if (obj is System.Byte[] bt) {
-                dt = bt.ToBase64();
-                dt = MsIniStringsEncoder.Encode(dt);
-                return (encoding.GetBytes(dt) , obj.GetType());
+                dt = MsIniStringsEncoder.Encode(bt.ToBase64());
+                return (encoding.GetBytes(dt), obj.GetType().AssemblyQualifiedName);
             } else if (obj is System.String str) {
                 dt = MsIniStringsEncoder.Encode(str);
-                return (encoding.GetBytes(dt), obj.GetType());
+                return (encoding.GetBytes(dt), obj.GetType().AssemblyQualifiedName);
+            } else if (obj is IFileReference reference) {
+                dt = MsIniStringsEncoder.Encode(reference.ToSerializedString());
+                return (encoding.GetBytes(dt), MsIniConstants.SpecialIFileReferenceTypeStr);
             } else {
                 System.Byte[] one = fmt.GetBytesFromObject(obj);
-                dt = one.ToBase64();
-                dt = MsIniStringsEncoder.Encode(dt);
+                dt = MsIniStringsEncoder.Encode(one.ToBase64());
                 one = null;
-                return (encoding.GetBytes(dt) , obj.GetType());
+                return (encoding.GetBytes(dt), obj.GetType().AssemblyQualifiedName);
             }
         }
 
@@ -131,7 +132,7 @@ namespace DotNetResourcesExtensions
             stream.WriteByte(MsIniConstants.Enter);
             WriteString($"{pair.Key}.Type");
             stream.WriteByte(MsIniConstants.ValueDelimiter);
-            WriteString(dt.Item2.AssemblyQualifiedName);
+            WriteString(dt.Item2);
             stream.WriteByte(MsIniConstants.Enter);
             WriteString(MsIniConstants.ResourceValue);
             stream.WriteByte(MsIniConstants.ValueDelimiter);
@@ -154,20 +155,19 @@ namespace DotNetResourcesExtensions
 
         private void GenerateHeaderEntity()
         {
-            System.Byte[] data = System.Text.Encoding.ASCII.GetBytes($"; ENCODING: \"{encoding.CodePage}\"\n");
+            System.Byte[] data = System.Text.Encoding.ASCII.GetBytes($"; ENCODING: \"{ParserHelpers.NumberToString(encoding.CodePage)}\"\n");
             stream.Write(data, 0, data.Length);
             data = null;
             WriteComment("Auto-Generated Context From DotNetResourcesExtensions.MsIniResourcesWriter .NET class");
             WriteComment("=====================NOTE=======================");
             WriteComment("This is not \'syntactically\' valid MS-INI syntax. It just uses it so as to provide an encoding base on how to retrieve the resources defined in such files.");
             WriteComment("=====================NOTE=======================");
-            System.String en = MsIniConstants.HeaderString;
             Dictionary<System.String, System.Object> rd = new()
             {
                 { "Version", MsIniConstants.Version },
                 { MsIniConstants.ResMask, (System.Int32)MsIniConstants.Mask }
             };
-            GenerateEntityWithValues(en, rd);
+            GenerateEntityWithValues(MsIniConstants.HeaderString, rd);
             stream.WriteByte(MsIniConstants.Enter);
             stream.WriteByte(MsIniConstants.Enter);
             stream.WriteByte(MsIniConstants.EntityStart);
@@ -192,8 +192,18 @@ namespace DotNetResourcesExtensions
         /// <inheritdoc />
         public void AddResource(System.String name , System.Object value)
         {
-            if (value is null) { throw new ArgumentNullException(nameof(name)); }
+            if (value is null) { throw new ArgumentNullException(nameof(value)); }
             WriteEntryAndValue(new(name, value));
+        }
+
+        /// <summary>
+        /// Writes a new file reference to the list of resources to be written.
+        /// </summary>
+        /// <param name="name">The resource name under which the reference will be retrieved.</param>
+        /// <param name="reference">The reference to add.</param>
+        public void AddFileReference(System.String name , IFileReference reference)
+        {
+            WriteEntryAndValue(new(name, reference));
         }
 
         /// <summary>

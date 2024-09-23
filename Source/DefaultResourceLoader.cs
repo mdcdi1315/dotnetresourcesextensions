@@ -86,13 +86,6 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="Name">The resource name to look up.</param>
         /// <returns>The string resource defined by <paramref name="Name"/>.</returns>
-        /// <remarks>
-        /// In order to provide optimization results , instead of each string resource is looked up multiple times , 
-        /// it is saved to the process memory. <br />
-        /// This has as a result to optimize some things and avoids calling a lot of times the resource lookup service. <br />
-        /// Note: If that collection has more than 50 elements , these are deleted and new ones take their place.  <br />
-        /// This is done for memory management reasons.
-        /// </remarks>
         /// <exception cref="ResourceNotFoundException">The specified resource was not found.</exception>
         public virtual System.String GetStringResource(System.String Name)
         {

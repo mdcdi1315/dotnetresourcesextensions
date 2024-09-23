@@ -567,10 +567,11 @@ namespace ResourceEditor
                             break;
                     }
                     RL = new(Helper.CreateReader(selected, file));
-                    if (RL == null) { Helper.ShowErrorMessage("Reading the resource file failed unexpectedly."); StatusTextBox.Text = "Failed to read the specified resource file."; return; }
+                    if (RL is null) { Helper.ShowErrorMessage("Reading the resource file failed unexpectedly."); StatusTextBox.Text = "Failed to read the specified resource file."; return; }
                     ResourceView.SmallImageList = null;
                     ResourceView.BeginUpdate();
                     ResourceView.Items.Clear();
+                    objects.Clear();
                     System.Int32 d;
                     StatusTextBox.Text = "Reading resource entries...";
                     foreach (IResourceEntry entry in RL)

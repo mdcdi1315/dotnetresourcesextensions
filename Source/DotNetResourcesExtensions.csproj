@@ -33,20 +33,25 @@
 		<IsPackable>True</IsPackable>
 		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageVersion>1.0.5</PackageVersion>
+		<PackageVersion>1.0.6</PackageVersion>
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
 		<PackageProjectUrl>http://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
 		<PackageReleaseNotes>v$(PackageVersion) release of DotNetResourcesExtensions package.
 For more additional details , visit $(PackageProjectUrl) .
-The JSON Format is now changed and it is more code-performant than ever , 
-and ensuring that is readable by humans just like the Custom XML Format became.
-Additionally , it fixes some minor bugs found throughout the library.
+This release mainly fixes minor stuff occured out after everyting is released.
+The Custom XML Format became more friendly by allowing the type attribute to be written also as a string that describes the type.
+This has not introduced a breaking change in the format since it is wholly optional but now is also the default option when writing a new file.
+You may also continue using the numeric method if you want to.
+In the Human Readable Format , users of it get more perf efficiency on large byte arrays and
+general core refectorations that is less error-prone.
+The MS-INI format also got fixed by a number of bugs and made also code-performant too.
+Additionally , users get fixes on some of built-in array representations about storing some major numeric types.
 </PackageReleaseNotes>
 		<Authors>mdcdi1315</Authors>
 		<AssemblyName>$(_ProjName)</AssemblyName>
-		<AssemblyVersion>1.0.0.5</AssemblyVersion>
+		<AssemblyVersion>1.0.0.6</AssemblyVersion>
 		<ProductName>$(_ProjName)</ProductName>
 		<Product>$(_ProjName) is a project that defines new possibilities on handling resources of a .NET application.
 Additionally , it defines new types for doing resource serializations never thought of.

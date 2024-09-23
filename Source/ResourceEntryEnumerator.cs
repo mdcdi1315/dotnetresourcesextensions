@@ -243,9 +243,7 @@ namespace DotNetResourcesExtensions.Collections
     /// This permits the user to create only one enumerator implementation for cases that the <see cref="IResourceEntryEnumerable"/> is implemented.<br />
     /// For example , when you need a System.Collections.Generic.IEnumerator&lt;IResourceEntry&gt; , you use an instance of this class and then cast to IEnumerator to get it.
     /// </summary>
-    public sealed class DualResourceEntryEnumerator : AbstractDualResourceEntryEnumerator , IResourceEntryEnumerator , 
-        IEnumerator<IResourceEntry> , IEnumerator<DictionaryEntry> , 
-        IEnumerator<KeyValuePair<System.String , System.Object>>
+    public sealed class DualResourceEntryEnumerator : AbstractDualResourceEntryEnumerator
     {
         private IResourceEntryEnumerator en;
 
@@ -333,7 +331,7 @@ namespace DotNetResourcesExtensions.Collections
         protected AbstractSimpleDualResourceEntryEnumerator() : base() { }
 
         /// <inheritdoc />
-        public override DictionaryEntry Entry => new(ResourceEntry.Name , ResourceEntry.Value);
+        public override DictionaryEntry Entry => ResourceEntry.AsDictionaryEntry();
 
         /// <inheritdoc />
         public override System.Object Key => ResourceEntry.Name;

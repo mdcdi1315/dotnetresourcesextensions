@@ -2,15 +2,16 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
 {
     using System.Drawing;
-    using System.Diagnostics.CodeAnalysis;
+    using System.Runtime.InteropServices;
+    using System.Runtime.CompilerServices;
 
 #if WINDOWS10_0_17763_0_OR_GREATER || NET471_OR_GREATER
     using System.Drawing.Imaging;
-    using System.Runtime.InteropServices;
 #endif
 
     internal sealed class DoubleRepresentation : DefaultArrayRepresentation<System.Double>
@@ -176,7 +177,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             {
                 // For serializing and getting the original DateTime , we need to call the ToBinary method.
                 // This is enough to encode all required data to represent this structure to bytes.
-                return System.BitConverter.GetBytes(datetime.ToBinary());
+                return datetime.ToBinary().GetBytes();
             }
             return Method;
         }
@@ -296,39 +297,67 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
 
     internal sealed class DecimalRepresentation : DefaultArrayRepresentation<System.Decimal>
     {
-        public override Converter<decimal, byte[]> GetTransformMethod()
+        // A pinnable structure that can cast directly to a byte array and the reverse
+        // This was created for System.Decimal.
+        // Purpose of this is to create a independent and simpler version for converting decimals.
+        // Although that there are already methods in UnsafeMethods class that convert decimals , 
+        // this structure acts just like the same manner as converting to bytes , but does that much more efficiently.
+        // Note that the decimal is not clearly an unmanaged type; just it is because it does exist as a native datatype.
+        [StructLayout(LayoutKind.Explicit, Size = 16)]
+        private unsafe struct DecimalPinnable
         {
-            System.Byte[] Method(System.Decimal dec)
+            public static DecimalPinnable GetPinnable(System.Decimal dec) => Unsafe.As<System.Decimal, DecimalPinnable>(ref dec);
+
+            public static DecimalPinnable GetFromBytes(System.Byte[] bytes , System.Int32 startindex)
             {
-                // To convert a Decimal , we must get it's bits , them convert the four int's 
-                // to bytes and return it.
-                System.Int32[] bits = System.Decimal.GetBits(dec);
-                // 4 int's * 4 bytes = 16 bytes in total.
-                System.Int32 int32size = sizeof(System.Int32);
-                System.Byte[] result = new System.Byte[bits.Length * int32size];
-                for (System.Int32 I = 0 , pos = 0; I < bits.Length; I++ , pos += int32size)
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (sizeof(DecimalPinnable) > bytes.Length - startindex) {
+                    throw new ArgumentException("There are not enough elements to copy so that the DecimalPinnable can be initialized.");
+                }
+                DecimalPinnable result = new();
+                fixed (System.Byte* ptr = &Unsafe.AsRef(result.pin))
                 {
-                    Array.ConstrainedCopy(bits[I].GetBytes() , 0 , result , pos , int32size);
+                    fixed (System.Byte* array = &bytes[startindex])
+                    {
+                        Unsafe.CopyBlockUnaligned(ptr, array, sizeof(DecimalPinnable).ToUInt32());
+                    }
                 }
                 return result;
             }
+
+            // Field that is used by unsafe operations to get the structure pointer directly. Do not make it read-only nor set any values to it.
+            [FieldOffset(0)]
+            private System.Byte pin;
+
+            [FieldOffset(0)]
+            public System.Int32 Flags;
+
+            [FieldOffset(4)]
+            public System.UInt32 Low32;
+
+            [FieldOffset(8)]
+            public System.UInt64 High32;
+
+            public readonly System.Span<System.Byte> GetBytes()
+            {
+                fixed (System.Byte* ptr = &Unsafe.AsRef(pin))
+                {
+                    return new System.Span<System.Byte>(ptr, sizeof(DecimalPinnable));
+                }
+            }
+
+            public readonly System.Decimal GetDecimal() => Unsafe.As<DecimalPinnable, System.Decimal>(ref Unsafe.AsRef(this));
+        }
+
+        public override Converter<decimal, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(System.Decimal dec) => DecimalPinnable.GetPinnable(dec).GetBytes().ToArray();
             return Method;
         }
 
         public override Converter<byte[], decimal> GetUntransformMethod()
         {
-            System.Decimal Method(System.Byte[] bytes)
-            {
-                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-                if (bytes.LongLength != 16) { throw new ArgumentException("The array size must be exactly 16 bytes.", nameof(bytes)); }
-                // Get back the int array as it was originally defined.
-                System.Int32[] bits = new System.Int32[4];
-                for (System.Int32 I = 0; I < 4; I++)
-                {
-                    bits[I] = bytes.ToInt32(I * 4);
-                }
-                return new(bits);
-            }
+            System.Decimal Method(System.Byte[] bytes) => DecimalPinnable.GetFromBytes(bytes, 0).GetDecimal();
             return Method;
         }
     }
@@ -585,32 +614,70 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
 
     internal sealed class Int128Representation : DefaultArrayRepresentation<System.Int128>
     {
+        [StructLayout(LayoutKind.Explicit , Size = 16)]
+        private unsafe struct PinnableInt128
+        {
+            public static PinnableInt128 GetPinnable(System.Int128 dec) => Unsafe.As<System.Int128, PinnableInt128>(ref dec);
+
+            public static PinnableInt128 GetFromBytes(System.Byte[] bytes, System.Int32 startindex)
+            {
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (sizeof(PinnableInt128) > bytes.Length - startindex)
+                {
+                    throw new ArgumentException("There are not enough elements to copy so that the pinnable can be initialized.");
+                }
+                PinnableInt128 result = new();
+                fixed (System.Byte* ptr = &Unsafe.AsRef(result.pin))
+                {
+                    fixed (System.Byte* array = &bytes[startindex])
+                    {
+                        Unsafe.CopyBlockUnaligned(ptr, array, sizeof(PinnableInt128).ToUInt32());
+                    }
+                }
+                return result;
+            }
+
+            // Field that is used by unsafe operations to get the structure pointer directly. Do not make it read-only nor set any values to it.
+            [FieldOffset(0)]
+            private System.Byte pin;
+
+            [FieldOffset(0)]
+            public System.Int64 Low64;
+
+            [FieldOffset(8)]
+            public System.Int64 High64;
+
+            public readonly System.Span<System.Byte> GetBytes()
+            {
+                fixed (System.Byte* ptr = &Unsafe.AsRef(pin))
+                {
+                    return new System.Span<System.Byte>(ptr, sizeof(PinnableInt128));
+                }
+            }
+
+            public readonly System.Int128 GetInt128() => Unsafe.As<PinnableInt128, System.Int128>(ref Unsafe.AsRef(this));
+        }
+
+        private static System.Int128 OldDecodeMethod(System.Byte[] bytes)
+        {
+            if (bytes.LongLength != DigitLength) { throw new ArgumentException($"The array length must be exactly {DigitLength} bytes."); }
+            Int128 result = 0, prg = 1;
+            if (bytes[0] == 0) { return result; } // If zero return as it is
+            for (System.Int32 I = bytes[1] + 1; I > 1; I--)
+            { // bytes[1] contain the number of digits , +1 to access the associated index
+                result += bytes[I] * prg;
+                prg *= 10;
+            }
+            if (bytes[0] == 1) { result = -result; } // When negative convert it to negative value.
+            return result;
+        }
+
+        private const System.Int32 ByteEncodedInt128Len = 16;
         private const System.Int32 DigitLength = 40 + 1; // 40 are the most characters produced by a negative Int128 number , plus it's minus sign , plus 1 for counting the number of digits.
 
         public override Converter<Int128, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.Int128 largeint)
-            {
-                // We cannot just extract the Int128 plainly. We will use , instead , the ToString method , 
-                // we will encode each one digit as a byte and we will save one byte for number sign and another one for the digit count.
-                System.String i128 = largeint.ToString();
-                System.Byte[] result = new System.Byte[DigitLength];
-                System.Byte sign = (System.Byte)((i128.Length == 1 && i128[0] == '0') ? 0 : 2); // 2 to indicate positive number , 1 to indicate a negative and 0 to indicate the number zero.
-                // If zero , return zero.
-                if (sign == 0) { return result; }
-                sign = (System.Byte)((i128.Length > 0 && i128[0] == '-') ? 1 : sign); // Check for negative number
-                result[1] = (System.Byte)((sign == 1) ? (i128.Length - 1) : i128.Length); // Write the number of digits.
-                System.Int32 J = 2;
-                // Proper conditions for negative Int128's
-                System.Int32 len = (sign == 1) ? DigitLength : DigitLength - 1;
-                for (System.Int32 I = (sign == 1) ? 1 : 0; I < len && I < i128.Length; I++)
-                {
-                    result[J] = (i128[I] - 48).ToByte(); J++; // ch-48 is the formula for accessing a number as a character , for example '0' - 48 would give 0.
-                }
-                i128 = null; // Destroy the allocated string
-                result[0] = sign; // Include the final sign value
-                return result;
-            }
+            System.Byte[] Method(System.Int128 largeint) => PinnableInt128.GetPinnable(largeint).GetBytes().ToArray();
             return Method;
         }
 
@@ -618,15 +685,10 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
         {
             Int128 Method(System.Byte[] bytes)
             {
-                if (bytes.LongLength != DigitLength) { throw new ArgumentException($"The array length must be exactly {DigitLength} bytes."); }
-                Int128 result = 0, prg = 1;
-                if (bytes[0] == 0) { return result; } // If zero return as it is
-                for (System.Int32 I = bytes[1] + 1; I > 1; I--) { // bytes[1] contain the number of digits , +1 to access the associated index
-                    result += bytes[I] * prg;
-                    prg *= 10;
-                }
-                if (bytes[0] == 1) { result = -result; } // When negative convert it to negative value.
-                return result;
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (bytes.Length == DigitLength) { return OldDecodeMethod(bytes); }
+                if (bytes.Length == ByteEncodedInt128Len) { return PinnableInt128.GetFromBytes(bytes, 0).GetInt128(); }
+                throw new ArgumentException($"The array size must be exactly {ByteEncodedInt128Len} bytes." , nameof(bytes));
             }
             return Method;
         }
@@ -634,26 +696,68 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
 
     internal sealed class UInt128Representation : DefaultArrayRepresentation<System.UInt128>
     {
+        [StructLayout(LayoutKind.Explicit, Size = 16)]
+        private unsafe struct PinnableUInt128
+        {
+            public static PinnableUInt128 GetPinnable(System.UInt128 dec) => Unsafe.As<System.UInt128, PinnableUInt128>(ref dec);
+
+            public static PinnableUInt128 GetFromBytes(System.Byte[] bytes, System.Int32 startindex)
+            {
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (sizeof(PinnableUInt128) > bytes.Length - startindex)
+                {
+                    throw new ArgumentException("There are not enough elements to copy so that the pinnable can be initialized.");
+                }
+                PinnableUInt128 result = new();
+                fixed (System.Byte* ptr = &Unsafe.AsRef(result.pin))
+                {
+                    fixed (System.Byte* array = &bytes[startindex])
+                    {
+                        Unsafe.CopyBlockUnaligned(ptr, array, sizeof(PinnableUInt128).ToUInt32());
+                    }
+                }
+                return result;
+            }
+
+            // Field that is used by unsafe operations to get the structure pointer directly. Do not make it read-only nor set any values to it.
+            [FieldOffset(0)]
+            private System.Byte pin;
+
+            [FieldOffset(0)]
+            public System.UInt64 Low64;
+
+            [FieldOffset(8)]
+            public System.UInt64 High64;
+
+            public readonly System.Span<System.Byte> GetBytes()
+            {
+                fixed (System.Byte* ptr = &Unsafe.AsRef(pin))
+                {
+                    return new System.Span<System.Byte>(ptr, sizeof(PinnableUInt128));
+                }
+            }
+
+            public readonly System.UInt128 GetUInt128() => Unsafe.As<PinnableUInt128, System.UInt128>(ref Unsafe.AsRef(this));
+        }
+
+        private static System.UInt128 OldDecodeMethod(System.Byte[] bytes)
+        {
+            if (bytes.LongLength != DigitLength) { throw new ArgumentException($"The array length must be exactly {DigitLength} bytes."); }
+            UInt128 result = 0, prg = 1;
+            for (System.Int32 I = bytes[0]; I > 0; I--)
+            {
+                result += bytes[I] * prg;
+                prg *= 10;
+            }
+            return result; // Even if it would be zero , zero it will return.
+        }
+
+        private const System.Int32 ByteEncodedUInt128Len = 16;
         private const System.Int32 DigitLength = 39 + 1; // 39 are the most characters produced by a UInt128 number , plus 1 for counting the number of digits.
 
         public override Converter<UInt128, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.UInt128 number) 
-            {
-                // Neither the BitConverter provide an overload for UInt128 , do it just like the Int128 way , 
-                // just we do not need a sign byte , and thus , less complexity is actually required.
-                System.Byte[] result = new System.Byte[DigitLength];
-                System.String u128 = number.ToString();
-                result[0] = (System.Byte)u128.Length; // we can directly set the result since we are not being bothered by signs.
-                if (number == 0) { return result; } // If our number is zero just plainly return the array in it's current state.
-                for (System.Int32 I = 0 , J = 1; I < u128.Length; I++)
-                {
-                    result[J] = (System.Byte)(u128[I] - 48); // Again the same transform formula
-                    J++;
-                }
-                u128 = null;
-                return result;
-            }
+            System.Byte[] Method(System.UInt128 number) => PinnableUInt128.GetPinnable(number).GetBytes().ToArray();
             return Method;
         }
 
@@ -661,13 +765,10 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
         {
             System.UInt128 Method(System.Byte[] bytes)
             {
-                if (bytes.LongLength != DigitLength) { throw new ArgumentException($"The array length must be exactly {DigitLength} bytes."); }
-                UInt128 result = 0 , prg = 1;
-                for (System.Int32 I = bytes[0]; I > 0; I--) {
-                    result += bytes[I] * prg;
-                    prg *= 10;
-                }
-                return result; // Even if it would be zero , zero it will return.
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (bytes.Length == DigitLength) { return OldDecodeMethod(bytes); }
+                if (bytes.Length == ByteEncodedUInt128Len) { return PinnableUInt128.GetFromBytes(bytes, 0).GetUInt128(); }
+                throw new ArgumentException($"The array size must be exactly {ByteEncodedUInt128Len} bytes.", nameof(bytes));
             }
             return Method;
         }
@@ -675,24 +776,53 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
 
     internal sealed class DateOnlyRepresentation : DefaultArrayRepresentation<System.DateOnly>
     {
-        private const System.Int32 Size = 6;
+        [StructLayout(LayoutKind.Explicit, Size = 4)]
+        private unsafe struct PinnableDateOnly
+        {
+            public static PinnableDateOnly GetPinnable(System.DateOnly dec) => Unsafe.As<System.DateOnly, PinnableDateOnly>(ref dec);
+
+            public static PinnableDateOnly GetFromBytes(System.Byte[] bytes, System.Int32 startindex)
+            {
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (sizeof(PinnableDateOnly) > bytes.Length - startindex)
+                {
+                    throw new ArgumentException("There are not enough elements to copy so that the pinnable can be initialized.");
+                }
+                PinnableDateOnly result = new();
+                fixed (System.Byte* ptr = &Unsafe.AsRef(result.pin))
+                {
+                    fixed (System.Byte* array = &bytes[startindex])
+                    {
+                        Unsafe.CopyBlockUnaligned(ptr, array, sizeof(PinnableDateOnly).ToUInt32());
+                    }
+                }
+                return result;
+            }
+
+            // Field that is used by unsafe operations to get the structure pointer directly. Do not make it read-only nor set any values to it.
+            [FieldOffset(0)]
+            private System.Byte pin;
+
+            [FieldOffset(0)]
+            public System.Int32 Day;
+
+            public readonly System.Span<System.Byte> GetBytes()
+            {
+                fixed (System.Byte* ptr = &Unsafe.AsRef(pin))
+                {
+                    return new System.Span<System.Byte>(ptr, sizeof(PinnableDateOnly));
+                }
+            }
+
+            public readonly System.DateOnly GetDateOnly() => Unsafe.As<PinnableDateOnly, System.DateOnly>(ref Unsafe.AsRef(this));
+        }
+
+        private const System.Int32 ByteSize = 4;
+        private const System.Int32 OldSize = 6;
 
         public override Converter<DateOnly, byte[]> GetTransformMethod()
         {
-            System.Byte[] Method(System.DateOnly dt)
-            {
-                // To encode the DateOnly , I will use three fields to represent it to a byte array and the reverse.
-                // The Day is a number from 1 to 31 at most so it can be encoded to a byte.
-                // The Month is a number from 1 to 12 at most so it can be encoded to a byte.
-                // The Year has a range (let's say) from 1 to System.Int32.MaxValue ,so the BitConverter will be called for it.
-                // Total serialized size: 6 bytes.
-                System.Byte[] result = new System.Byte[Size];
-                result[0] = (System.Byte)(dt.Day); // Encode the day
-                result[1] = (System.Byte)(dt.Month); // Encode the month
-                System.Byte[] temp = dt.Year.GetBytes(); // Get the year to bytes
-                System.Array.ConstrainedCopy(temp, 0, result, 2, 4); // Copy it to the final array
-                return result;
-            }
+            System.Byte[] Method(System.DateOnly dt) => dt.DayNumber.GetBytes();
             return Method;
         }
 
@@ -700,8 +830,32 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
         {
             DateOnly Method(System.Byte[] bytes)
             {
-                if (bytes.LongLength != Size) { throw new ArgumentException($"The array length must be exactly {Size} bytes."); }
+                if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+                if (bytes.Length == ByteSize) { return PinnableDateOnly.GetFromBytes(bytes , 0).GetDateOnly(); }
+                if (bytes.Length != OldSize) { throw new ArgumentException($"Array length must be exactly {ByteSize} bytes."); }
                 return new(bytes.ToInt32(2), bytes[1] , bytes[0]);
+            }
+            return Method;
+        }
+    }
+
+    internal sealed class TimeOnlyRepresentation : DefaultArrayRepresentation<System.TimeOnly>
+    {
+        private const System.Int32 Size = 8;
+
+        public override Converter<TimeOnly, byte[]> GetTransformMethod()
+        {
+            System.Byte[] Method(System.TimeOnly time) => time.Ticks.GetBytes();
+            return Method;
+        }
+
+        public override Converter<byte[], TimeOnly> GetUntransformMethod()
+        {
+            System.TimeOnly Method(System.Byte[] bytes)
+            {
+                if (bytes is null) { throw new System.ArgumentNullException(nameof(bytes)); }
+                if (bytes.LongLength != Size) { throw new System.ArgumentException($"The array length must be exactly {Size} bytes."); }
+                return new(bytes.ToInt64(0));
             }
             return Method;
         }

@@ -127,13 +127,13 @@
     <value>C# Source Files|*.cs|Visual Basic .NET Source Files|*.vb</value>
   </data>
   <data name="FileExtsWithBinaryClasses" xml:space="preserve">
-    <value>Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi|.NET binary .resources files|*.resources|Custom Binary Resources Files|*.resb</value>
+    <value>Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi|Human Readable Format Resource files|*.resh|.NET binary .resources files|*.resources|Custom Binary Resources Files|*.resb</value>
   </data>
   <data name="FileExtsWithBinaryClassesOpenOnly" xml:space="preserve">
-    <value>Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi|.NET binary .resources files (Read-Only)|*.resources|Custom Binary Resources Files (Read-Only)|*.resb</value>
+    <value>Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi|Human Readable Format Resource files|*.resh|.NET binary .resources files (Read-Only)|*.resources|Custom Binary Resources Files (Read-Only)|*.resb</value>
   </data>
   <data name="FileExtsWithoutBinaryClasses" xml:space="preserve">
-    <value>Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi</value>
+    <value>Custom JSON Resource files|*.resj|Custom XML Resource files|*.resxx|Custom ResX Resource files|*.rescx|ResX Resource files|*.resx|Custom MS-INI Resource files|*.resi|Human Readable Format Resource files|*.resh</value>
   </data>
   <data name="FinalizeResFileMsg" xml:space="preserve">
     <value>Are you sure that you want to finalize the current resource file?

@@ -378,4 +378,82 @@ Resource Name: {3}</value>
   <data name="DNTRESEXT_JSONFMT_WRITER_CLOSED" xml:space="preserve">
     <value>Cannot write additional resources after Close() is called.</value>
   </data>
+  <data name="DNTRESEXT_MSINIFMT_CANNOT_PARSE" xml:space="preserve">
+    <value>Cannot parse the resource because impartial data were retrieved.</value>
+  </data>
+  <data name="DNTRESEXT_MSINIFMT_VER_MISMATCH" xml:space="preserve">
+    <value>This reader cannot read this format version ({0}).</value>
+  </data>
+  <data name="DNTRESEXT_MSINIFMT_INVALID_DATA" xml:space="preserve">
+    <value>Could not read header data. This might not be the MS-INI DotNetResourcesExtensions format.</value>
+  </data>
+  <data name="DNTRESEXT_HRFMT_GENERIC_ERROR" xml:space="preserve">
+    <value>This is not the custom human-readable format. Error occured.</value>
+  </data>
+  <data name="DNTRESEXT_HRFMT_VER_MISMATCH" xml:space="preserve">
+    <value>The version read is higher than the version that this reader can read.</value>
+  </data>
+  <data name="DNTRESEXT_HRFMT_VERHDR_UNPARSEABLE" xml:space="preserve">
+    <value>Cannot parse the numeric value defined in 'version' header. Internal error occured.</value>
+  </data>
+  <data name="DNTRESEXT_HRFMT_CHUNK_INVALID" xml:space="preserve">
+    <value>Expected the chunk to be closed but instead it is malformed.</value>
+  </data>
+  <data name="DNTRESEXT_HRFMT_DATA_CORRUPTED" xml:space="preserve">
+    <value>Corrupted byte array was read. Expected to read at least {0} chunks but instead only the {1} chunks were successfully retrieved.</value>
+  </data>
+  <data name="DNTRESEXT_HRFMT_INVALID_DATA_LEN" xml:space="preserve">
+    <value>Expected to read {0} bytes but read {1} bytes.</value>
+  </data>
+  <data name="DNTRESEXT_HRFMT_INVALID_RESOURCEVAL_LAYOUT" xml:space="preserve">
+    <value>Expected the value to be ended , but the resource value does still continue. Have you forgotten to close the resource?</value>
+  </data>
+  <data name="DNTRESEXT_HRFMT_FILEREF_DOWNLOAD_UNSUPPORTED" xml:space="preserve">
+    <value>The human-readable format reader does not currently support downloading data from the Internet.</value>
+  </data>
+  <data name="DNTRESEXT_MSINIFMT_ENT_INVALID" xml:space="preserve">
+    <value>Could not find entity end. The entity might have been misconstructed.</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_DECODE_VERSION_NOT_FOUND" xml:space="preserve">
+    <value>A decoder version was not found. Internal error detected.</value>
+  </data>
+  <data name="DNTRESEXT_JSONFMT_CANNOT_READ_HEADER" xml:space="preserve">
+    <value>This header cannot be read with this version of the class. Please use a reader that supports header version {0} or higher.</value>
+  </data>
+  <data name="DNTRESEXT_XMLFMT_DESER_FAILED" xml:space="preserve">
+    <value>A resource object deserialization error occured.</value>
+  </data>
+  <data name="DNTRESEXT_XMLFMT_TYPENOTSUPPORTED_V2" xml:space="preserve">
+    <value>This resource object type is not supported in version 2: {0}</value>
+  </data>
+  <data name="DNTRESEXT_XMLFMT_INVALID_RESULT_LENGTH" xml:space="preserve">
+    <value>Corrupted byte array detected. Expected to read {0} bytes while read {1} bytes.</value>
+  </data>
+  <data name="DNTRESEXT_XMLFMT_INVALID_CHUNK_NUMBER" xml:space="preserve">
+    <value>The byte array contents could not be read because not all expected chunks were read.</value>
+  </data>
+  <data name="DNTRESEXT_XMLFMT_TYPENOTSUPPORTED_V1" xml:space="preserve">
+    <value>This resource object type is not supported in version 1: {0}</value>
+  </data>
+  <data name="DNTRESEXT_XMLFMT_NO_CXML_HEADER_FOUND" xml:space="preserve">
+    <value>The XML Resources header was not found.</value>
+  </data>
+  <data name="DNTRESEXT_XMLFMT_VER_MISMATCH" xml:space="preserve">
+    <value>Attempted to load a version not supported by this class. These data require a reader that support version {0} or later.</value>
+  </data>
+  <data name="DNTRESEXT_XMLFMT_INVALID_MAGIC" xml:space="preserve">
+    <value>The magic value of the header is either unsupported or indicates data corruption.</value>
+  </data>
+  <data name="DNTRESEXT_MSINIFMT_INVALID_ENCODE_SEQUENCE" xml:space="preserve">
+    <value>Invalid or unknown sequence detected: '-{0}'</value>
+  </data>
+  <data name="DNTRESEXT_BINFMT_INVALID_DATA_LENGTH" xml:space="preserve">
+    <value>Read {0} bytes while expecting to read {1} bytes.</value>
+  </data>
+  <data name="DNTRESEXT_BINFMT_INVALID_TYPEID" xml:space="preserve">
+    <value>The format specifies that the resource types allowed are all up to {0} but read a value of {1} that is higher than the mask.</value>
+  </data>
+  <data name="DNTRESEXT_XMLFMT_CANNOT_PARSE_TYPE" xml:space="preserve">
+    <value>Could not parse the type defined in the 'type' attribute. Value was invalid.</value>
+  </data>
 </root>

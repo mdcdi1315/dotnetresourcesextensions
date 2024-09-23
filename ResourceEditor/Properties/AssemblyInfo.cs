@@ -5,12 +5,16 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("ResourceEditor")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("ResourceEditor")]
-[assembly: AssemblyCopyright("Copyright ©  2024")]
+[assembly: AssemblyTitle("Resource Editor For DotNetResourcesExtensions")]
+[assembly: AssemblyDescription("Resource Files Editor")]
+#if DEBUG
+[assembly: AssemblyConfiguration("Debug")]
+#else
+[assembly: AssemblyConfiguration("Release")]
+#endif
+[assembly: AssemblyCompany("© MDCDI1315 (2024).")]
+[assembly: AssemblyProduct("Resource Editor For Windows")]
+[assembly: AssemblyCopyright("Copyright © 2024 mdcdi1315. https://github.com/mdcdi1315/dotnetresourcesextensions")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
