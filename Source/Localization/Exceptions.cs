@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DotNetResourcesExtensions.Internal;
+using System;
 using System.Globalization;
 
 // This file contains exceptions related to localization subpart.
@@ -54,6 +55,41 @@ namespace DotNetResourcesExtensions
 
         /// <inheritdoc />
         public override string Message => $"The resource \'{resname}\' was not found because a localized reader with culture \'{info}\' was not found.";
+    }
+
+    /// <summary>
+    /// Exception class that is thrown when a localized reader has an invalid layout , as
+    /// such not having some expected resources , or the resources that contains are invalid.
+    /// </summary>
+    public sealed class InvalidLocalizedReaderLayoutException : DotNetResourcesException
+    {
+        private readonly string readername;
+
+        /// <summary>
+        /// Initializes a new instance of the class that had an invalid layout.
+        /// </summary>
+        /// <param name="readername">The reader type name that was invalid.</param>
+        public InvalidLocalizedReaderLayoutException(string readername)
+        {
+            this.readername = readername;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the class that had an invalid layout.
+        /// </summary>
+        /// <param name="readertype">The reader type that was invalid.</param>
+        public InvalidLocalizedReaderLayoutException(System.Type readertype)
+        {
+            readername = readertype is null ? "<Error>" : readertype.FullName;
+        }
+
+        /// <summary>
+        /// Gets the reader name that was invalid.
+        /// </summary>
+        public System.String Name => readername;
+
+        /// <inheritdoc />
+        public sealed override string Message => $"The reader \'{readername}\' had an invalid layout and cannot be used as any localized reader.";
     }
 
 }

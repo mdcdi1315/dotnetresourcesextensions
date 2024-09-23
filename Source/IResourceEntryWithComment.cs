@@ -227,5 +227,24 @@ namespace DotNetResourcesExtensions
         /// <param name="entry">The entry to test.</param>
         /// <returns>A value whether the given object is a object that implements the <see cref="IResourceEntryWithComment"/> interface.</returns>
         public static System.Boolean IsResourceEntryWithComment(this IResourceEntry entry) => entry is IResourceEntryWithComment;
+    
+        /// <summary>
+        /// Attempts to retrieve this resource entry as a instance of <see cref="IResourceEntryWithComment"/>.
+        /// </summary>
+        /// <param name="entry">The entry to test and retrieve for.</param>
+        /// <param name="entrywithcomment">The resulting instance , if <paramref name="entry"/> can be an <see cref="IResourceEntryWithComment"/> descendant.</param>
+        /// <returns><see langword="true"/> when the instance was successfully got as a <see cref="IResourceEntryWithComment"/> instance and <paramref name="entrywithcomment"/> contains the result; otherwise , <see langword="false"/>.</returns>
+        public static System.Boolean TryGetResourceEntryWithComment(this IResourceEntry entry , out IResourceEntryWithComment entrywithcomment)
+        {
+            System.Boolean ret;
+            if (entry is IResourceEntryWithComment cmt) {
+                ret = true;
+                entrywithcomment = cmt;
+            } else {
+                ret = false;
+                entrywithcomment = null;
+            }
+            return ret;
+        }
     }
 }

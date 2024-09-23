@@ -160,40 +160,27 @@ namespace DotNetResourcesExtensions.Localization
             {
                 if (de.Key.Equals(Name))
                 {
-                    // OK. The resource exist in the target.
-                    // Now detect if the culture provided does exist for this resource.
-                    foreach (var ci in GetCultures(de))
-                    {
-                        if (ci.LCID == culture.LCID) {
-                            // Then , inside the readers check again for the culture.
-                            foreach (var rdr in LocalizedReaders) 
-                            {
-                                if (rdr.SelectedCulture.LCID == ci.LCID)
-                                {
-                                    foreach (DictionaryEntry res in rdr) { 
-                                        if (res.Key.Equals(Name)) { 
-                                            if (typeof(T) != res.Value.GetType()) {
-                                                // Throw RTME if the resource was attempted to be retrieved in a different type.
-                                                throw new ResourceTypeMismatchException(typeof(T) , res.Value.GetType() , Name);
-                                            }
-                                            return (T)res.Value; 
-                                        } 
-                                    }
-                                    // If the reader has reached it's end and the resource does not exist , throw this exception.
-                                    throw new LocalizationNotFoundException(Name, culture);
-                                }
-                            }
-                        }
+                    // OK. The resource does exist in the index only.
+                    // Now the resource must exist in the culture list provided.
+                    // If not , you get an early-bound exception for misdefinition.
+                    if (CultureDoesExist(de , culture) == false) {
+                        // LNFE here because of misdefinition...
+                        throw new LocalizationNotFoundException(Name, culture);
                     }
-                    // If the reader was not found , throw this exception.
-                    throw new LocalizedReaderNotFoundException(Name, culture);
+                    // Now use the LoadLocalizedEntry method to get our resource...
+                    DictionaryEntry lde = LoadLocalizedEntry(Name, culture);
+                    if (typeof(T) != lde.Value.GetType()) {
+                        // Throw RTME classicly at such case...
+                        throw new ResourceTypeMismatchException(typeof(T) , lde.Value.GetType() , Name);
+                    }
+                    return (T)lde.Value;
                 }
             }
             // If the resource was not even found , throw an original ResourceNotFoundException.
             throw new ResourceNotFoundException(Name);
         }
 
-        private IEnumerable<CultureInfo> GetCultures(DictionaryEntry de)
+        private static IEnumerable<CultureInfo> GetCultures(DictionaryEntry de)
         {
             if (de.Value is System.String vd)
             {
@@ -202,6 +189,45 @@ namespace DotNetResourcesExtensions.Localization
                     yield return new CultureInfo(c);
                 }
             }
+        }
+
+        private static System.Boolean CultureDoesExist(DictionaryEntry de , CultureInfo culture)
+        {
+            System.Boolean result = false;
+            foreach (var ci in GetCultures(de))
+            {
+                if (ci.LCID == culture.LCID) { result = true; break; }
+            }
+            return result;
+        }
+
+        [System.Diagnostics.DebuggerHidden]
+        private DictionaryEntry LoadLocalizedEntry(System.String Name , CultureInfo culture)
+        {
+            LocalizedResourceReader reader = null;
+            foreach (var rdr in LocalizedReaders)
+            {
+                // The below line will be useful if we must do fallback.
+                if (rdr.SelectedCulture.LCID == invariantculture.LCID) { reader = rdr; }
+                if (rdr.SelectedCulture.LCID == culture.LCID)
+                {
+                    foreach (DictionaryEntry res in rdr)
+                    {
+                        if (res.Key.Equals(Name)) { return res; }
+                    }
+                    // If the reader has reached it's end and the resource does not exist , throw this exception.
+                    throw new LocalizationNotFoundException(Name, culture);
+                }
+            }
+            // There is still the possibility this to be null. Avoid that case.
+            if (reader is null) { throw new LocalizedReaderNotFoundException(Name, invariantculture); }
+            // The resource was not found , attempt to retrieve it using the invariant culture.
+            foreach (DictionaryEntry res in reader)
+            {
+                if (res.Key.Equals(Name)) { return res; }
+            }
+            // If even this does not work , then we must throw the exception.
+            throw new LocalizedReaderNotFoundException(Name, culture);
         }
 
         /// <summary>
@@ -281,14 +307,15 @@ namespace DotNetResourcesExtensions.Localization
         /// <returns><see langword="true"/> if disposal succeeded; otherwise , <see langword="false"/>.</returns>
         public System.Boolean DisposeLocalizedReader(CultureInfo culture) 
         {
+            // Do not delete the invariant reader at any way!
+            // Additionally , do not throw any exception for bad usage. Return false instead.
+            if (culture.LCID == invariantculture.LCID) { return false; }
             try {
                 for (System.Int32 I = 0; I < LocalizedReaders.Count; I++) 
                 {
                     if (LocalizedReaders[I].SelectedCulture.LCID == culture.LCID)
                     {
-                        // Do not delete the invariant reader at any way!
-                        // Additionally , do not throw any exception for bad usage. Return false instead.
-                        if (culture.LCID == invariantculture.LCID) { return false; }
+                        LocalizedReaders[I].Close();
                         LocalizedReaders[I].Dispose();
                         LocalizedReaders.RemoveAt(I);
                         return true;
