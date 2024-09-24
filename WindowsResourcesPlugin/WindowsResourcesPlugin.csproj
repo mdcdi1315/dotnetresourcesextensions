@@ -1,0 +1,56 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(NetCoreIdentifier);$(NetCoreWindowsIdentifier);netstandard2.0;$(NetFrameworkIdentifier)</TargetFrameworks>
+	<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+	<OutputType>Library</OutputType>
+	<RootNamespace>DotNetResourcesExtensions</RootNamespace>
+	<GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+	<AssemblyName>DotNetResourcesExtensions.NativeWindowsResources</AssemblyName>
+	<GenerateDocumentationFile>True</GenerateDocumentationFile>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<LangVersion>10.0</LangVersion>
+	<SignAssembly>True</SignAssembly>
+	<AssemblyOriginatorKeyFile>../ProjectKey.snk</AssemblyOriginatorKeyFile>
+	<IsPackable>true</IsPackable>
+	<PackageId>$(AssemblyName)</PackageId>
+	<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+	<PackageVersion>1.0.1</PackageVersion>
+	<PackageReleaseNotes>v$(PackageVersion) of the Windows Native Resources Reader package.
+The VsVersionInfoGetter class has been changed now and can read more information from the format.
+Bugfixes and improvements were also implemented.
+</PackageReleaseNotes>
+	<PackageIcon>ProjectImage.png</PackageIcon>
+	<PackageTags>resources windows win32 native</PackageTags>
+	<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
+	<Description>A plugin for the $(RootNamespace) project that provides a reader for reading native Win32 resources!</Description>
+	<PackageProjectUrl>https://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
+	<Authors>mdcdi1315</Authors>
+	<Copyright>© MDCDI1315 (2024). All work is licensed under the MIT License.</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="DeserializingWindowsResEntry.cs" />
+    <Compile Include="Exceptions.cs" />
+    <Compile Include="NativeStringsCollection.cs" />
+    <Compile Include="NativeWindowsResEntry.cs" />
+    <Compile Include="NativeWindowsResourcesEnumerator.cs" />
+    <Compile Include="NativeWindowsResourcesReader.cs" />
+    <Compile Include="VsVersionInfoGetter.cs" />
+    <Compile Include="VsVersionInfoGetter.StringTable.cs" />
+    <Compile Include="VsVersionInfoGetter.VsFileInformation.cs" />
+    <Compile Include="WindowsEntryType.cs" />
+	<Compile Include="Internal/*.cs" />
+	<None Include="$(MSBuildThisFileDirectory)/../LICENSE.txt" Pack="true" PackagePath="/" />
+	<None Include="$(MSBuildThisFileDirectory)/../ProjectImage.png" Pack="true" PackagePath="/" />
+	<None Include="./Pkg-Readme.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Reflection.Metadata" Version="8.0.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+	<ProjectReference Include="../Source/DotNetResourcesExtensions.csproj" />
+  </ItemGroup>
+	
+</Project>
