@@ -7,7 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotNetResourcesExtensions",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BuildTasks", "BuildTasks\BuildTasks.csproj", "{E445F71B-6318-4440-92D0-65EA89985D07}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResourceEditor", "ResourceEditor\ResourceEditor.csproj", "{513AF7C3-8B86-43CA-85E3-9733B18F623C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ResourceEditor", "ResourceEditor\ResourceEditor.csproj", "{513AF7C3-8B86-43CA-85E3-9733B18F623C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsResourcesPlugin", "WindowsResourcesPlugin\WindowsResourcesPlugin.csproj", "{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -69,6 +71,22 @@ Global
 		{513AF7C3-8B86-43CA-85E3-9733B18F623C}.Release|x64.Build.0 = Release|Any CPU
 		{513AF7C3-8B86-43CA-85E3-9733B18F623C}.Release|x86.ActiveCfg = Release|Any CPU
 		{513AF7C3-8B86-43CA-85E3-9733B18F623C}.Release|x86.Build.0 = Release|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Debug|x64.Build.0 = Debug|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Debug|x86.Build.0 = Debug|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Release|ARM64.Build.0 = Release|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Release|x64.ActiveCfg = Release|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Release|x64.Build.0 = Release|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Release|x86.ActiveCfg = Release|Any CPU
+		{D8ADDE33-13BD-4D34-96E0-966844EB8BD1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
