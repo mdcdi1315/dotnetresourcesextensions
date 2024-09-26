@@ -21,34 +21,44 @@ namespace DotNetResourcesExtensions
         /// <exception cref="System.FormatException">The entry cannot be created.</exception>
         public DeserializingWindowsResourceEntry(NativeWindowsResourceEntry entry)
         {
-            ExtensibleFormatter exf = new();
-            try
+            if (entry is null) { throw new System.ArgumentNullException(nameof(entry)); }
+            name = entry.Name.ToString();
+            switch (entry.NativeType)
             {
-                name = entry.Name.ToString();
-                switch (entry.NativeType)
-                {
 #if NET472_OR_GREATER || WINDOWS10_0_19041_0_OR_GREATER
-                    case WindowsResourceEntryType.RT_BITMAP:
-                        value = exf.GetObject<System.Drawing.Bitmap>(entry.Value);
-                        break;
-                    case WindowsResourceEntryType.RT_ICON:
-                        value = exf.GetObject<System.Drawing.Icon>(entry.Value);
-                        break;
+                case WindowsResourceEntryType.RT_BITMAP:
+                    SafeDeviceIndependentBitmapHandle SD = null;
+                    try {
+                        SD = new(entry);
+                        value = System.Drawing.Bitmap.FromHbitmap(SD.DangerousGetHandle());
+                    } finally {
+                        SD?.Dispose();
+                        SD = null;
+                    }
+                    break;
+                case WindowsResourceEntryType.RT_ICON:
+                    SafeIconHandle sih = null;
+                    try {  
+                        sih = new SafeIconHandle(entry);
+                        value = System.Drawing.Icon.FromHandle(sih.DangerousGetHandle());
+                    } finally { sih?.Dispose(); sih = null; }
+                    break;
 #endif
-                    case WindowsResourceEntryType.RT_RCDATA:
-                        value = entry.Value;
-                        break;
-                    case WindowsResourceEntryType.RT_STRING:
-                        value = new NativeStringsCollection(entry);
-                        break;
-                    case WindowsResourceEntryType.RT_VERSION:
-                        value = new VsVersionInfoGetter(entry);
-                        break;
-                    default:
-                    case WindowsResourceEntryType.Unknown:
-                        throw new System.FormatException("Cannot create a DeserializingWindowsResourceEntry instance from this entry.");
-                }
-            } finally { exf.Dispose(); exf = null; }
+                // Return RT_MANIFEST as plain array so that XML processors can process it if the user demands it.
+                case WindowsResourceEntryType.RT_MANIFEST: 
+                case WindowsResourceEntryType.RT_RCDATA:
+                    value = entry.Value;
+                    break;
+                case WindowsResourceEntryType.RT_STRING:
+                    value = new NativeStringsCollection(entry);
+                    break;
+                case WindowsResourceEntryType.RT_VERSION:
+                    value = new VsVersionInfoGetter(entry);
+                    break;
+                default:
+                case WindowsResourceEntryType.Unknown:
+                    throw new System.FormatException("Cannot create a DeserializingWindowsResourceEntry instance from this entry.");
+            }
         }
 
         /// <inheritdoc />

@@ -15,7 +15,7 @@
 	<IsPackable>true</IsPackable>
 	<PackageId>$(AssemblyName)</PackageId>
 	<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-	<PackageVersion>1.0.1</PackageVersion>
+	<PackageVersion>1.0.2</PackageVersion>
 	<PackageReleaseNotes>v$(PackageVersion) of the Windows Native Resources Reader package.
 The VsVersionInfoGetter class has been changed now and can read more information from the format.
 Bugfixes and improvements were also implemented.
@@ -31,12 +31,15 @@ Bugfixes and improvements were also implemented.
 
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="BitmapReader.cs" />
     <Compile Include="DeserializingWindowsResEntry.cs" />
     <Compile Include="Exceptions.cs" />
+    <Compile Include="NativeInterop.cs" />
     <Compile Include="NativeStringsCollection.cs" />
     <Compile Include="NativeWindowsResEntry.cs" />
     <Compile Include="NativeWindowsResourcesEnumerator.cs" />
     <Compile Include="NativeWindowsResourcesReader.cs" />
+    <Compile Include="SafeHandles.cs" />
     <Compile Include="VsVersionInfoGetter.cs" />
     <Compile Include="VsVersionInfoGetter.StringTable.cs" />
     <Compile Include="VsVersionInfoGetter.VsFileInformation.cs" />
