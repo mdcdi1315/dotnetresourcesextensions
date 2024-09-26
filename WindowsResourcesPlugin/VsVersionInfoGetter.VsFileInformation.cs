@@ -10,7 +10,7 @@ namespace DotNetResourcesExtensions
     [StructLayout(LayoutKind.Explicit, Size = 52)]
     public unsafe struct VsFileInformation
     {
-        /// /// <summary>
+        /// <summary>
         /// Reads an instance of this structure from plain bytes.
         /// </summary>
         /// <param name="bytes">The byte array to read from.</param>
@@ -22,7 +22,7 @@ namespace DotNetResourcesExtensions
         {
             if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
             if (sizeof(VsFileInformation) > bytes.Length - startindex) {
-                throw new ArgumentException("There are not enough elements to copy so that the DecimalPinnable can be initialized.");
+                throw new ArgumentException("There are not enough elements to copy so that the VsFileInformation structure can be initialized.");
             }
             VsFileInformation result = new();
             fixed (System.Byte* ptr = &Unsafe.AsRef(result.pin))
@@ -145,34 +145,47 @@ namespace DotNetResourcesExtensions
         }
         
         /// <summary>
-        /// Gets the binary version number defined from the 
+        /// Gets the version number defined from the 
         /// <see cref="FileVersionHigh"/> and <see cref="FileVersionLow"/> fields.
         /// </summary>
-        public readonly System.Byte[] Version
+        public readonly System.Version Version
         {
             get {
-                System.Byte[] result = new System.Byte[sizeof(System.UInt32) * 2];
-                System.Byte[] temp = System.BitConverter.GetBytes(FileVersionHigh);
-                Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(FileVersionLow);
-                Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                return result;
+                System.Byte[] high = System.BitConverter.GetBytes(FileVersionHigh) , 
+                    low = System.BitConverter.GetBytes(FileVersionLow);
+                return new(
+                    System.BitConverter.ToUInt16(high , 2),
+                    System.BitConverter.ToUInt16(high , 0),
+                    System.BitConverter.ToUInt16(low ,2),
+                    System.BitConverter.ToUInt16(low ,0));
             }
         }
 
         /// <summary>
-        /// Gets the binary version number defined from the 
+        /// Gets the product version number defined from the 
         /// <see cref="ProductVersionHigh"/> and <see cref="ProductVersionLow"/> fields.
         /// </summary>
-        public readonly System.Byte[] ProductVersion
+        public readonly System.Version ProductVersion
         {
             get {
-                System.Byte[] result = new System.Byte[sizeof(System.UInt32) * 2];
-                System.Byte[] temp = System.BitConverter.GetBytes(ProductVersionHigh);
-                Array.ConstrainedCopy(temp, 0, result, 0, 4);
-                temp = System.BitConverter.GetBytes(ProductVersionLow);
-                Array.ConstrainedCopy(temp, 0, result, 4, 4);
-                return result;
+                System.Byte[] high = System.BitConverter.GetBytes(ProductVersionHigh),
+                    low = System.BitConverter.GetBytes(ProductVersionLow);
+                return new(
+                    System.BitConverter.ToUInt16(high, 2),
+                    System.BitConverter.ToUInt16(high, 0),
+                    System.BitConverter.ToUInt16(low, 2),
+                    System.BitConverter.ToUInt16(low, 0));
+            }
+        }
+
+        /// <summary>
+        /// Gets the structure version field (<see cref="StructVersion"/>) as a <see cref="System.Version"/> instance.
+        /// </summary>
+        public readonly System.Version StructureVersion
+        {
+            get {
+                System.Byte[] bytes = System.BitConverter.GetBytes(StructVersion);
+                return new(System.BitConverter.ToUInt16(bytes, 2), System.BitConverter.ToUInt16(bytes, 0));
             }
         }
 
