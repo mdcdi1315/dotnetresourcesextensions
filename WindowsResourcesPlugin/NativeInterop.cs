@@ -188,54 +188,28 @@ internal static class Interop
             System.IntPtr dc = User32.GetDC(System.IntPtr.Zero);
             if (dc == IntPtr.Zero) { throw new ArgumentException("Could not inject device context. Creation failed."); }
             System.IntPtr dib;
-            // Must be NullRef at the beginning.
+            System.Int32 error = 0;
+            // The 'target' pointer must be NullRef at the beginning.
             // The CreateDeviceIndpendentBitmap will give us then a valid 'target'
-            // which can be fed to CopyBlockUnaligned.
+            // which can be fed to CopyBlockUnaligned to copy the bitmap data into it.
             fixed (System.Byte* target = &Unsafe.NullRef<System.Byte>())
             {
                 dib = CreateDeviceIndependentBitmap(dc, header, DIBColorType.DIB_RGB_COLORS, (void**)&target, System.IntPtr.Zero, 0);
                 // Do not allocate any data if is invalid , return handle as-it-is so that native interop can detect that.
                 // Otherwise the Unsafe.CopyBlockUnaligned would have indefinitely failed.
-                if (dib == IntPtr.Zero) { return dib; }
+                if (dib == IntPtr.Zero) { error = Marshal.GetLastWin32Error(); goto _done; }
                 System.Int32 size = RequiredBitMapBufferSize(header);
                 fixed (System.Byte* source = &raw[raw.Length - size])
                 {
                     Unsafe.CopyBlockUnaligned(target, source, (System.UInt32)size);
                 }
             }
+         _done:
             // These handles are not 'exactly' released. See the remarks on https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-releasedc.
-            User32.ReleaseDC(System.IntPtr.Zero, dc);
+            _ = User32.ReleaseDC(System.IntPtr.Zero, dc);
+            // Throw the native exception here, I cannot save the error on the thread of older frameworks.
+            if (error != 0) { throw new System.ComponentModel.Win32Exception(error); }
             return dib;
-        }
-
-        public static unsafe System.IntPtr DDBitmapToDIBitmap(System.IntPtr ddbitmap)
-        {
-            System.IntPtr dc = User32.GetDC(System.IntPtr.Zero);
-            if (dc == IntPtr.Zero) { throw new ArgumentException("Could not inject device context. Creation failed."); }
-            // To get a DIB , we need to get the attributes from the DDB.
-            BITMAPHEADER hdr = default;
-            hdr.Size = 36; // Required for GetBits_DI
-            hdr.BitCount = 0; // Required for GetBits_DI
-            if (GetBits_DI(dc, ddbitmap, 0, 0, null, ref hdr, DIBColorType.DIB_RGB_COLORS) == 0)
-            {
-                throw new ArgumentException("The query failed. This might suggest that the bitmap handle is corrupted.");
-            }
-            // We have the header now. So , initialize a buffer to pass in our desired information.
-            System.Int32 bufelements = RequiredBitMapBufferSize(hdr);
-            System.Byte[] temp = new System.Byte[bufelements + sizeof(BITMAPINFOHEADER)];
-            fixed (System.Byte* data = &temp[sizeof(BITMAPINFOHEADER)])
-            {
-                if (GetBits_DI(dc , ddbitmap , 0 , (System.UInt32)hdr.Height , data , ref hdr , DIBColorType.DIB_RGB_COLORS) != hdr.Height)
-                {
-                    throw new ArgumentException($"Could not retrieve all lines specified in {hdr.Height}. Creation failed.");
-                }
-            }
-            // Release the DC , we do not need it anymore.
-            User32.ReleaseDC(System.IntPtr.Zero, dc);
-            // Next step is to copy the bitmap header.
-            System.Byte[] headerbytes = hdr.GetHeader().GetBytes();
-            Array.ConstrainedCopy(headerbytes , 0 , temp, 0, headerbytes.Length);
-            return LoadDIBitmap(temp);
         }
 
         [DllImport(Libraries.Gdi32 , EntryPoint = "CreateDIBSection" , SetLastError = true)]

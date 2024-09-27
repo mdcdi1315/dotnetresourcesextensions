@@ -24,8 +24,8 @@ public partial class ResXFileRef : IFileReference
     /// </summary>
     public ResXFileRef(string fileName, string typeName)
     {
-        if (fileName == null) { throw new ArgumentNullException(nameof(fileName)); }
-        if (typeName == null) { throw new ArgumentNullException(nameof(typeName)); }
+        if (fileName is null) { throw new ArgumentNullException(nameof(fileName)); }
+        if (typeName is null) { throw new ArgumentNullException(nameof(typeName)); }
         FileName = fileName;
         TypeName = typeName;
     }
@@ -74,7 +74,7 @@ public partial class ResXFileRef : IFileReference
     /// <summary>
     /// Gets the encoding specified in the current <see cref="ResXFileRef"/> constructor.
     /// </summary>
-    public FileReferenceEncoding Encoding => TextFileEncoding == null ? FileReferenceEncoding.Undefined : TextFileEncoding.AsFileEncoding();
+    public FileReferenceEncoding Encoding => TextFileEncoding is null ? FileReferenceEncoding.Undefined : TextFileEncoding.AsFileEncoding();
 
     /// <summary>
     ///  path1+result = path2

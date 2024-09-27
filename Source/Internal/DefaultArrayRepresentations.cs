@@ -371,7 +371,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             // If boolean is true , stores 1 in the byte array.
             // If boolean is false , stores 0 in the byte array.
             System.Byte[] Method(System.Boolean boolean) => 
-                new System.Byte[1] { (System.Byte)(boolean ? 1 : 0) };
+                new System.Byte[1] { (boolean ? 1 : 0).ToByte() };
             return Method;
         }
 
@@ -1219,7 +1219,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
             {
                 stream = new MemoryStream(array);
             }
-            return Image.FromStream(stream);
+            return Bitmap.FromStream(stream);
         }
 
         public override Converter<Bitmap, byte[]> GetTransformMethod() => GetBytes;

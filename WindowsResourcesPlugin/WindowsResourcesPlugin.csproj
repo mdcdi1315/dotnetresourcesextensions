@@ -17,7 +17,10 @@
 	<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 	<PackageVersion>1.0.2</PackageVersion>
 	<PackageReleaseNotes>v$(PackageVersion) of the Windows Native Resources Reader package.
-The VsVersionInfoGetter class has been changed now and can read more information from the format.
+New API's as safe handles were added to read common image formats such as cursors , icons and bitmaps.
+Note that these API's can be only used from Windows (Since the interop signatures are for Windows). 
+For the bitmaps only , you can access them from all platforms from the BitmapReader class.
+The BitmapReader only applies to some kinds of bitmaps but it is a valid workaround for the equivalent safe handle method.
 Bugfixes and improvements were also implemented.
 </PackageReleaseNotes>
 	<PackageIcon>ProjectImage.png</PackageIcon>

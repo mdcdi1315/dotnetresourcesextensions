@@ -21,7 +21,7 @@ namespace DotNetResourcesExtensions.Internal.ResX;
 /// <summary>
 /// Represents an element in an XML resource (.resx) file.
 /// </summary>
-public sealed class ResXDataNode : ISerializable
+public sealed class ResXDataNode
 {
     private static readonly char[] s_specialChars = new char[] { ' ', '\r', '\n' };
 
@@ -37,7 +37,7 @@ public sealed class ResXDataNode : ISerializable
     private string? _fileRefTextEncoding;
 
     private object? _value;
-    private ResXFileRef? _fileRef;
+    private ResXFileRef _fileRef;
 
     private CustomFormatter.ICustomFormatter? _binaryFormatter;
 
@@ -51,9 +51,7 @@ public sealed class ResXDataNode : ISerializable
     // 2. once the object is constructed the delegate should not be changed to avoid getting inconsistent results.
     private Func<Type?, string>? _typeNameConverter;
 
-    private ResXDataNode()
-    {
-    }
+    private ResXDataNode() { }
 
     internal ResXDataNode DeepClone()
     {
@@ -157,15 +155,17 @@ public sealed class ResXDataNode : ISerializable
             nodeType = s_internalTypeResolver.GetType(_nodeInfo.TypeName, throwOnError: false, ignoreCase: true);
         }
 
-        if (nodeType is not null && nodeType.Equals(typeof(ResXFileRef)))
+        if (nodeType is not null && (nodeType.Equals(typeof(ResXFileRef)) || 
+            // Native ResX resources are embedded using the System.Resources.ResXFileRef class , but
+            // we can presume here that this is OK so we will create it as if it was a DotNetResourcesExtensions.Internal.ResX.ResXFileRef 
+            // class. This is not supported when writing resources using this class.
+            nodeType.FullName == "System.Resources.ResXFileRef"))
         {
             // We have a fileref, split the value data and populate the fields.
             string[] fileRefDetails = ResXFileRef.Converter.ParseResxFileRefString(_nodeInfo.ValueData);
             if (fileRefDetails is not null && fileRefDetails.Length > 1)
             {
-                _fileRefFullPath = !Path.IsPathRooted(fileRefDetails[0]) && basePath is not null
-                    ? Path.Combine(basePath, fileRefDetails[0])
-                    : fileRefDetails[0];
+                _fileRefFullPath = (!Path.IsPathRooted(fileRefDetails[0]) && basePath is not null) ? Path.Combine(basePath, fileRefDetails[0]) : fileRefDetails[0];
 
                 _fileRefType = fileRefDetails[1];
                 if (fileRefDetails.Length > 2)
@@ -210,14 +210,14 @@ public sealed class ResXDataNode : ISerializable
     {
         get
         {
-            if (FileRefFullPath is null)
-            {
+            if (_fileRefFullPath is null) {
                 return null;
             }
 
             Debug.Assert(FileRefType is not null);
 
-            return _fileRef ??= string.IsNullOrEmpty(FileRefTextEncoding)
+            // We have the fully qualified name for this type
+            return _fileRef ??= string.IsNullOrEmpty(_fileRefTextEncoding)
                 ? new ResXFileRef(FileRefFullPath, FileRefType!)
                 : new ResXFileRef(FileRefFullPath, FileRefType!, Encoding.GetEncoding(FileRefTextEncoding));
         }
@@ -432,13 +432,16 @@ public sealed class ResXDataNode : ISerializable
             return null;
         }
 
+        // We need to check this before initializing the formatter.
+        // If we call the formatter with this , the formatter would indefinitely throw an exception.
+        if (resservice.GetType(dataNodeInfo.TypeName) == typeof(ResXNullRef))
+        {
+            return null;
+        }
+
         _binaryFormatter ??= ExtensibleFormatter.Create();
 
         object? result = _binaryFormatter.GetObjectFromBytes(serializedData, resservice , dataNodeInfo.TypeName);
-        if (result is ResXNullRef)
-        {
-            result = null;
-        }
 
         return result;
     }
@@ -586,20 +589,15 @@ public sealed class ResXDataNode : ISerializable
             return _value;
         }
 
-        if (FileRefFullPath is not null)
+        if (FileRef is not null)
         {
             if (FileRefType is not null && ResolveType(FileRefType, typeResolver) is not null)
             {
-                // We have the fully qualified name for this type
-                _fileRef = FileRefTextEncoding is not null
-                    ? new ResXFileRef(FileRefFullPath, FileRefType, Encoding.GetEncoding(FileRefTextEncoding))
-                    : new ResXFileRef(FileRefFullPath, FileRefType);
                 return TypeDescriptor.GetConverter(typeof(ResXFileRef)).ConvertFrom(_fileRef.ToString());
             }
 
             throw new TypeLoadException(string.Format(Resources.TypeLoadExceptionShort, FileRefType));
-        }
-        else if (_nodeInfo?.ValueData is not null)
+        } else if (_nodeInfo?.ValueData is not null)
         {
             // We cannot currenly support the normal BinSerializedObjectMimeType , so it will be thrown an exception for this.
             if (_nodeInfo.MimeType == ResXResourceWriter.BinSerializedObjectMimeType)
@@ -670,7 +668,4 @@ public sealed class ResXDataNode : ISerializable
 
         return resolvedType ??= Type.GetType(typeName, throwOnError: false);
     }
-
-    void ISerializable.GetObjectData(SerializationInfo si, StreamingContext context)
-        => throw new PlatformNotSupportedException();
 }

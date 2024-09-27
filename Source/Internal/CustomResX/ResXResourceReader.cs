@@ -3,17 +3,16 @@
 
 using System;
 using System.IO;
-using System.Diagnostics;
+using System.Xml;
+using System.Reflection;
 using System.Resources;
 using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Drawing;
+using System.Diagnostics;
 using System.Globalization;
-using System.Reflection;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
+using System.ComponentModel.Design;
 using System.Diagnostics.CodeAnalysis;
-using System.Xml;
 using DotNetResourcesExtensions.Properties;
 
 namespace DotNetResourcesExtensions.Internal.ResX;
@@ -35,12 +34,8 @@ public partial class ResXResourceReader : IResourceReader
 
     private Dictionary<string, object>? _resData;
     private Dictionary<string, object>? _resMetadata;
-#pragma warning disable IDE0052 // Remove unread private members - for diagnostics
-    private string? _resHeaderVersion;
-#pragma warning restore IDE0052
-    private string? _resHeaderMimeType;
-    private string? _resHeaderReaderType;
-    private string? _resHeaderWriterType;
+    private ResXVersionData verdat;
+    private ResXCompatibilityVersion viu;
     private bool _useResXDataNodes;
 
     private ResXResourceReader(ITypeResolutionService? typeResolver)
@@ -229,18 +224,16 @@ public partial class ResXResourceReader : IResourceReader
     }
 
     /// <summary>
+    /// Specifies the ResX version that the reader currently reads out.
+    /// </summary>
+    public ResXCompatibilityVersion CurrentRunningVersion => viu;
+
+    /// <summary>
     ///  Closes any files or streams being used by the reader.
     /// </summary>
-    public void Close()
-    {
-        ((IDisposable)this).Dispose();
-    }
+    public void Close() { ((IDisposable)this).Dispose(); }
 
-    void IDisposable.Dispose()
-    {
-        GC.SuppressFinalize(this);
-        Dispose(true);
-    }
+    void IDisposable.Dispose() { GC.SuppressFinalize(this); Dispose(true); }
 
     /// <summary>
     /// Releases the unmanaged resources used by the <see cref="ResXResourceReader"/> and optionally releases the managed resources.
@@ -262,6 +255,8 @@ public partial class ResXResourceReader : IResourceReader
                 _reader = null;
             }
         }
+        viu = null;
+        verdat = null;
     }
 
     private static void SetupNameTable(XmlReader reader)
@@ -349,19 +344,13 @@ public partial class ResXResourceReader : IResourceReader
     ///  Creates a reader with the specified file contents.
     /// </summary>
     public static ResXResourceReader FromFileContents(string fileContents, ITypeResolutionService? typeResolver)
-        => new(typeResolver)
-        {
-            _fileContents = fileContents
-        };
+        => new(typeResolver) { _fileContents = fileContents };
 
     /// <summary>
     ///  Creates a reader with the specified file contents.
     /// </summary>
     public static ResXResourceReader FromFileContents(string fileContents, AssemblyName[] assemblyNames)
-        => new(assemblyNames)
-        {
-            _fileContents = fileContents
-        };
+        => new(assemblyNames) { _fileContents = fileContents };
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -479,38 +468,18 @@ public partial class ResXResourceReader : IResourceReader
             }
         }
 
-        bool validFile = false;
+        success = false;
 
-        if (_resHeaderMimeType == ResXResourceWriter.ResMimeType)
-        {
-            Type readerType = typeof(ResXResourceReader);
-            Type writerType = typeof(ResXResourceWriter);
+        try {
+            viu = ResXCompatibilityData.FindBestSuitableVersion(verdat);
+            success = true;
+        } catch (ArgumentException) { }
 
-            string? readerTypeName = _resHeaderReaderType;
-            string? writerTypeName = _resHeaderWriterType;
-            if (readerTypeName is not null && readerTypeName.IndexOf(',') != -1)
-            {
-                readerTypeName = readerTypeName.Split(',')[0].Trim();
-            }
-
-            if (writerTypeName is not null && writerTypeName.IndexOf(',') != -1)
-            {
-                writerTypeName = writerTypeName.Split(',')[0].Trim();
-            }
-
-            if (readerTypeName is not null &&
-                writerTypeName is not null &&
-                readerTypeName.Equals(readerType.FullName) &&
-                writerTypeName.Equals(writerType.FullName))
-            {
-                validFile = true;
-            }
-        }
-
-        if (!validFile)
+        if (!success)
         {
             _resData = null;
             _resMetadata = null;
+            viu = null;
             throw new ArgumentException(Resources.InvalidResXFileReaderWriterTypes);
         }
     }
@@ -523,6 +492,8 @@ public partial class ResXResourceReader : IResourceReader
             return;
         }
 
+        verdat ??= new();
+
         reader.ReadStartElement();
 
         // The "1.1" schema requires the correct casing of the strings in the resheader, however the "1.0" schema
@@ -530,35 +501,31 @@ public partial class ResXResourceReader : IResourceReader
 
         if (name == ResXResourceWriter.VersionStr)
         {
-            _resHeaderVersion = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
-        }
-        else if (name == ResXResourceWriter.ResMimeTypeStr)
+            verdat.Version = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
+        } else if (name == ResXResourceWriter.ResMimeTypeStr)
         {
-            _resHeaderMimeType = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
-        }
-        else if (name == ResXResourceWriter.ReaderStr)
+            verdat.ResourceMimeType = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
+        } else if (name == ResXResourceWriter.ReaderStr)
         {
-            _resHeaderReaderType = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
-        }
-        else if (name == ResXResourceWriter.WriterStr)
+            verdat.ReaderFullString = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
+        } else if (name == ResXResourceWriter.WriterStr)
         {
-            _resHeaderWriterType = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
-        }
-        else
+            verdat.WriterFullString = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
+        } else
         {
             switch (name.ToLower(CultureInfo.InvariantCulture))
             {
                 case ResXResourceWriter.VersionStr:
-                    _resHeaderVersion = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
+                    verdat.Version = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
                     break;
                 case ResXResourceWriter.ResMimeTypeStr:
-                    _resHeaderMimeType = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
+                    verdat.ResourceMimeType = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
                     break;
                 case ResXResourceWriter.ReaderStr:
-                    _resHeaderReaderType = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
+                    verdat.ReaderFullString = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
                     break;
                 case ResXResourceWriter.WriterStr:
-                    _resHeaderWriterType = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
+                    verdat.WriterFullString = reader.NodeType == XmlNodeType.Element ? reader.ReadElementString() : reader.Value.Trim();
                     break;
             }
         }
@@ -667,7 +634,7 @@ public partial class ResXResourceReader : IResourceReader
             throw new ArgumentException(string.Format(Resources.InvalidResXResourceNoName, nodeInfo.ValueData));
         }
 
-        ResXDataNode dataNode = new ResXDataNode(nodeInfo, BasePath);
+        ResXDataNode dataNode = new(nodeInfo, _basePath);
 
         if (UseResXDataNodes)
         {

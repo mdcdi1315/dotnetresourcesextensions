@@ -324,7 +324,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 
 	private unsafe int GetNameHash(int index)
 	{
-		if (_ums == null)
+		if (_ums is null)
 		{
 			return _nameHashes[index];
 		}
@@ -333,7 +333,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 
 	private unsafe int GetNamePosition(int index)
 	{
-		int num = ((_ums != null) ? ReadUnalignedI4(_namePositionsPtr + index) : _namePositions[index]);
+		int num = ((_ums is not null) ? ReadUnalignedI4(_namePositionsPtr + index) : _namePositions[index]);
 		if (num < 0 || num > _dataSectionOffset - _nameSectionOffset)
 		{
 			throw new FormatException(System.String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourcesNameInvalidOffset, num));
@@ -349,7 +349,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
     /// <returns>An enumerator for this <see cref="T:System.Resources.Extensions.DeserializingResourceReader" /> object.</returns>
     public IDictionaryEnumerator GetEnumerator()
 	{
-		if (_resCache == null)
+		if (_resCache is null)
 		{
 			throw new InvalidOperationException(DotNetResourcesExtensions.Properties.Resources.ResourceReaderIsClosed);
 		}
@@ -468,7 +468,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 			{
 				throw new BadImageFormatException(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_NegativeStringLength);
 			}
-			if (_ums != null)
+			if (_ums is not null)
 			{
 				if (_ums.Position > _ums.Length - num2)
 				{
@@ -562,7 +562,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				ResourceTypeCode resourceTypeCode = (ResourceTypeCode)num;
 				if (resourceTypeCode != ResourceTypeCode.String && resourceTypeCode != 0)
 				{
-					throw new InvalidOperationException(String.Format(DotNetResourcesExtensions.Properties.Resources.InvalidOperation_ResourceNotString_Type , (resourceTypeCode >= ResourceTypeCode.StartOfUserTypes) ? FindType((int)(resourceTypeCode - 64)).FullName : resourceTypeCode.ToString()));
+					throw new InvalidOperationException(String.Format(Properties.Resources.InvalidOperation_ResourceNotString_Type , (resourceTypeCode >= ResourceTypeCode.StartOfUserTypes) ? FindType((int)(resourceTypeCode - 64)).FullName : resourceTypeCode.ToString()));
 				}
 				if (resourceTypeCode ==	ResourceTypeCode.String)
 				{
@@ -754,7 +754,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				{
 					throw new BadImageFormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourceDataLengthInvalid, num2));
 				}
-				if (_ums == null)
+				if (_ums is null)
 				{
 					if (num2 > _store.BaseStream.Length)
 					{
@@ -777,7 +777,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				{
 					throw new BadImageFormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourceDataLengthInvalid, num));
 				}
-				if (_ums == null)
+				if (_ums is null)
 				{
 					byte[] array = _store.ReadBytes(num);
 					return new System.IO.PinnedBufferMemoryStream(array);
@@ -794,7 +794,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
                 {
                     throw new BadImageFormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourceDataLengthInvalid, len));
                 }
-                if (_ums == null)
+                if (_ums is null)
                 {
                     if (len > _store.BaseStream.Length)
                     {
@@ -900,7 +900,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				_store.ReadByte();
 			}
 		}
-		if (_ums == null)
+		if (_ums is null)
 		{
 			_nameHashes = new int[_numResources];
 			for (int k = 0; k < _numResources; k++)
@@ -919,7 +919,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 			_ums.Seek(num7, SeekOrigin.Current);
 			_ = _ums.PositionPointer;
 		}
-		if (_ums == null)
+		if (_ums is null)
 		{
 			_namePositions = new int[_numResources];
 			for (int l = 0; l < _numResources; l++)

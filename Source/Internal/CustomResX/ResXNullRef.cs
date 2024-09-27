@@ -16,5 +16,5 @@ internal sealed class ResXNullRef : IFileReference
 
     public Type SavingType => null;
 
-    public FileReferenceEncoding Encoding => FileReferenceEncoding.Binary;
+    public FileReferenceEncoding Encoding => FileReferenceEncoding.Undefined;
 }
