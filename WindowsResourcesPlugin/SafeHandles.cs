@@ -143,7 +143,8 @@ namespace DotNetResourcesExtensions
     /// Specifies the class for managing the device-dependent bitmap creation and disposal. <br />
     /// Unlike the other safe handles , this handle cannot be used in System.Drawing.Bitmap.FromHbitmap(System.IntPtr) method , because
     /// you need to pass also there a HDC handle and the class does not support such case. <br />
-    /// If you want to use the resource with the System.Drawing.Bitmap class , use either the <see cref="BitmapReader"/> or the <see cref="SafeDeviceIndependentBitmapHandle"/> classes. <br />
+    /// If you want to use the resource with the System.Drawing.Bitmap class , use either the <see cref="BitmapReader"/> , the <see cref="SafeDeviceIndependentBitmapHandle"/> 
+    /// , or if you have an instance of this class , use the <see cref="ToDeviceIndependentHandle"/> method to convert it to a <see cref="SafeDeviceIndependentBitmapHandle"/> class. <br />
     /// This class cannot be inherited.
     /// </summary>
     public sealed class SafeDeviceDependentBitmapHandle : SafeHandle , ICloneable
@@ -189,6 +190,22 @@ namespace DotNetResourcesExtensions
             return new SafeDeviceDependentBitmapHandle(copy);
         }
 
+        /// <summary>
+        /// Copies and converts the current bitmap handle to a device-independent bitmap handle. <br />
+        /// Although that the handle will be different than the current , they both represent the same bitmap.
+        /// </summary>
+        /// <returns>A cloned and converted instance of this instance.</returns>
+        /// <exception cref="InvalidOperationException">The handle was invalid.</exception>
+        /// <exception cref="ObjectDisposedException">The handle was disposed. Disposed handles cannot be copied.</exception> 
+        public SafeDeviceIndependentBitmapHandle ToDeviceIndependentHandle()
+        {
+            if (IsInvalid) { throw new InvalidOperationException("Cannot copy a handle which is invalid."); }
+            if (IsClosed) { throw new ObjectDisposedException(nameof(SafeDeviceDependentBitmapHandle), "Cannot copy from a disposed handle."); }
+            System.IntPtr copy = Interop.User32.CopyImage(handle, Interop.ImageCopyType.IMAGE_BITMAP, 0, 0, Interop.ImageCopyFlags.LR_DEFAULTCOLOR | Interop.ImageCopyFlags.LR_CREATEDIBSECTION);
+            if (copy == IntPtr.Zero) { Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error()); }
+            return new SafeDeviceIndependentBitmapHandle(copy);
+        }
+
         System.Object ICloneable.Clone() => Clone();
 
         /// <summary>
@@ -211,7 +228,7 @@ namespace DotNetResourcesExtensions
     {
         private SafeDeviceIndependentBitmapHandle() : base(IntPtr.Zero, true) { }
 
-        private SafeDeviceIndependentBitmapHandle(System.IntPtr copy) : this() { handle = copy; }
+        internal SafeDeviceIndependentBitmapHandle(System.IntPtr copy) : this() { handle = copy; }
 
         /// <summary>
         /// Creates a new instance of the <see cref="SafeDeviceIndependentBitmapHandle"/> class by using the specified native entry that contains the bitmap to load.
@@ -232,7 +249,6 @@ namespace DotNetResourcesExtensions
                 throw new ArgumentException("The entry's native type must be RT_BITMAP.");
             }
             handle = Interop.Gdi32.LoadDIBitmap(entry.Value);
-            if (IsInvalid) { Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error()); }
         }
 
         /// <summary>

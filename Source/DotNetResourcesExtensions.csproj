@@ -33,25 +33,20 @@
 		<IsPackable>True</IsPackable>
 		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageVersion>1.0.6</PackageVersion>
+		<PackageVersion>1.0.7</PackageVersion>
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
 		<PackageProjectUrl>http://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
 		<PackageReleaseNotes>v$(PackageVersion) release of DotNetResourcesExtensions package.
 For more additional details , visit $(PackageProjectUrl) .
-This release mainly fixes minor stuff occured out after everyting is released.
-The Custom XML Format became more friendly by allowing the type attribute to be written also as a string that describes the type.
-This has not introduced a breaking change in the format since it is wholly optional but now is also the default option when writing a new file.
-You may also continue using the numeric method if you want to.
-In the Human Readable Format , users of it get more perf efficiency on large byte arrays and
-general core refectorations that is less error-prone.
-The MS-INI format also got fixed by a number of bugs and made also code-performant too.
-Additionally , users get fixes on some of built-in array representations about storing some major numeric types.
+This release adresses the issue existing with the BuildTasks embeddability.
+Additionally , the internal ResX version can now handle ResX files from other ResX formats , for example
+the original Windows Forms ResX. Additionally , you can directly embed custom file references from the writer interface.
 </PackageReleaseNotes>
 		<Authors>mdcdi1315</Authors>
 		<AssemblyName>$(_ProjName)</AssemblyName>
-		<AssemblyVersion>1.0.0.6</AssemblyVersion>
+		<AssemblyVersion>1.0.0.7</AssemblyVersion>
 		<ProductName>$(_ProjName)</ProductName>
 		<Product>$(_ProjName) is a project that defines new possibilities on handling resources of a .NET application.
 Additionally , it defines new types for doing resource serializations never thought of.
@@ -63,6 +58,7 @@ Additionally , it defines new types for doing resource serializations never thou
 		<DebugType Condition="'$(Configuration)' == 'Debug'">Full</DebugType>
 		<AssemblyOriginatorKeyFile>..\ProjectKey.snk</AssemblyOriginatorKeyFile>
 		<SignAssembly>True</SignAssembly>
+		<EnableDefaultCompileItems>False</EnableDefaultCompileItems>
 		<DebugType Condition="'$(Configuration)' == 'Debug'">Full</DebugType>
 		<UseWPF Condition="'$(TargetFramework)' == '$(NetFrameworkIdentifier)' OR '$(TargetFramework)' == '$(NetCoreWindowsIdentifier)'">True</UseWPF>
 	</PropertyGroup>

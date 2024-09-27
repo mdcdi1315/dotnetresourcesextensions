@@ -333,7 +333,7 @@ public class ResXResourceWriter : IResourceWriter
 
     /// <summary>
     ///  Adds a resource to the resources. If the resource is a string, it will be saved that way, otherwise it
-    ///  will be serialized and stored with the rules of <see cref="Internal.CustomFormatter.ExtensibleFormatter"/> class.
+    ///  will be serialized and stored with the rules of <see cref="CustomFormatter.ExtensibleFormatter"/> class.
     /// </summary>
     public void AddResource(string name, object? value)
     {
@@ -353,7 +353,17 @@ public class ResXResourceWriter : IResourceWriter
     public void AddResource(string name, string? value) => AddDataRow(DataStr, name, value);
 
     /// <summary>
-    ///  Adds a string resource to the resources.
+    /// Adds a file reference to the list of resources to be written. <br />
+    /// If in case the <paramref name="reference"/> provided is a <see cref="ResXFileRef"/> , 
+    /// then it will be written out as it is. Otherwise , if it is other class instance of the interface , 
+    /// it's data will be copied to a new <see cref="ResXFileRef"/> and then will be saved.
+    /// </summary>
+    /// <param name="Name">The resource name of the new resource.</param>
+    /// <param name="reference">The file reference to be included.</param>
+    public void AddFileReference(System.String Name , IFileReference reference) => AddDataRow(DataStr, Name , reference);
+
+    /// <summary>
+    ///  Adds a wrapped data node resource to the resources.
     /// </summary>
     public void AddResource(ResXDataNode node)
     {
@@ -398,6 +408,13 @@ public class ResXResourceWriter : IResourceWriter
     private void AddDataRow(string elementName, string name, object? value)
     {
         if (s_resValueProviderSwitch.TraceVerbose) { System.Diagnostics.Trace.WriteLine($"  resx: adding resource {name}"); }
+        if (value?.GetType().FullName == "System.Resources.ResXFileRef")
+        {
+            // Attempted to create a System.Resources.ResXFileRef , this operation is invalid.
+            throw new InvalidOperationException("Invalid attempt to create a normal ResX File Reference. This writer only supports the provided ResX file reference.");
+        }
+        ResXDataNode node;
+        DataNodeInfo info;
         switch (value)
         {
             case string str:
@@ -407,19 +424,34 @@ public class ResXResourceWriter : IResourceWriter
                 AddDataRow(elementName, name, bytes);
                 break;
             case ResXFileRef fileRef: {
-                    ResXDataNode node = new ResXDataNode(name, fileRef, _typeNameConverter);
-                    DataNodeInfo info = node.GetDataNodeInfo();
+                    node = new ResXDataNode(name, fileRef, _typeNameConverter);
+                    info = node.GetDataNodeInfo();
                     AddDataRow(elementName, info.Name, info.ValueData, info.TypeName, info.MimeType, info.Comment);
                     break;
                 }
+            // Treat null file references as if were null strings.
+            case ResXNullRef:
+                AddDataRow(elementName, name, (System.String)null);
+                break;
+            // In case that it is not a ResXFileRef class but a class that derives from ResXFileRef , create a new typed
+            // ResXFileRef and embed that instead.
+            case IFileReference reference:
+                // Also remove any possible quotes found in reference.FileName.
+                ResXFileRef typedref = new(ParserHelpers.RemoveQuotes(reference.FileName), reference.SavingType.AssemblyQualifiedName, reference.AsEncoding());
+                node = new ResXDataNode(name, typedref, _typeNameConverter);
+                info = node.GetDataNodeInfo();
+                AddDataRow(elementName, info.Name, info.ValueData, info.TypeName, info.MimeType, info.Comment);
+                break;
 
             default: {
-                    ResXDataNode node = new ResXDataNode(name, value, _typeNameConverter);
-                    DataNodeInfo info = node.GetDataNodeInfo();
+                    node = new ResXDataNode(name, value, _typeNameConverter);
+                    info = node.GetDataNodeInfo();
                     AddDataRow(elementName, info.Name, info.ValueData, info.TypeName, info.MimeType, info.Comment);
                     break;
                 }
         }
+        node = null;
+        info = null;
     }
 
     /// <summary>
