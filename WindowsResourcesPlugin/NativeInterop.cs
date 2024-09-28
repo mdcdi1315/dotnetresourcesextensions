@@ -173,6 +173,15 @@ internal static class Interop
         public static System.Int32 RequiredBitMapBufferSize(BITMAPHEADER header)
             => (((header.Width * header.Planes * header.BitCount + 15) >> 4) << 1) * header.Height;
 
+        public static unsafe System.Int32 ColorTableEntriesInBytes(BITMAPINFOHEADER header , System.Int32 arraysize)
+        {
+            System.Int32 size = RequiredBitMapBufferSize(header);
+            System.Int32 hdrsize = sizeof(BITMAPINFOHEADER);
+            // We know the total size of the header + the data size , so find the color table bytes
+            // by using the arraysize parameter.
+            return arraysize - (hdrsize + size);
+        }
+
         public static unsafe System.IntPtr LoadBitmap(System.Byte[] raw)
         {
             BITMAPINFOHEADER header = BITMAPINFOHEADER.ReadFromArray(raw, 0);
@@ -402,7 +411,18 @@ internal static class Interop
         public static BITMAPHEADER ReadFromArray(System.Byte[] bytes, System.Int32 startindex)
         {
             if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-            if (sizeof(BITMAPHEADER) > bytes.Length - startindex)
+            System.UInt32 reqsize = (System.UInt32)sizeof(BITMAPHEADER);
+            // There are some cases that bytes do not contain at least 1060 bytes , so possibly the bitmap does not contain 256 tables.
+            // A helper function will help to calculate the exact required size to init the structure...
+            if (reqsize > bytes.Length - startindex)
+            {
+                reqsize = (System.UInt32)(sizeof(BITMAPINFOHEADER) + 
+                    Gdi32.ColorTableEntriesInBytes(
+                        BITMAPINFOHEADER.ReadFromArray(bytes , startindex) , 
+                        bytes.Length - startindex));
+            }
+            // We have the required size , we can initialize BITMAPHEADER without losing information.
+            if (reqsize > bytes.Length - startindex)
             {
                 throw new ArgumentException("There are not enough elements to copy so that the BITMAPHEADER structure can be initialized.");
             }
@@ -411,7 +431,7 @@ internal static class Interop
             {
                 fixed (System.Byte* array = &bytes[startindex])
                 {
-                    Unsafe.CopyBlockUnaligned(ptr, array, (System.UInt32)sizeof(BITMAPHEADER));
+                    Unsafe.CopyBlockUnaligned(ptr, array, reqsize);
                 }
             }
             return result;
@@ -456,17 +476,14 @@ internal static class Interop
         [FieldOffset(36)]
         public fixed System.Byte ColorTable[1024];
 
-        public readonly BITMAPFILEHEADER GetHeader()
+        public readonly BITMAPINFOHEADER GetHeader()
         {
-            System.Byte[] temp = new System.Byte[sizeof(BITMAPFILEHEADER)];
-            fixed (byte* tptr = temp) 
-            { 
-                fixed (System.Byte* source = &Unsafe.AsRef(pin))
-                {
-                    Unsafe.CopyBlockUnaligned(tptr , source , (System.UInt32)sizeof(BITMAPFILEHEADER));
-                }
+            BITMAPINFOHEADER result = new();
+            fixed (System.Byte* source = &Unsafe.AsRef(pin))
+            {
+                Unsafe.CopyBlockUnaligned(Unsafe.AsPointer(ref result), source, (System.UInt32)sizeof(BITMAPINFOHEADER));
             }
-            return BITMAPFILEHEADER.ReadFromArray(temp, 0);
+            return result;
         }
     }
 
