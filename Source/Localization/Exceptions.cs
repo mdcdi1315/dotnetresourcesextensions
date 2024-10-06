@@ -92,4 +92,28 @@ namespace DotNetResourcesExtensions
         public sealed override string Message => $"The reader \'{readername}\' had an invalid layout and cannot be used as any localized reader.";
     }
 
+    /// <summary>
+    /// Exception class that is thrown when a localization index reader has an invalid layout.
+    /// </summary>
+    public sealed class InvalidLocalizationIndexReaderLayout : DotNetResourcesException
+    {
+        private readonly System.Type rdtype;
+        private readonly System.String reason;
+
+        /// <summary>
+        /// Creates a new instance of <see cref="InvalidLocalizationIndexReaderLayout"/> class with the specified 
+        /// reader type that causes the exception and the parser message that is the root cause of this exception.
+        /// </summary>
+        /// <param name="rdtype">The reader type.</param>
+        /// <param name="message">The reason that the reader has an invalid layout.</param>
+        public InvalidLocalizationIndexReaderLayout(System.Type rdtype , System.String message)
+        {
+            this.rdtype = rdtype;
+            reason = message;
+        }
+
+        /// <inheritdoc />
+        public override string Message => $"The localized reader {rdtype.FullName} failed to comply with the localization index file rules because {reason}.";
+    }
+
 }

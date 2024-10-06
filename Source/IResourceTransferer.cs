@@ -7,7 +7,7 @@ namespace DotNetResourcesExtensions
 {
     /// <summary>
     /// The <see cref="IResourceTransferer"/> interface has the ability to transfer resources from one format to another. <br />
-    /// You can also consider think this interface as a 'Resource Copy' operation. <br />
+    /// You can also consider this interface as a 'Resource Copy' operation. <br />
     /// Additionally , you can add and more resources that the reader does not have , because this interface also implements the
     /// <see cref="System.Resources.IResourceWriter"/> interface.
     /// </summary>

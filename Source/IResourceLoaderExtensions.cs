@@ -91,13 +91,17 @@ namespace DotNetResourcesExtensions
         /// <returns>The type of the underlying resource value , if found; otherwise , <see langword="null"/>.</returns>
         public static System.Type GetResourceType(this IResourceLoader ldr , System.String name)
         {
-            foreach (var entry in ldr)
+            var en = ldr.GetEnumerator();
+            try
             {
-                if (entry.Name == name)
+                while (en.MoveNext())
                 {
-                    return entry.TypeOfValue;
+                    if (en.ResourceEntry.Name == name)
+                    {
+                        return en.ResourceEntry.TypeOfValue;
+                    }
                 }
-            }
+            } finally { en?.Dispose(); en = null; }
             return null;
         }
 
@@ -170,10 +174,14 @@ namespace DotNetResourcesExtensions
         /// <exception cref="ResourceNotFoundException">The specified resource name and type were not found.</exception>
         public static System.Object GetResource(this IResourceLoader ldr , System.String Name , System.Type underlyingtype)
         {
-            foreach (var entry in ldr)
+            var en = ldr.GetEnumerator();
+            try
             {
-                if (entry.Name == Name && underlyingtype == entry.TypeOfValue) { return entry.Value; }
-            }
+                while (en.MoveNext())
+                {
+                    if (en.ResourceEntry.Name == Name && underlyingtype == en.ResourceEntry.TypeOfValue) { return en.ResourceEntry.Value; }
+                }
+            } finally { en?.Dispose(); en = null; }
             throw new ResourceNotFoundException(Name);
         }
 
@@ -186,12 +194,58 @@ namespace DotNetResourcesExtensions
         /// <exception cref="ResourceNotFoundException">The specified resource name was not found.</exception>
         public static System.Object GetResource(this IResourceLoader ldr , System.String Name)
         {
-            foreach (var entry in ldr)
+            var en = ldr.GetEnumerator();
+            try
             {
-                if (entry.Name == Name) { return entry.Value; }
-            }
+                while (en.MoveNext())
+                {
+                    if (en.ResourceEntry.Name == Name) { return en.ResourceEntry.Value; }
+                }
+            } finally { en?.Dispose(); en = null; }
             throw new ResourceNotFoundException(Name);
         }
 
+        /// <summary>
+        /// Gets a formatted string resource from the specified resource loader.
+        /// </summary>
+        /// <param name="ldr">The resource loader instance.</param>
+        /// <param name="Name">The formatted string resource</param>
+        /// <param name="formatobjs">The format objects to replace before the format string is returned.</param>
+        /// <returns>A formatted string whose the objects specified in <paramref name="formatobjs"/> have been used in the format arguments.</returns>
+        /// <exception cref="ResourceNotFoundException">The specified resource name was not found.</exception>
+        /// <exception cref="ResourceTypeMismatchException">The resource was not a <see cref="System.String"/>.</exception>
+        /// <exception cref="FormatException">The string has not the proper format or the <paramref name="formatobjs"/> specified more format objects than the string resource can handle.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="formatobjs"/> were null.</exception>
+        public static System.String GetFormattedStringResource(this IResourceLoader ldr, System.String Name, params System.Object[] formatobjs)
+            => System.String.Format(ldr.GetStringResource(Name), formatobjs);
+
+        /// <summary>
+        /// Gets a formatted string resource from the specified resource loader.
+        /// </summary>
+        /// <param name="ldr">The resource loader instance.</param>
+        /// <param name="Name">The formatted string resource</param>
+        /// <param name="obj1">The format string to replace before the format string is returned.</param>
+        /// <returns>A formatted string whose the string <paramref name="obj1"/> has been used in the format arguments.</returns>
+        /// <exception cref="ResourceNotFoundException">The specified resource name was not found.</exception>
+        /// <exception cref="ResourceTypeMismatchException">The resource was not a <see cref="System.String"/>.</exception>
+        /// <exception cref="FormatException">The string has not the proper format.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="obj1"/> was null.</exception>
+        public static System.String GetFormattedStringResource(this IResourceLoader ldr , System.String Name , System.String obj1)
+            => System.String.Format(ldr.GetStringResource(Name), obj1);
+
+
+        /// <summary>
+        /// Gets a formatted string resource from the specified resource loader.
+        /// </summary>
+        /// <param name="ldr">The resource loader instance.</param>
+        /// <param name="Name">The formatted string resource</param>
+        /// <param name="obj1">The format object to replace before the format string is returned.</param>
+        /// <returns>A formatted string whose the object <paramref name="obj1"/> has been used in the format arguments.</returns>
+        /// <exception cref="ResourceNotFoundException">The specified resource name was not found.</exception>
+        /// <exception cref="ResourceTypeMismatchException">The resource was not a <see cref="System.String"/>.</exception>
+        /// <exception cref="FormatException">The string has not the proper format.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="obj1"/> was null.</exception>
+        public static System.String GetFormattedStringResource(this IResourceLoader ldr, System.String Name, System.Object obj1)
+            => System.String.Format(ldr.GetStringResource(Name), obj1);
     }
 }

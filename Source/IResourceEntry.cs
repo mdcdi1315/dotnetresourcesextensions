@@ -7,30 +7,6 @@ using System.Collections.Generic;
 
 namespace DotNetResourcesExtensions
 {
-
-    namespace Collections
-    {
-        /// <summary>
-        /// Compares two resource entries by their name. <br />
-        /// Usually the name is enough to infer that two resource entries are equal.
-        /// </summary>
-        public sealed class ResourceEntryComparer : Comparer<IResourceEntry>
-        {
-            /// <summary>
-            /// Compares two <see cref="IResourceEntry"/> instances.
-            /// </summary>
-            /// <param name="x">The first entry to compare.</param>
-            /// <param name="y">The second entry to compare.</param>
-            /// <returns><inheritdoc cref="Comparer{T}.Compare(T, T)"/></returns>
-            public override int Compare(IResourceEntry x, IResourceEntry y) => x.Name.CompareTo(y.Name);
-
-            /// <summary>
-            /// Creates a new instance of this resource entry comparer.
-            /// </summary>
-            public ResourceEntryComparer() : base() { }
-        }
-    }
-
     /// <summary>
     /// Defines a reusuable resource entry layout. <br />
     /// Primarily used in cases where resources must be programmatically retrieved.
@@ -124,6 +100,22 @@ namespace DotNetResourcesExtensions
         // these extension methods define.
         private sealed class TypedResourcesLoader : IResourceLoader , ICollection<IResourceEntry>
         {
+            private sealed class Enumerator : Collections.AbstractSimpleDualResourceEntryEnumerator
+            {
+                private IEnumerator<IResourceEntry> enumerator;
+
+                public Enumerator(IEnumerator<IResourceEntry> underlying)
+                {
+                    this.enumerator = underlying;
+                }
+
+                public override IResourceEntry ResourceEntry => enumerator.Current;
+
+                public override bool MoveNext() => enumerator.MoveNext();
+
+                public override void Reset() => enumerator.Reset();
+            }
+
             private List<IResourceEntry> resources;
 
             public TypedResourcesLoader() { resources = new(); }
@@ -156,8 +148,13 @@ namespace DotNetResourcesExtensions
 
             public ValueTask DisposeAsync() => new(Task.Run(Dispose));
 
-            public IAdvancedResourceEnumerator GetAdvancedResourceEnumerator()
-                => new IResourceEnumerableExtensions.DefaultAdvancedResourceEnumerator(resources.GetEnumerator());
+            /// <inheritdoc />
+            [Obsolete("This method is not any longer useful and will always throw an exception.", true)]
+            public ISimpleResourceEnumerator GetSimpleResourceEnumerator() => throw new NotSupportedException("This method is deprecated and will be removed in V3.");
+
+            /// <inheritdoc />
+            [Obsolete("This method is not any longer useful and will always throw an exception.", true)]
+            public IAdvancedResourceEnumerator GetAdvancedResourceEnumerator() => throw new NotSupportedException("This method is deprecated and will be removed in V3.");
 
             public IEnumerable<string> GetAllResourceNames()
             {
@@ -167,8 +164,7 @@ namespace DotNetResourcesExtensions
                 }
             }
 
-            public IFullResourceEnumerator GetEnumerator() 
-                => new IResourceEnumerableExtensions.DefaultFullResourceEnumerator(resources.GetEnumerator());
+            public Collections.IDualResourceEntryEnumerator GetEnumerator() => new Enumerator(resources.GetEnumerator());
 
             public IEnumerable<string> GetRelativeResources(string Name)
             {
@@ -204,9 +200,6 @@ namespace DotNetResourcesExtensions
                     if (dg.Name.StartsWith(start)) { yield return dg.Name; }
                 }
             }
-
-            public ISimpleResourceEnumerator GetSimpleResourceEnumerator()
-                => new IResourceEnumerableExtensions.DefaultSimpleResourceEnumerator(resources.GetEnumerator());
 
             public string GetStringResource(string Name) => GetResource<System.String>(Name);
         }
@@ -376,6 +369,8 @@ namespace DotNetResourcesExtensions
                 case "System.Half": 
                 case "System.Int128":
                 case "System.UInt128":
+                // Not exactly primitive , but treat as if it were one.
+                case "System.Decimal":
                     return true;
                 default:
                     return false;
@@ -433,7 +428,12 @@ namespace DotNetResourcesExtensions
         {
             if (loader is TypedResourcesLoader ld) { return ld; }
             List<IResourceEntry> entries = new();
-            foreach (IResourceEntry ent in loader) { entries.Add(ent); }
+            var en = loader.GetEnumerator();
+            while (en.MoveNext()) {
+                entries.Add(en.ResourceEntry);
+            }
+            en?.Dispose();
+            en = null;
             return entries;
         }
     }

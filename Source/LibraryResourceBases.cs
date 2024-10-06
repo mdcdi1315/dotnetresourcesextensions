@@ -1,5 +1,5 @@
-﻿using System.Collections;
-using System.Linq;
+﻿
+using System.Collections;
 using System.Resources;
 using DotNetResourcesExtensions.Internal;
 using DotNetResourcesExtensions.Internal.CustomFormatter;

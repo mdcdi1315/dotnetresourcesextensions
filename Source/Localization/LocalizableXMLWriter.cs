@@ -32,7 +32,7 @@ namespace DotNetResourcesExtensions.Localization
         {
             culture = CultureInfo.CurrentCulture;
             settings = new() { ConformanceLevel = System.Xml.ConformanceLevel.Document , Indent = true , CloseOutput = false };
-            isstreamowner = false;
+            _closed = isstreamowner = false;
         }
 
         /// <summary>
@@ -121,6 +121,7 @@ namespace DotNetResourcesExtensions.Localization
         /// <exception cref="System.ArgumentException"><paramref name="Name"/> has invalid naming characters.</exception>
         public override void AddResource(System.String Name , System.String Value)
         {
+            if (_closed) { throw new System.ObjectDisposedException(nameof(LocalizableXMLWriter)); }
             ParserHelpers.ValidateName(Name);
             if (Value is null) { throw new System.ArgumentNullException(nameof(Value)); }
             if (writer is null) { return; }
@@ -142,8 +143,9 @@ namespace DotNetResourcesExtensions.Localization
         /// <exception cref="System.ArgumentNullException">The <paramref name="entry"/> parameter or it's name is <see langword="null"/>.</exception>
         /// <exception cref="System.ArgumentException">The <paramref name="entry"/> parameter has a name that is invalid , or attempted to write a resource other than a string.</exception>
         /// <exception cref="System.InvalidOperationException">The culture that the <paramref name="entry"/> defines is different of what culture expects to contain only.</exception>
-        public override void AddLocalizableEntry(ILocalizedResourceEntry entry)
+        public override void AddLocalizedEntry(ILocalizedResourceEntry entry)
         {
+            if (_closed) { throw new System.ObjectDisposedException(nameof(LocalizableXMLWriter)); }
             if (entry is null) { throw new System.ArgumentNullException(nameof(entry)); }
             ParserHelpers.ValidateName(entry.Name);
             if (entry.TypeOfValue != typeof(System.String))
@@ -167,8 +169,9 @@ namespace DotNetResourcesExtensions.Localization
         }
 
         /// <inheritdoc/>
-        public sealed override void AddLocalizableEntry(ILocalizedResourceEntryWithComment entry)
+        public sealed override void AddLocalizedEntry(ILocalizedResourceEntryWithComment entry)
         {
+            if (_closed) { throw new System.ObjectDisposedException(nameof(LocalizableXMLWriter)); }
             if (entry is null) { throw new System.ArgumentNullException(nameof(entry)); }
             ParserHelpers.ValidateName(entry.Name);
             if (entry.TypeOfValue != typeof(System.String))
@@ -211,6 +214,7 @@ namespace DotNetResourcesExtensions.Localization
                 writer.Close();
                 try { stream.Flush(); } catch { }
                 stream.Close();
+                _closed = true;
             }
         }
 

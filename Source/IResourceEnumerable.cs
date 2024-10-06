@@ -1,8 +1,7 @@
 
-
-using System.Collections.Generic;
-using System.Collections;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace DotNetResourcesExtensions
 {
@@ -10,6 +9,7 @@ namespace DotNetResourcesExtensions
     /// Defines an advanced resource enumerator for cases that you need to progammatically
     /// access resources in a <see cref="IResourceLoader"/> interface.
     /// </summary>
+    [Obsolete(Obsoletions.EnumeratorsImplObsoletion,false)]
     public interface IAdvancedResourceEnumerator : IEnumerator<IResourceEntry>
     {
         /// <summary>
@@ -21,6 +21,7 @@ namespace DotNetResourcesExtensions
     /// <summary>
     /// Defines a simple resource enumerator.
     /// </summary>
+    [Obsolete(Obsoletions.EnumeratorsImplObsoletion , false)]
     public interface ISimpleResourceEnumerator : IEnumerator<IResourceEntry>
     {
         /// <summary>
@@ -39,12 +40,14 @@ namespace DotNetResourcesExtensions
     /// It is a dummy interface that defines both <see cref="IAdvancedResourceEnumerator"/> and <see cref="ISimpleResourceEnumerator"/>
     /// for the <see cref="IResourceEnumerable"/> interface needs.
     /// </summary>
+    [Obsolete(Obsoletions.EnumeratorsImplObsoletion, false)]
     public interface IFullResourceEnumerator : IAdvancedResourceEnumerator, ISimpleResourceEnumerator { }
 
     /// <summary>
     /// Defines a way to enumerate resources with multiple ways. <br />
     /// Note: This interface is not meant to be confused with <see cref="Collections.IResourceEntryEnumerable"/> 
-    /// because this one is for <see cref="IResourceLoader"/> , while the other is for using it inside collections.
+    /// because this one is for <see cref="IResourceLoader"/> , while the other is for using it inside collections. <br />
+    /// Be noted that there is now an effort to bridge this gap and provide the same usages if possible.
     /// </summary>
     public interface IResourceEnumerable
     {
@@ -52,19 +55,20 @@ namespace DotNetResourcesExtensions
         /// Gets a implementation of <see cref="IAdvancedResourceEnumerator"/> for enumerating the resources.
         /// </summary>
         /// <returns>An advanced resource enumerator.</returns>
+        [Obsolete(Obsoletions.AdvancedEnumeratorsObsoleted , false)]
         public IAdvancedResourceEnumerator GetAdvancedResourceEnumerator();
 
         /// <summary>
-        /// The default enumerator. Also combines the nature of both <see cref="ISimpleResourceEnumerator"/> and
-        /// <see cref="IFullResourceEnumerator"/> interfaces.
+        /// Gets the enumerator to iterate along all the resource entries that are defined in the current resource enumerable.
         /// </summary>
         /// <returns>An enumerator to iterate through all the resources that are defined.</returns>
-        public IFullResourceEnumerator GetEnumerator();
+        public Collections.IDualResourceEntryEnumerator GetEnumerator();
 
         /// <summary>
         /// Gets a implementation of <see cref="ISimpleResourceEnumerator"/> for enumerating the resources.
         /// </summary>
         /// <returns>A simple resource enumerator.</returns>
+        [Obsolete(Obsoletions.AdvancedEnumeratorsObsoleted, false)]
         public ISimpleResourceEnumerator GetSimpleResourceEnumerator();
     }
 
@@ -84,6 +88,7 @@ namespace DotNetResourcesExtensions
         /// Also used for the underlying enumerator implementations in <see cref="DefaultResourceLoader"/>
         /// and <see cref="OptimizedResourceLoader"/> classes..
         /// </summary>
+        [Obsolete(Obsoletions.EnumeratorNotSupported, true)]
         public sealed class DefaultFullResourceEnumerator : IFullResourceEnumerator
         {
             private IEnumerator<IResourceEntry> enumerator;
@@ -204,6 +209,7 @@ namespace DotNetResourcesExtensions
         /// Also used for the underlying enumerator implementations in <see cref="DefaultResourceLoader"/>
         /// and <see cref="OptimizedResourceLoader"/> classes..
         /// </summary>
+        [Obsolete(Obsoletions.EnumeratorNotSupported, true)]
         public sealed class DefaultAdvancedResourceEnumerator : IAdvancedResourceEnumerator
         {
             private IEnumerator<IResourceEntry> enumerator;
@@ -288,6 +294,7 @@ namespace DotNetResourcesExtensions
         /// Also used for the underlying enumerator implementations in <see cref="DefaultResourceLoader"/>
         /// and <see cref="OptimizedResourceLoader"/> classes..
         /// </summary>
+        [Obsolete(Obsoletions.EnumeratorNotSupported , true)]
         public sealed class DefaultSimpleResourceEnumerator : ISimpleResourceEnumerator
         {
             private IEnumerator<IResourceEntry> enumerator;
@@ -421,6 +428,7 @@ namespace DotNetResourcesExtensions
         /// <param name="en">The original enumerator</param>
         /// <returns>The constructed default enumerator.</returns>
         [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Obsolete(Obsoletions.ExtensionMethodDeprecated_AdvancedEnumerators ,false)]
         public static DefaultSimpleResourceEnumerator AsDefaultEnumerator(this ISimpleResourceEnumerator en)
          => new DefaultSimpleResourceEnumerator(en);
 
@@ -430,6 +438,7 @@ namespace DotNetResourcesExtensions
         /// <param name="en">The original enumerator</param>
         /// <returns>The constructed default enumerator.</returns>
         [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Obsolete(Obsoletions.ExtensionMethodDeprecated_AdvancedEnumerators, false)]
         public static DefaultAdvancedResourceEnumerator AsDefaultEnumerator(this IAdvancedResourceEnumerator en)
             => new DefaultAdvancedResourceEnumerator(en);
 
@@ -439,6 +448,7 @@ namespace DotNetResourcesExtensions
         /// <param name="en">The original enumerator</param>
         /// <returns>The constructed default enumerator.</returns>
         [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Obsolete(Obsoletions.ExtensionMethodDeprecated_AdvancedEnumerators, false)]
         public static DefaultFullResourceEnumerator AsDefaultEnumerator(this IFullResourceEnumerator en)
             => new DefaultFullResourceEnumerator(en);
 
@@ -448,8 +458,9 @@ namespace DotNetResourcesExtensions
         /// <param name="en">The object instance to take the <see cref="IResourceEnumerable.GetEnumerator"/> method.</param>
         /// <returns>A new <see cref="DefaultFullResourceEnumerator"/> that wraps the contents of <see cref="IResourceEnumerable.GetEnumerator"/> method.</returns>
         [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Obsolete(Obsoletions.ExtensionMethodDeprecated_AdvancedEnumerators, false)]
         public static DefaultFullResourceEnumerator GetDefaultFullResourceEnumerator(this IResourceEnumerable en)
-            => new DefaultFullResourceEnumerator(en.GetEnumerator());
+            => new DefaultFullResourceEnumerator((IDictionaryEnumerator)en.GetEnumerator());
 
         /// <summary>
         /// Gets <see cref="IResourceEnumerable.GetAdvancedResourceEnumerator"/> but defined as a <see cref="DefaultAdvancedResourceEnumerator"/>..
@@ -457,6 +468,7 @@ namespace DotNetResourcesExtensions
         /// <param name="en">The object instance to take the <see cref="IResourceEnumerable.GetAdvancedResourceEnumerator"/> method.</param>
         /// <returns>A new <see cref="DefaultAdvancedResourceEnumerator"/> that wraps the contents of <see cref="IResourceEnumerable.GetAdvancedResourceEnumerator"/> method.</returns>
         [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Obsolete(Obsoletions.ExtensionMethodDeprecated_AdvancedEnumerators, false)]
         public static DefaultAdvancedResourceEnumerator GetDefaultAdvancedResourceEnumerator(this IAdvancedResourceEnumerator en)
             => new DefaultAdvancedResourceEnumerator(en);
 
@@ -466,6 +478,7 @@ namespace DotNetResourcesExtensions
         /// <param name="en">The object instance to take the <see cref="IResourceEnumerable.GetSimpleResourceEnumerator"/> method.</param>
         /// <returns>A new <see cref="DefaultSimpleResourceEnumerator"/> that wraps the contents of <see cref="IResourceEnumerable.GetSimpleResourceEnumerator"/> method.</returns>
         [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Obsolete(Obsoletions.ExtensionMethodDeprecated_AdvancedEnumerators, false)]
         public static DefaultSimpleResourceEnumerator GetDefaultSimpleResourceEnumerator(this ISimpleResourceEnumerator en)
             => new DefaultSimpleResourceEnumerator(en);
 
@@ -477,11 +490,11 @@ namespace DotNetResourcesExtensions
         [return: System.Diagnostics.CodeAnalysis.MaybeNull]
         public static IResourceEntry First(this IResourceEnumerable re)
         {
-            var inst = re.GetAdvancedResourceEnumerator();
+            Collections.IDualResourceEntryEnumerator inst = re.GetEnumerator();
             try
             {
                 if (inst?.MoveNext() == true) {
-                    return inst.Current;
+                    return inst.ResourceEntry;
                 } else {
                     return null;
                 }
@@ -496,11 +509,11 @@ namespace DotNetResourcesExtensions
         [return: System.Diagnostics.CodeAnalysis.MaybeNull]
         public static IResourceEntry Last(this IResourceEnumerable re)
         {
-            var inst = re.GetAdvancedResourceEnumerator();
+            Collections.IDualResourceEntryEnumerator inst = re.GetEnumerator();
             IResourceEntry entry = null;
             try
             {
-                while (inst?.MoveNext() == true) { entry = inst.Current; }
+                while (inst?.MoveNext() == true) { entry = inst.ResourceEntry; }
                 return entry;
             } finally { inst?.Dispose(); }
         }
@@ -515,11 +528,11 @@ namespace DotNetResourcesExtensions
         [return: System.Diagnostics.CodeAnalysis.MaybeNull]
         public static IResourceEntry Single(this IResourceEnumerable re)
         {
-            var inst = re.GetAdvancedResourceEnumerator();
+            Collections.IDualResourceEntryEnumerator inst = re.GetEnumerator();
             if (inst?.MoveNext() == true)
             {
                 if (inst.MoveNext()) { goto g_rf; }
-                return inst.Current;
+                return inst.ResourceEntry;
             }
         g_rf:
             inst?.Dispose();
@@ -541,10 +554,10 @@ namespace DotNetResourcesExtensions
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static List<IResourceEntry> ToList(this IResourceEnumerable re)
         {
-            var inst = re.GetAdvancedResourceEnumerator();
+            Collections.IDualResourceEntryEnumerator inst = re.GetEnumerator();
             List<IResourceEntry> entries = new();
             if (inst is null) { goto g_end; }
-            while (inst.MoveNext()) { entries.Add(inst.Current); }
+            while (inst.MoveNext()) { entries.Add(inst.ResourceEntry); }
         g_end:
             return entries;
         }
@@ -556,7 +569,7 @@ namespace DotNetResourcesExtensions
         /// <returns>The number of resources contained into this resource enumerable.</returns>
         public static System.Int64 LongCount(this IResourceEnumerable re)
         {
-            var inst = re.GetAdvancedResourceEnumerator();
+            var inst = re.GetEnumerator();
             System.Int64 count = 0;
             if (inst is null) { goto g_end; }
             while (inst.MoveNext() && count < System.Int64.MaxValue) { count++; }
@@ -571,7 +584,7 @@ namespace DotNetResourcesExtensions
         /// <returns>The number of resources contained into this resource enumerable.</returns>
         public static System.Int32 Count(this IResourceEnumerable re)
         {
-            var inst = re.GetAdvancedResourceEnumerator();
+            var inst = re.GetEnumerator();
             System.Int32 count = 0;
             if (inst is null) { goto g_end; }
             while (inst.MoveNext() && count < System.Int32.MaxValue) { count++; }
@@ -588,11 +601,60 @@ namespace DotNetResourcesExtensions
         public static Collections.ResourceCollection ToResourceCollection(this IResourceEnumerable re)
         {
             Collections.ResourceCollection Rc = new(new Collections.ResourceEntryComparer());
-            IFullResourceEnumerator enumerator = re.GetEnumerator();
+            var enumerator = re.GetEnumerator();
             if (enumerator is null) { goto g_end; }
-            while (enumerator.MoveNext()) { Rc.Add(enumerator.Entry); }
+            while (enumerator.MoveNext()) { Rc.Add(enumerator.ResourceEntry); }
         g_end:
             return Rc;
+        }
+
+        /// <summary>
+        /// Executes the specified action for each resource for the specified resource enumerable.
+        /// </summary>
+        /// <param name="ire">The resource enumerable to enumerate all the resources from.</param>
+        /// <param name="action">The action to execute for each resource.</param>
+        /// <exception cref="AggregateException">One or more errors have been retrieved from <paramref name="action"/>.</exception>
+        public static void ForEach(this IResourceEnumerable ire, System.Action<IResourceEntry> action)
+        {
+            var en = ire.GetEnumerator();
+            try { while (en.MoveNext()) { action(en.ResourceEntry); } }
+            catch (System.Exception e) { throw new AggregateException("One or more errors were occured during the action execution.", e); }
+            finally { en?.Dispose(); en = null; }
+        }
+
+        /// <summary>
+        /// Executes the specified breakable action for each resource for the specified resource enumerable.
+        /// </summary>
+        /// <param name="ire">The resource enumerable to enumerate all the resources from.</param>
+        /// <param name="action">The action to execute for each resource.</param>
+        /// <exception cref="AggregateException">One or more errors have been retrieved from <paramref name="action"/>.</exception>
+        public static void ForEachBreakable(this IResourceEnumerable ire, Collections.BreakableAction<IResourceEntry> action)
+        {
+            var en = ire.GetEnumerator();
+            try { while (en.MoveNext()) { if (action(en.ResourceEntry)) { break; } } }
+            catch (System.Exception e) { throw new AggregateException("One or more errors were occured during the action execution.", e); }
+            finally { en?.Dispose(); en = null; }
+        }
+
+        /// <summary>
+        /// Executes the specified breakable action for each resource for the specified resource enumerable.
+        /// </summary>
+        /// <param name="ire">The resource enumerable to enumerate all the resources from.</param>
+        /// <param name="action">The action to execute for each resource.</param>
+        /// <exception cref="AggregateException">One or more errors have been retrieved from <paramref name="action"/>.</exception>
+        public static void ForEachBreakable(this IResourceEnumerable ire, Collections.BreakableActionExtended<IResourceEntry> action)
+        {
+            var en = ire.GetEnumerator();
+            try {
+                Collections.EnumerationContinuationAction act;
+                while (en.MoveNext()) {
+                    act = action(en.ResourceEntry);
+                    if (act == Collections.EnumerationContinuationAction.Continue) { continue; }
+                    if (act == Collections.EnumerationContinuationAction.Break) { break; }
+                }
+            } catch (System.Exception e)
+            { throw new AggregateException("One or more errors were occured during the action execution.", e); }
+            finally { en?.Dispose(); en = null; }
         }
     }
 

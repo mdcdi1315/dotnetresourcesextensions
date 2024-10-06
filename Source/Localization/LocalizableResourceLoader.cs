@@ -3,6 +3,7 @@ using System.Collections;
 using System.Globalization;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using DotNetResourcesExtensions.Collections;
 
 namespace DotNetResourcesExtensions.Localization
 {
@@ -31,22 +32,30 @@ namespace DotNetResourcesExtensions.Localization
             public System.Type TypeOfValue => _value?.GetType();
         }
 
-        private sealed class LocalizableResourceEnumerator : IFullResourceEnumerator
+        private sealed class LocalizableResourceEnumerator : IDualResourceEntryEnumerator
         {
             private LocalizedResourceReader _inst;
             private IDictionaryEnumerator resources;
 
-            public LocalizableResourceEnumerator(LocalizedResourceReader inst , IDictionaryEnumerator indexenumerator)
+            public LocalizableResourceEnumerator(LocalizedResourceReader inst, IDictionaryEnumerator indexenumerator)
             {
                 _inst = inst;
                 resources = indexenumerator;
             }
 
-            public IResourceEntry Entry => Current;
+            public DictionaryEntry Entry => Current.AsDictionaryEntry();
+
+            DictionaryEntry IEnumerator<DictionaryEntry>.Current => Current.AsDictionaryEntry();
+
+            KeyValuePair<string, object> IEnumerator<KeyValuePair<string, object>>.Current => Current.AsKeyValuePair();
 
             public string Key => Current.Name;
 
+            System.Object IDictionaryEnumerator.Key => Current.Name;
+
             public object Value => Current.Value;
+
+            public IResourceEntry ResourceEntry => Current;
 
             public IResourceEntry Current
             {
@@ -236,7 +245,7 @@ namespace DotNetResourcesExtensions.Localization
         /// <param name="culture">The culture to retrieve the localized resources.</param>
         /// <returns>A culture-specific enumerator.</returns>
         /// <exception cref="LocalizedReaderNotFoundException">The specified localized reader is not available.</exception>
-        public IFullResourceEnumerator GetEnumeratorForCulture(CultureInfo culture)
+        public Collections.IDualResourceEntryEnumerator GetEnumeratorForCulture(CultureInfo culture)
         {
             foreach (var ldr in LocalizedReaders)
             {
@@ -248,7 +257,13 @@ namespace DotNetResourcesExtensions.Localization
             throw new LocalizedReaderNotFoundException("" , culture);
         }
 
-        IAdvancedResourceEnumerator IResourceEnumerable.GetAdvancedResourceEnumerator() => GetEnumeratorForCulture(invariantculture);
+        /// <inheritdoc />
+        [Obsolete("This method is not any longer useful and will always throw an exception.", true)]
+        public ISimpleResourceEnumerator GetSimpleResourceEnumerator() => throw new NotSupportedException("This method is deprecated and will be removed in V3.");
+
+        /// <inheritdoc />
+        [Obsolete("This method is not any longer useful and will always throw an exception.", true)]
+        public IAdvancedResourceEnumerator GetAdvancedResourceEnumerator() => throw new NotSupportedException("This method is deprecated and will be removed in V3.");
 
         /// <inheritdoc />
         public IEnumerable<string> GetAllResourceNames()
@@ -265,7 +280,7 @@ namespace DotNetResourcesExtensions.Localization
         /// <summary>
         /// Gets an enumerator that does only return culture-invariant resources.
         /// </summary>
-        public IFullResourceEnumerator GetEnumerator() => GetEnumeratorForCulture(invariantculture);
+        public IDualResourceEntryEnumerator GetEnumerator() => GetEnumeratorForCulture(invariantculture);
 
         /// <inheritdoc />
         public IEnumerable<string> GetRelativeResources(string Name)
@@ -294,8 +309,6 @@ namespace DotNetResourcesExtensions.Localization
             }
             temp = null;
         }
-
-        ISimpleResourceEnumerator IResourceEnumerable.GetSimpleResourceEnumerator() => GetEnumeratorForCulture(invariantculture);
 
         System.String IResourceLoader.GetStringResource(string Name) => GetStringResource(Name, invariantculture);
 

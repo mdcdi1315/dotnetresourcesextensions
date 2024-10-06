@@ -17,12 +17,12 @@ namespace DotNetResourcesExtensions
         /// Set to this field the reader to read resources from. <br />
         /// Do not perform to this field any disposal processing - all are handled by this class!
         /// </summary>
-        protected System.Resources.IResourceReader reader;
+        protected IResourceReader reader;
         /// <summary>
         /// Set to this field the writer to copy the resources to. <br />
         /// Do not perform to this field any disposal processing - all are handled by this class!
         /// </summary>
-        protected System.Resources.IResourceWriter writer;
+        protected IResourceWriter writer;
 
         private IEnumerable<string> resourcenames;
         private System.Boolean prepared;
@@ -60,11 +60,11 @@ namespace DotNetResourcesExtensions
             PrepareInstance();
         }
 
-        private IEnumerable<System.String> ResNames(System.Resources.IResourceReader enumerator)
+        private IEnumerable<System.String> ResNames(IResourceReader enumerator)
         {
-            foreach (System.Collections.DictionaryEntry de in enumerator)
+            foreach (DictionaryEntry de in enumerator)
             {
-                yield return (System.String)de.Key;
+                yield return de.Key.ToString();
             }
         }
 

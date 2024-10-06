@@ -14,6 +14,68 @@ namespace DotNetResourcesExtensions
     public abstract class DefaultResourceLoader : IResourceLoader , IAsyncDisposable , IDisposable
     {
         /// <summary>
+        /// Provides a convenient and default implementation of <see cref="Collections.IDualResourceEntryWithCommentEnumerator"/>
+        /// so as to use it in your applications.
+        /// </summary>
+        protected sealed class DefaultDualResourceEnumerator : Collections.AbstractDualResourceEntryWithCommentEnumerator
+        {
+            private sealed class ResourceEntryWithComment : IResourceEntryWithComment
+            {
+                private System.String name, comment;
+                private System.Object value;
+
+                public ResourceEntryWithComment(System.String name, System.Object value)
+                {
+                    this.name = name;
+                    this.value = value;
+                }
+
+                public ResourceEntryWithComment(DictionaryEntry entry) : this(entry.Key.ToString(), entry.Value) { }
+
+                public ResourceEntryWithComment(System.String name , System.Object value , System.String comment) : this(name , value)
+                {
+                    this.comment = comment;
+                }
+
+                public System.String Name => name;
+
+                public System.Object Value => value;
+
+                public System.String Comment { get => comment; set => comment = value; }
+
+                public System.Type TypeOfValue => value?.GetType();
+            }
+
+            private IDictionaryEnumerator enumerator;
+
+            /// <summary>
+            /// Creates a new instance of <see cref="DefaultDualResourceEnumerator"/> class by using the specified resource reader enumerator.
+            /// </summary>
+            /// <param name="enumerator">The enumerator instance to manage.</param>
+            public DefaultDualResourceEnumerator(IDictionaryEnumerator enumerator)
+            {
+                this.enumerator = enumerator;
+            }
+
+            /// <inheritdoc/>
+            public override System.Boolean MoveNext() => enumerator.MoveNext();
+
+            /// <inheritdoc/>
+            public override void Reset() => enumerator.Reset();
+
+            /// <inheritdoc/>
+            public override IResourceEntryWithComment ResourceEntry => new ResourceEntryWithComment(enumerator.Entry);
+
+            /// <summary>
+            /// Disposes the current enumerator implementation instance.
+            /// </summary>
+            public sealed override void Dispose() {
+                enumerator = null;
+                base.Dispose();
+            }
+        }
+
+        /// <summary>
         /// In this field you must provide an instance of <see cref="System.Resources.IResourceReader"/> class
         /// before exiting the constructor!!
         /// </summary>
@@ -152,14 +214,26 @@ namespace DotNetResourcesExtensions
             }
         }
 
+        /// <summary>
+        /// Gets a reususable and extendable resource entry enumerator. <br />
+        /// By default the method will attempt to use the provided <see cref="Collections.IDualResourceEntryEnumerator"/> 
+        /// implementation if found; otherwise the internal heuristics will take action. <br />
+        /// This method is <see langword="virtual"/> only and only to support different scenarios , based on the usage case.
+        /// </summary>
+        /// <returns>A new instance of a resource entry enumerator capable to enumerate all resource entries.</returns>
+        public virtual Collections.IDualResourceEntryEnumerator GetEnumerator()
+        {
+            IDictionaryEnumerator en = read.GetEnumerator();
+            if (en is Collections.IDualResourceEntryEnumerator resent) { return resent; }
+            return new DefaultDualResourceEnumerator(en);
+        }
+
         /// <inheritdoc />
-        public IAdvancedResourceEnumerator GetAdvancedResourceEnumerator()
-         => new IResourceEnumerableExtensions.DefaultAdvancedResourceEnumerator(read.GetEnumerator());
+        [Obsolete("This method is not any longer useful and will always throw an exception." , true)]
+        public ISimpleResourceEnumerator GetSimpleResourceEnumerator() => throw new NotSupportedException("This method is deprecated and will be removed in V3.");
+
         /// <inheritdoc />
-        public IFullResourceEnumerator GetEnumerator()
-        => new IResourceEnumerableExtensions.DefaultFullResourceEnumerator(read.GetEnumerator());
-        /// <inheritdoc />
-        public ISimpleResourceEnumerator GetSimpleResourceEnumerator()
-         => new IResourceEnumerableExtensions.DefaultSimpleResourceEnumerator(read.GetEnumerator());
+        [Obsolete("This method is not any longer useful and will always throw an exception.", true)]
+        public IAdvancedResourceEnumerator GetAdvancedResourceEnumerator() => throw new NotSupportedException("This method is deprecated and will be removed in V3.");
     }
 }

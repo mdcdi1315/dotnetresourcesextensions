@@ -8,25 +8,6 @@ namespace DotNetResourcesExtensions
     namespace Collections
     {
         /// <summary>
-        /// Defines the default and recommended comparer for comparing two <see cref="IResourceEntryWithComment"/> instances.
-        /// </summary>
-        public class ResourceEntryWithCommentComparer : Comparer<IResourceEntryWithComment>
-        {
-            /// <summary>
-            /// Compares two <see cref="IResourceEntryWithComment"/> instances.
-            /// </summary>
-            /// <param name="x">The first entry to compare.</param>
-            /// <param name="y">The second entry to compare.</param>
-            /// <returns><inheritdoc cref="Comparer{T}.Compare(T, T)"/></returns>
-            public override int Compare(IResourceEntryWithComment x, IResourceEntryWithComment y) => x.Name.CompareTo(y.Name);
-
-            /// <summary>
-            /// Creates a new instance of this resource entry comparer.
-            /// </summary>
-            public ResourceEntryWithCommentComparer() : base() { }
-        }
-
-        /// <summary>
         /// Represents a <see cref="System.Collections.DictionaryEntry"/> that does have a comment.
         /// </summary>
         public struct DictionaryEntryWithComment

@@ -20,7 +20,7 @@ namespace DotNetResourcesExtensions
         /// Default constructor that must be called from your inheriting class. <br />
         /// Failling to do so results in <see cref="NullReferenceException"/>s.
         /// </summary>
-        protected OptimizedResourceLoader() : base() { CommonSessionStrings = new(); }
+        protected OptimizedResourceLoader() : base() { CommonSessionStrings = new(50); }
 
         /// <summary>
         /// Disposes the allocated data used by the <see cref="OptimizedResourceLoader"/> class.
