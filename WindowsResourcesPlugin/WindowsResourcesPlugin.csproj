@@ -15,13 +15,11 @@
 	<IsPackable>true</IsPackable>
 	<PackageId>$(AssemblyName)</PackageId>
 	<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-	<PackageVersion>1.0.2</PackageVersion>
+	<PackageVersion>1.0.3</PackageVersion>
 	<PackageReleaseNotes>v$(PackageVersion) of the Windows Native Resources Reader package.
-New API's as safe handles were added to read common image formats such as cursors , icons and bitmaps.
-Note that these API's can be only used from Windows (Since the interop signatures are for Windows). 
-For the bitmaps only , you can access them from all platforms from the BitmapReader class.
-The BitmapReader only applies to some kinds of bitmaps but it is a valid workaround for the equivalent safe handle method.
-Bugfixes and improvements were also implemented.
+General improvements were implemented in reading bitmaps , but also adding support to read
+RT_GROUP_ICON and RT_GROUP_CURSOR resources by using the ResourceGroupInformation class.
+The class is fully managed although it uses native structs; which it means that it works on any platform.
 </PackageReleaseNotes>
 	<PackageIcon>ProjectImage.png</PackageIcon>
 	<PackageTags>resources windows win32 native</PackageTags>
@@ -42,6 +40,7 @@ Bugfixes and improvements were also implemented.
     <Compile Include="NativeWindowsResEntry.cs" />
     <Compile Include="NativeWindowsResourcesEnumerator.cs" />
     <Compile Include="NativeWindowsResourcesReader.cs" />
+    <Compile Include="ResourceGroupInformation.cs" />
     <Compile Include="SafeHandles.cs" />
     <Compile Include="VsVersionInfoGetter.cs" />
     <Compile Include="VsVersionInfoGetter.StringTable.cs" />

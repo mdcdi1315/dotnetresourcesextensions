@@ -237,11 +237,6 @@ internal static class Interop
         public static unsafe extern System.Int32 GetBits_DI(System.IntPtr hdc , System.IntPtr bitmap , System.UInt32 firstline , System.UInt32 linecount , void* buffer , ref BITMAPHEADER header , DIBColorType usage);
     }
 
-    // DWORD corresponds to System.UInt32
-    // WORD corresponds to System.UInt16
-    // LONG corresponds to System.Int32
-    // UINT corresponds to System.UInt32
-
     // Native Bitmap Information header so as to get the bitmap information.
     [StructLayout(LayoutKind.Explicit , Size = 36)]
     public struct BITMAPINFOHEADER
@@ -413,19 +408,18 @@ internal static class Interop
             if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
             System.UInt32 reqsize = (System.UInt32)sizeof(BITMAPHEADER);
             // There are some cases that bytes do not contain at least 1060 bytes , so possibly the bitmap does not contain 256 tables.
-            // A helper function will help to calculate the exact required size to init the structure...
+            // The below code checks if we have less size than the required and if so , the structure is initialized with only the required size.
+            BITMAPINFOHEADER hdr = BITMAPINFOHEADER.ReadFromArray(bytes, startindex);
             if (reqsize > bytes.Length - startindex)
             {
-                reqsize = (System.UInt32)(sizeof(BITMAPINFOHEADER) + 
-                    Gdi32.ColorTableEntriesInBytes(
-                        BITMAPINFOHEADER.ReadFromArray(bytes , startindex) , 
-                        bytes.Length - startindex));
+                reqsize = (System.UInt32)(hdr.Size + ((bytes.Length - startindex) - hdr.DataSize));
             }
             // We have the required size , we can initialize BITMAPHEADER without losing information.
             if (reqsize > bytes.Length - startindex)
             {
                 throw new ArgumentException("There are not enough elements to copy so that the BITMAPHEADER structure can be initialized.");
             }
+            hdr = default;
             BITMAPHEADER result = new();
             fixed (System.Byte* ptr = &Unsafe.AsRef(result.pin))
             {
@@ -487,9 +481,133 @@ internal static class Interop
         }
     }
 
+    // The starting header when reading resources of type RT_GROUP_ICON or RT_GROUP_CURSOR.
+    [StructLayout(LayoutKind.Explicit , Size = 6)]
+    public unsafe struct NEWHEADER
+    {
+        public static NEWHEADER ReadFromArray(System.Byte[] bytes , System.Int32 startindex)
+        {
+            if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+            if (sizeof(NEWHEADER) > bytes.Length - startindex)
+            {
+                throw new ArgumentException("There are not enough elements to copy so that the NEWHEADER structure can be initialized.");
+            }
+            NEWHEADER result = new();
+            fixed (System.Byte* ptr = &Unsafe.AsRef(result.pin))
+            {
+                fixed (System.Byte* array = &bytes[startindex])
+                {
+                    Unsafe.CopyBlockUnaligned(ptr, array, (System.UInt32)sizeof(NEWHEADER));
+                }
+            }
+            return result;
+        }
+
+        [FieldOffset(0)]
+        private System.Byte pin;
+
+        // Reserved field , do not modify.
+        [FieldOffset(0)]
+        public System.UInt16 RSVD;
+
+        /// <summary>
+        /// If this structure contains icon information , the value 1 has been assigned; otherwise the value 2 is assigned , which means that it contains cursors.
+        /// </summary>
+        [FieldOffset(2)]
+        public System.UInt16 ResourceType;
+
+        /// <summary>
+        /// Gets the number of <see cref="RESDIR"/> structures contained in this RT_GROUP_XXXX resource.
+        /// </summary>
+        [FieldOffset(4)]
+        public System.UInt16 DirectoryCount;
+    }
+
+    // The main information structure. Someone can consider it a 'link' between a resource and this information.
+    [StructLayout(LayoutKind.Explicit , Size = 14)]
+    public unsafe struct RESDIR
+    {
+        public static RESDIR ReadFromArray(System.Byte[] bytes, System.Int32 startindex)
+        {
+            if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+            if (sizeof(RESDIR) > bytes.Length - startindex)
+            {
+                throw new ArgumentException("There are not enough elements to copy so that the RESDIR structure can be initialized.");
+            }
+            RESDIR result = new();
+            fixed (System.Byte* ptr = &Unsafe.AsRef(result.pin))
+            {
+                fixed (System.Byte* array = &bytes[startindex])
+                {
+                    Unsafe.CopyBlockUnaligned(ptr, array, (System.UInt32)sizeof(RESDIR));
+                }
+            }
+            return result;
+        }
+
+        [FieldOffset(0)]
+        private System.Byte pin;
+
+        // The actual RESDIR defines the below two fields as a union , but since both are being aligned on position 0 , 
+        // these two fields act as if it was the union here.
+
+        [FieldOffset(0)]
+        public ICONRESDIR Icon;
+
+        [FieldOffset(0)]
+        public CURSORDIR Cursor;
+
+        [FieldOffset(4)]
+        public System.UInt16 Planes;
+
+        [FieldOffset(6)]
+        public System.UInt16 BitCount;
+
+        [FieldOffset(8)]
+        public System.UInt32 BytesInRes;
+
+        [FieldOffset(12)]
+        public System.UInt16 IconCursorId;
+    }
+
+    // Helper structure for RESDIR
+    [StructLayout(LayoutKind.Explicit , Size = 4)]
+    public struct ICONRESDIR
+    {
+        [FieldOffset(0)]
+        public System.Byte Width;
+
+        [FieldOffset(1)]
+        public System.Byte Height;
+
+        [FieldOffset(2)]
+        public System.Byte ColorCount;
+
+        [FieldOffset(3)]
+        public System.Byte Reserved;
+    }
+
+    // Helper structure for RESDIR
+    [StructLayout(LayoutKind.Explicit , Size = 4)]
+    public struct CURSORDIR
+    {
+        [FieldOffset(0)]
+        public System.UInt16 Width;
+
+        [FieldOffset(2)]
+        public System.UInt16 Height;
+    }
+
     public static System.UInt16 MAKEFOURCC(System.Char ch0, System.Char ch1, System.Char ch2, System.Char ch3)
         => (System.UInt16)((System.UInt16)(System.Byte)ch0 | (((System.UInt16)(System.Byte)ch1) << 8) | (((System.UInt16)(System.Byte)ch2) << 16) | (((System.UInt16)(System.Byte)ch3) << 24));
 
     // Gets a value whether whether we are from Windows so as to invoke the required API's.
     public static System.Boolean ApisSupported() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 }
+
+// Type mappings:
+// DWORD corresponds to System.UInt32
+// WORD corresponds to System.UInt16
+// LONG corresponds to System.Int32
+// UINT corresponds to System.UInt32
+// BYTE corresponds to System.Byte

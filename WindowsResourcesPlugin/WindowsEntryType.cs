@@ -34,11 +34,23 @@
         RT_RCDATA,
         /// <summary>Defines the RT_MESSAGETABLE constant.</summary>
         RT_MESSAGETABLE,
-        /// <summary>Defines the RT_GROUP_CURSOR constant.</summary>
+        /// <summary>
+        /// Defines the RT_GROUP_CURSOR constant. <br />
+        /// This constant specifies that the data contain multiple cursor entries that map to resources , and all these do belong
+        /// to the group that are specified. To read such a resource , use the <see cref="ResourceGroupInformation"/> class.
+        /// </summary>
         RT_GROUP_CURSOR = 12,
-        /// <summary>Defines the RT_GROUP_ICON constant.</summary>
+        /// <summary>
+        /// Defines the RT_GROUP_ICON constant. <br />
+        /// This constant specifies that the data contain multiple icon entries that map to resources , and all these do belong
+        /// to the group that are specified. To read such a resource , use the <see cref="ResourceGroupInformation"/> class.
+        /// </summary>
         RT_GROUP_ICON = 14,
-        /// <summary>Defines the RT_VERSION constant. When this is defined , then the resource value represents the version block of the app.</summary>
+        /// <summary>
+        /// Defines the RT_VERSION constant. <br />
+        /// When this is defined , then the resource value represents the version block of the app. <br />
+        /// Use the <see cref="VsVersionInfoGetter"/> class to read such a block.
+        /// </summary>
         RT_VERSION = 16,
         /// <summary>Defines the RT_DLGINCLUDE constant.</summary>
         RT_DLGINCLUDE,
@@ -46,13 +58,18 @@
         RT_PLUGPLAY = 19,
         /// <summary>Defines the RT_VXD constant.</summary>
         RT_VXD,
-        /// <summary>Defines the RT_ANICURSOR constant.</summary>
+        /// <summary>Defines the RT_ANICURSOR constant. This is an animated cursor.</summary>
         RT_ANICURSOR,
-        /// <summary>Defines the RT_ANIICON constant.</summary>
+        /// <summary>Defines the RT_ANIICON constant. This is an animated icon.</summary>
         RT_ANIICON,
         /// <summary>Defines the RT_HTML constant.</summary>
         RT_HTML,
-        /// <summary>Defines the RT_MANIFEST constant. This constant indicates that the value contains the embedded manifest for the application.</summary>
+        /// <summary>
+        /// Defines the RT_MANIFEST constant. <br />
+        /// This constant indicates that the value contains the embedded manifest for the application. <br />
+        /// The value does usually contain XML document information for advanced startup settings. <br />
+        /// You can pass the resource value to an XML reader to see what it contains!
+        /// </summary>
         RT_MANIFEST = 24,
     }
 }
