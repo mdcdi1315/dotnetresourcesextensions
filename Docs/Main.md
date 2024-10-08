@@ -22,3 +22,6 @@
 - [Changes in the V2 `Custom XML` Format](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/aboutchangesin_customxml.md)
 - [Changes in the V3 `Custom JSON` Format Resources](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/aboutchangesin_customjson.md)
 - [The IFileReference Interface](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/Ifileref.md)
+- Read native resources by using the [`NativeWindowsResources`](https://nuget.org/packages/DotNetResourcesExtensions.NativeWindowsResources) plugin
+    - [Read a PE file that contains compiled resources](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/wrp_readpefile.md)
+	- [Enumerate and manipulate the resources contained in any native PE resource reader](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/wrp_manageres.md)
