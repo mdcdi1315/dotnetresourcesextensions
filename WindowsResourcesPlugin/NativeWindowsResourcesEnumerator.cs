@@ -1,4 +1,5 @@
 ﻿
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using DotNetResourcesExtensions.Collections;
@@ -62,7 +63,13 @@ namespace DotNetResourcesExtensions
                 if (temp.Item3 == 0) { // If the culture is returned as zero , then the resource is invariant.
                     ret.Culture = System.Globalization.CultureInfo.InvariantCulture;
                 } else {
-                    ret.Culture = new(temp.Item3);
+                    try {
+                        ret.Culture = new(temp.Item3);
+                    } catch (System.Globalization.CultureNotFoundException) {
+                        ret.Culture = System.Globalization.CultureInfo.InvariantCulture;
+                    } catch (System.ArgumentOutOfRangeException) {
+                        ret.Culture = System.Globalization.CultureInfo.InvariantCulture;
+                    }
                 }
                 return ret;
             }

@@ -11,15 +11,14 @@
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<LangVersion>10.0</LangVersion>
 	<SignAssembly>True</SignAssembly>
-	<AssemblyOriginatorKeyFile>../ProjectKey.snk</AssemblyOriginatorKeyFile>
 	<IsPackable>true</IsPackable>
 	<PackageId>$(AssemblyName)</PackageId>
 	<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-	<PackageVersion>1.0.3</PackageVersion>
+	<PackageVersion>1.0.4</PackageVersion>
 	<PackageReleaseNotes>v$(PackageVersion) of the Windows Native Resources Reader package.
-General improvements were implemented in reading bitmaps , but also adding support to read
-RT_GROUP_ICON and RT_GROUP_CURSOR resources by using the ResourceGroupInformation class.
-The class is fully managed although it uses native structs; which it means that it works on any platform.
+Added a new bitmap reader class that uses GDI+ to work.
+Added primitive &amp; preliminary support for decoding RLE bitmaps too.
+Added support for reading accelerator tables. Reading an accelerator table can work on any platform.
 </PackageReleaseNotes>
 	<PackageIcon>ProjectImage.png</PackageIcon>
 	<PackageTags>resources windows win32 native</PackageTags>
@@ -31,6 +30,7 @@ The class is fully managed although it uses native structs; which it means that 
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="AcceleratorTable.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="BitmapReader.cs" />
     <Compile Include="DeserializingWindowsResEntry.cs" />
@@ -47,15 +47,18 @@ The class is fully managed although it uses native structs; which it means that 
     <Compile Include="VsVersionInfoGetter.VsFileInformation.cs" />
     <Compile Include="WindowsEntryType.cs" />
 	<Compile Include="Internal/*.cs" />
-	<None Include="$(MSBuildThisFileDirectory)/../LICENSE.txt" Pack="true" PackagePath="/" />
-	<None Include="$(MSBuildThisFileDirectory)/../ProjectImage.png" Pack="true" PackagePath="/" />
 	<None Include="./Pkg-Readme.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.Contains(`$(NetCoreIdentifier)`))' != 'true'">
+	<PackageReference Include="System.Memory" Version="4.5.5" />
+	<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Reflection.Metadata" Version="8.0.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
 	<ProjectReference Include="../Source/DotNetResourcesExtensions.csproj" />
+	<FrameworkReference Remove="Microsoft.Windows.SDK.NET.Ref" />
   </ItemGroup>
 	
 </Project>

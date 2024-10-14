@@ -16,7 +16,6 @@
     <Compile Include="Exceptions.cs" />
     <Compile Include="KVPResourcesReader.cs" />
     <Compile Include="StronglyTypedResourceGenerator.cs" />
-	<Compile Include="..\Source\Internal\DotNetCoreImports.cs" />
   </ItemGroup>
 
   <ItemGroup>

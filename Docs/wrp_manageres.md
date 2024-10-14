@@ -70,7 +70,7 @@ public sealed class NativeWindowsResourceEntry : IResourceEntry
 
 	public System.Type TypeOfValue => typeof(System.Byte[]);
 }
-
+// Implementations omitted for brevity.
 ~~~
 
 So this is not a regular `IResourceEntry`-derived instance.

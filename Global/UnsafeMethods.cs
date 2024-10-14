@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 
 namespace DotNetResourcesExtensions.Internal
 {
-
     /// <summary>
     /// Represents the private data of the official <see cref="System.String"/> structure. <br />
     /// Use this pinnable when you want to do pointer operations and avoid allocating unnecessarily new arrays.
@@ -24,6 +23,35 @@ namespace DotNetResourcesExtensions.Internal
         /// <param name="data">The data to get from.</param>
         /// <returns>A new <see cref="StringPinnable"/> that is the unmanaged surface of <paramref name="data"/>.</returns>
         public static StringPinnable GetAsPinnable(System.String data) => Unsafe.As<StringPinnable>(data);
+
+        public static unsafe StringPinnable ReadFromArray(System.Char[] chars , System.Int32 startindex)
+        {
+            if (chars is null) { throw new ArgumentNullException(nameof(chars)); }
+            if (startindex < 0 || startindex >= chars.Length) { throw new ArgumentOutOfRangeException(nameof(startindex) ,"startindex must not be negative and be less than the array length."); }
+            StringPinnable pinnable = new();
+            pinnable.Length = chars.Length - startindex;            
+            fixed (System.Char* src = &chars[startindex])
+            {
+                fixed (System.Char* dst = &pinnable.Data)
+                {
+                    Unsafe.CopyBlockUnaligned(dst, src, (pinnable.Length * Unsafe.SizeOf<System.Char>()).ToUInt32());
+                }
+            }
+            return pinnable;
+        }
+
+        public static unsafe StringPinnable Create(System.Int32 length)
+        {
+            StringPinnable pinnable = new();
+            if (length < 0) { throw new ArgumentOutOfRangeException(nameof(length) , "length must not be negative."); }
+            pinnable.Length = length;
+            fixed (System.Char* target = &pinnable.Data)
+            {
+                Unsafe.InitBlock(target, 48, (pinnable.Length * Unsafe.SizeOf<System.Char>()).ToUInt32());
+            }
+            return pinnable;
+        }
+
 
         // Avoiding direct construction - use the GetAsPinnable method.
         private StringPinnable() { }
@@ -48,16 +76,12 @@ namespace DotNetResourcesExtensions.Internal
     /// for manipulating primitive information and byte arrays.
     /// </summary>
     // The purpose of the UnsafeMethods class is to provide faster alternatives for .NET Framework on raw primitive information , 
-    // while providing a unified and reliable for the developers of the library.
-#if DEBUG // Allowed to be reviewed in debug builds to test whether the unsafe operations are producing correct results.
-    public
-#else
-    internal
-#endif
-    static unsafe class UnsafeMethods
+    // while providing a unified and reliable api surface for the developers of the library.
+    internal static unsafe partial class UnsafeMethods
     {
         // The unsafe calls allow us to bypass definite runtime checks for conversions.
         // These are also implemented in pure MSIL - which means that these can work in any possible .NET platform.
+        // All these operations work on checked mode but note that actually work as if the conversion was performed in unchecked mode.
         [System.Diagnostics.DebuggerHidden]
         private static TResult WideningConversion<TInput, TResult>(TInput input)
             where TResult : unmanaged
@@ -139,11 +163,6 @@ namespace DotNetResourcesExtensions.Internal
         }
 
         /// <summary>
-        /// Gets an instance of the <see cref="DotNetResourcesExtensions"/> project internal base-64 encoding implementation.
-        /// </summary>
-        public static System.Text.Encoding Base64Internal => Base64Encoding.Singleton;
-
-        /// <summary>
         /// Gets the managed reference of the first array element in <paramref name="array"/>.
         /// </summary>
         /// <typeparam name="T">The array type.</typeparam>
@@ -174,9 +193,28 @@ namespace DotNetResourcesExtensions.Internal
         // The method 
         public static T ReverseEndianess<T>(this T input) where T : unmanaged
         {
+            if (input is System.Byte b) {
+                // Endianess swap in byte level is now possible because a decomposal method to binary was found.
+                b = ReverseEndianess_Byte(b);
+                return Unsafe.As<System.Byte , T>(ref b);
+            }
             System.Span<System.Byte> bt = GetBytesTemplate2(input);
             bt.Reverse();
             return GetFromBytesTemplate2<T>(bt , 0);
+        }
+
+        private static System.Byte ReverseEndianess_Byte(System.Byte b)
+        {
+            System.Boolean[] booleans = b.ToBinary();
+            // Reverse bin data
+            booleans.Reverse();
+            System.Byte result = 0;
+            // Then assign the reversed result
+            for (System.Int32 I = 0; I < booleans.Length; I++) {
+                if (booleans[I]) { result.SetBit(I, true); }
+            }
+            booleans = null;
+            return result;
         }
 
         /// <summary>
@@ -192,6 +230,7 @@ namespace DotNetResourcesExtensions.Internal
             ((System.Span<T>)array).Reverse();
         }
 
+        #region Conversions to Int64
         /// <summary>
         /// Uses unsafe schemes to convert a <see cref="System.Int32"/> to a <see cref="System.Int64"/>. 
         /// The conversion is only performed with less checks during runtime.
@@ -199,6 +238,43 @@ namespace DotNetResourcesExtensions.Internal
         /// <param name="number">The number to convert.</param>
         public static System.Int64 ToInt64(this System.Int32 number) => WideningConversion<System.Int32, System.Int64>(number);
 
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.UInt64"/> to a <see cref="System.Int64"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Int64 ToInt64(this System.UInt64 number) => LinearConversion<System.UInt64 , System.Int64>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Char"/> to a <see cref="System.Int64"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="character">The character to convert.</param>
+        public static System.Int64 ToInt64(this System.Char character) => WideningConversion<System.Char, System.Int64>(character);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.UInt32"/> to a <see cref="System.Int64"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Int64 ToInt64(this System.UInt32 number) => WideningConversion<System.UInt32 , System.Int64>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.UInt16"/> to a <see cref="System.Int64"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Int64 ToInt64(this System.UInt16 number) => WideningConversion<System.UInt16, System.Int64>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Int16"/> to a <see cref="System.Int64"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Int64 ToInt64(this System.Int16 number) => WideningConversion<System.Int16, System.Int64>(number);
+        #endregion
+
+        #region Conversions to UInt64
         /// <summary>
         /// Uses unsafe schemes to convert a <see cref="System.Int64"/> to a <see cref="System.UInt64"/>. 
         /// The conversion is only performed with less checks during runtime.
@@ -212,27 +288,15 @@ namespace DotNetResourcesExtensions.Internal
         /// </summary>
         /// <param name="number">The number to convert.</param>
         public static System.UInt64 ToUInt64(this System.UInt32 number) => WideningConversion<System.UInt32, System.UInt64>(number);
+        #endregion
 
+        #region Conversions to Int32
         /// <summary>
         /// Uses unsafe schemes to convert a <see cref="System.Int16"/> to a <see cref="System.Int32"/>. 
         /// The conversion is only performed with less checks during runtime.
         /// </summary>
         /// <param name="number">The number to convert.</param>
         public static System.Int32 ToInt32(this System.Int16 number) => WideningConversion<System.Int16, System.Int32>(number);
-
-        /// <summary>
-        /// Uses unsafe schemes to convert a <see cref="System.Int32"/> to a <see cref="System.UInt32"/>. 
-        /// The conversion is only performed with less checks during runtime.
-        /// </summary>
-        /// <param name="number">The number to convert.</param>
-        public static System.UInt32 ToUInt32(this System.Int32 number) => LinearConversion<System.Int32 , System.UInt32>(number);
-
-        /// <summary>
-        /// Uses unsafe schemes to convert a <see cref="System.Byte"/> to a <see cref="System.Int16"/>. 
-        /// The conversion is only performed with less checks during runtime.
-        /// </summary>
-        /// <param name="number">The number to convert.</param>
-        public static System.Int16 ToInt16(this System.Byte number) => WideningConversion<System.Byte, System.Int16>(number);
 
         /// <summary>
         /// Uses unsafe schemes to convert a <see cref="System.Int64"/> to a <see cref="System.Int32"/>. 
@@ -242,6 +306,29 @@ namespace DotNetResourcesExtensions.Internal
         public static System.Int32 ToInt32(this System.Int64 number) => NarrowingConversion<System.Int64, System.Int32>(number);
 
         /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.UInt32"/> to a <see cref="System.Int32"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Int32 ToInt32(this System.UInt32 number) => LinearConversion<System.UInt32, System.Int32>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Char"/> to a <see cref="System.Int32"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="character">The character to convert.</param>
+        public static System.Int32 ToInt32(this System.Char character) => WideningConversion<System.Char, System.Int32>(character);
+        #endregion
+
+        #region Conversions to UInt32
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Int32"/> to a <see cref="System.UInt32"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.UInt32 ToUInt32(this System.Int32 number) => LinearConversion<System.Int32 , System.UInt32>(number);
+
+        /// <summary>
         /// Uses unsafe schemes to convert a <see cref="System.UInt64"/> to a <see cref="System.UInt32"/>. 
         /// The conversion is only performed with less checks during runtime.
         /// </summary>
@@ -249,12 +336,58 @@ namespace DotNetResourcesExtensions.Internal
         public static System.UInt32 ToUInt32(this System.UInt64 number) => NarrowingConversion<System.UInt64, System.UInt32>(number);
 
         /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Int64"/> to a <see cref="System.UInt32"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.UInt32 ToUInt32(this System.Int64 number) => NarrowingConversion<System.Int64, System.UInt32>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.UInt16"/> to a <see cref="System.UInt32"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.UInt32 ToUInt32(this System.UInt16 number) => WideningConversion<System.UInt16 , System.UInt32>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Int16"/> to a <see cref="System.UInt32"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.UInt32 ToUInt32(this System.Int16 number) => WideningConversion<System.Int16, System.UInt32>(number);
+        #endregion
+
+        #region Conversions to Int16
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Byte"/> to a <see cref="System.Int16"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Int16 ToInt16(this System.Byte number) => WideningConversion<System.Byte, System.Int16>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.UInt16"/> to a <see cref="System.Int16"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Int16 ToInt16(this System.UInt16 number) => LinearConversion<System.UInt16, System.Int16>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Int64"/> to a <see cref="System.Int16"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Int16 ToInt16(this System.Int64 number) => NarrowingConversion<System.Int64 , System.Int16>(number);
+
+        /// <summary>
         /// Uses unsafe schemes to convert a <see cref="System.Int32"/> to a <see cref="System.Int16"/>. 
         /// The conversion is only performed with less checks during runtime.
         /// </summary>
         /// <param name="number">The number to convert.</param>
         public static System.Int16 ToInt16(this System.Int32 number) => NarrowingConversion<System.Int32, System.Int16>(number);
+        #endregion
 
+        #region Conversions to UInt16
         /// <summary>
         /// Uses unsafe schemes to convert a <see cref="System.Int16"/> to a <see cref="System.UInt16"/>. 
         /// The conversion is only performed with less checks during runtime.
@@ -269,6 +402,22 @@ namespace DotNetResourcesExtensions.Internal
         /// <param name="number">The number to convert.</param>
         public static System.UInt16 ToUInt16(this System.UInt32 number) => NarrowingConversion<System.UInt32, System.UInt16>(number);
 
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Int64"/> to a <see cref="System.UInt16"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.UInt16 ToUInt16(this System.Int64 number) => NarrowingConversion<System.Int64 , System.UInt16>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Int32"/> to a <see cref="System.UInt16"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.UInt16 ToUInt16(this System.Int32 number) => NarrowingConversion<System.Int32, System.UInt16>(number);
+        #endregion
+
+        #region Conversions to Byte
         /// <summary>
         /// Uses unsafe schemes to convert a <see cref="System.Int16"/> to a <see cref="System.Byte"/>. 
         /// The conversion is only performed with less checks during runtime.
@@ -289,7 +438,9 @@ namespace DotNetResourcesExtensions.Internal
         /// </summary>
         /// <param name="character">The character to convert.</param>
         public static System.Byte ToByte(this System.Char character) => NarrowingConversion<System.Char , System.Byte>(character);
+        #endregion
 
+        #region Conversions to Char
         /// <summary>
         /// Uses unsafe schemes to convert a <see cref="System.Int64"/> to a <see cref="System.Char"/>. 
         /// The conversion is only performed with less checks during runtime.
@@ -305,26 +456,35 @@ namespace DotNetResourcesExtensions.Internal
         public static System.Char ToChar(this System.Int32 number) => NarrowingConversion<System.Int32, System.Char>(number);
 
         /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.UInt32"/> to a <see cref="System.Char"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Char ToChar(this System.UInt32 number) => NarrowingConversion<System.UInt32, System.Char>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Int16"/> to a <see cref="System.Char"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Char ToChar(this System.Int16 number) => LinearConversion<System.Int16, System.Char>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.UInt16"/> to a <see cref="System.Char"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Char ToChar(this System.UInt16 number) => LinearConversion<System.UInt16, System.Char>(number);
+
+        /// <summary>
         /// Uses unsafe schemes to convert a <see cref="System.Byte"/> to a <see cref="System.Char"/>. 
         /// The conversion is only performed with less checks during runtime.
         /// </summary>
         /// <param name="number">The number to convert.</param>
         public static System.Char ToChar(this System.Byte number) => WideningConversion<System.Byte , System.Char>(number);
+        #endregion
 
-        /// <summary>
-        /// Uses unsafe schemes to convert a <see cref="System.Char"/> to a <see cref="System.Int64"/>. 
-        /// The conversion is only performed with less checks during runtime.
-        /// </summary>
-        /// <param name="character">The character to convert.</param>
-        public static System.Int64 ToInt64(this System.Char character) => WideningConversion<System.Char, System.Int64>(character);
-
-        /// <summary>
-        /// Uses unsafe schemes to convert a <see cref="System.Char"/> to a <see cref="System.Int32"/>. 
-        /// The conversion is only performed with less checks during runtime.
-        /// </summary>
-        /// <param name="character">The character to convert.</param>
-        public static System.Int32 ToInt32(this System.Char character) => WideningConversion<System.Char, System.Int32>(character);
-
+        #region Get Bytes from numeric types
         /// <summary>
         /// Returns the equivalent byte array representation of this number.
         /// </summary>
@@ -395,7 +555,9 @@ namespace DotNetResourcesExtensions.Internal
         /// <param name="number">The number to convert.</param>
         /// <returns>The equivalent array representation of <paramref name="number"/>.</returns>
         public static System.Byte[] GetBytes(this System.Decimal number) => GetBytesTemplate(number);
+        #endregion
 
+        #region Convert to numeric types from bytes
         /// <summary>
         /// Converts the double-precision floating <paramref name="number"/> given to it's equivalent 64 bits , stored in a <see cref="System.Int64"/>. 
         /// </summary>
@@ -423,6 +585,18 @@ namespace DotNetResourcesExtensions.Internal
         }
 
         /// <summary>
+        /// Gets a <see cref="System.Single"/> from a byte array returned from <c>GetBytes</c> method.
+        /// </summary>
+        /// <param name="array">The array that contains the information to create a <see cref="System.Single"/>.</param>
+        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
+        /// <returns>The read number.</returns>
+        public static System.Single ToSingle(this System.Span<System.Byte> array, System.Int32 StartIndex)
+        {
+            System.Int32 rn = GetFromBytesTemplate2<System.Int32>(array, StartIndex);
+            return LinearConversion<System.Int32, System.Single>(rn);
+        }
+
+        /// <summary>
         /// Gets a <see cref="System.Double"/> from a byte array returned from <c>GetBytes</c> method.
         /// </summary>
         /// <param name="array">The array that contains the information to create a <see cref="System.Double"/>.</param>
@@ -435,12 +609,32 @@ namespace DotNetResourcesExtensions.Internal
         }
 
         /// <summary>
+        /// Gets a <see cref="System.Double"/> from a byte array returned from <c>GetBytes</c> method.
+        /// </summary>
+        /// <param name="array">The array that contains the information to create a <see cref="System.Double"/>.</param>
+        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
+        /// <returns>The read number.</returns>
+        public static System.Double ToDouble(this System.Span<System.Byte> array, System.Int32 StartIndex)
+        {
+            System.Int64 rn = GetFromBytesTemplate2<System.Int64>(array, StartIndex);
+            return LinearConversion<System.Int64, System.Double>(rn);
+        }
+
+        /// <summary>
         /// Gets a <see cref="System.Decimal"/> from a byte array returned from <c>GetBytes</c> method.
         /// </summary>
         /// <param name="array">The array that contains the information to create a <see cref="System.Decimal"/>.</param>
         /// <param name="StartIndex">The zero-based index position to start reading from.</param>
         /// <returns>The read number.</returns>
         public static System.Decimal ToDecimal(this System.Byte[] array, System.Int32 StartIndex) => GetFromBytesTemplate<System.Decimal>(array, StartIndex);
+
+        /// <summary>
+        /// Gets a <see cref="System.Decimal"/> from a byte array returned from <c>GetBytes</c> method.
+        /// </summary>
+        /// <param name="array">The array that contains the information to create a <see cref="System.Decimal"/>.</param>
+        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
+        /// <returns>The read number.</returns>
+        public static System.Decimal ToDecimal(this System.Span<System.Byte> array, System.Int32 StartIndex) => GetFromBytesTemplate2<System.Decimal>(array, StartIndex);
 
         /// <summary>
         /// Gets a <see cref="System.Int16"/> from a byte array returned from <c>GetBytes</c> method.
@@ -549,14 +743,7 @@ namespace DotNetResourcesExtensions.Internal
         /// <returns>The read number.</returns>
         public static System.UInt16 ToUInt16(this System.Span<System.Byte> array, System.Int32 StartIndex)
             => GetFromBytesTemplate2<System.UInt16>(array, StartIndex);
-
-        /// <summary>
-        /// Gets a <see cref="System.Decimal"/> from a byte array returned from <c>GetBytes</c> method.
-        /// </summary>
-        /// <param name="array">The array that contains the information to create a <see cref="System.Decimal"/>.</param>
-        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
-        /// <returns>The read number.</returns>
-        public static System.Decimal ToDecimal(this System.Span<System.Byte> array, System.Int32 StartIndex) => GetFromBytesTemplate2<System.Decimal>(array, StartIndex);
+        #endregion
 
         /// <summary>
         /// Uses unsafe schemes to copy a string to a new character array , starting from the specified index and copying <paramref name="count"/> charaters to target.
@@ -597,40 +784,6 @@ namespace DotNetResourcesExtensions.Internal
         /// <param name="str">The string to copy.</param>
         /// <returns>A new array which has characters copied from <paramref name="str"/>.</returns>
         public static System.Char[] ToCharArrayUnsafe(this System.String str) => ToCharArrayUnsafe(str, 0, str.Length);
-
-        /// <summary>
-        /// Converts the given byte array to a base64 sequence.
-        /// </summary>
-        /// <param name="bytes">The byte array to convert.</param>
-        /// <returns>The base64 data that are equivalent to <paramref name="bytes"/>.</returns>
-        // Note that the base64 code implementation uses unsafe code , so it is okay to include it here.
-        public static System.String ToBase64(this System.Byte[] bytes) => Base64Encoding.Singleton.GetString(bytes);
-    
-        /// <summary>
-        /// Converts the given byte array to a base64 sequence.
-        /// </summary>
-        /// <param name="bytes">The byte array to convert.</param>
-        /// <returns>The base64 data that are equivalent to <paramref name="bytes"/>.</returns>
-        /// <param name="startindex">The index to start computing the base64 information.</param>
-        /// <param name="count">The elements to produce the base64 equivalent data.</param>
-        public static System.String ToBase64Selected(this System.Byte[] bytes , System.Int32 startindex , System.Int32 count) => Base64Encoding.Singleton.GetString(bytes , startindex , count);
-    
-        /// <summary>
-        /// Converts the given base64 string to the equivalent byte array representation.
-        /// </summary>
-        /// <param name="base64">The base64 string to convert.</param>
-        /// <returns>The decoded byte information.</returns>
-        public static System.Byte[] FromBase64(this System.String base64) => Base64Encoding.Singleton.GetBytes(base64 , 0, base64.Length);
-
-        /// <summary>
-        /// Converts the given base64 string to the equivalent byte array representation.
-        /// </summary>
-        /// <param name="base64">The base64 string to convert.</param>
-        /// <param name="index">The character index inside <paramref name="base64"/> to start decoding from.</param>
-        /// <param name="count">The number of characters to decode.</param>
-        /// <returns>The decoded byte information.</returns>
-        public static System.Byte[] FromBase64Selected(this System.String base64, System.Int32 index, System.Int32 count)
-        => Base64Encoding.Singleton.GetBytes(base64, index , count);
 
         // Parts of bit conversion code also belong from referencesource.microsoft.com/en-us !.
         private static System.Byte GetBitValue(System.Int32 bitidx) => (1 << (bitidx & 7)).ToByte();
@@ -704,7 +857,7 @@ namespace DotNetResourcesExtensions.Internal
             {
                 for (System.Int32 J = 0; J < 8; J++)
                 {
-                    result += GetBit(data[I] , J) ? "1" : "0";
+                    result += data[I].GetBit(J) ? "1" : "0";
                 }
                 if (I+1 < data.Length) { result += "_"; }
             }

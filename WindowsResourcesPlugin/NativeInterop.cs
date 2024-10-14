@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using DotNetResourcesExtensions.Internal;
 
 internal static class Interop
 {
@@ -9,8 +10,19 @@ internal static class Interop
         public const System.String User32 = "user32.dll";
 
         public const System.String Gdi32 = "gdi32.dll";
+
+        public const System.String GdiPlus = "gdiplus.dll";
     }
 
+    /// <summary>
+    /// Blittable version of Windows BOOL type. It is convenient in situations where
+    /// manual marshalling is required, or to avoid overhead of regular bool marshalling.
+    /// </summary>
+    /// <remarks>
+    /// Some Windows APIs return arbitrary integer values although the return type is defined
+    /// as BOOL. It is best to never compare BOOL to TRUE. Always use bResult != BOOL.FALSE
+    /// or bResult == BOOL.FALSE .
+    /// </remarks>
     public enum BOOL : System.Int32
     {
         FALSE = 0,
@@ -107,6 +119,93 @@ internal static class Interop
         IMAGE_CURSOR
     }
 
+    [Flags]
+    public enum VirtualKeyFlags : System.UInt16
+    {
+        /// <summary>
+        /// The ALT key must be held down when the accelerator key is pressed.
+        /// </summary>
+        FALT = 0x10,
+        /// <summary>
+        /// The CTRL key must be held down when the accelerator key is pressed.
+        /// </summary>
+        FCONTROL = 0x08,
+        /// <summary>
+        /// No top-level menu item is highlighted when the accelerator is used.  <br />
+        /// If this flag is not specified, a top-level menu item will be highlighted, if possible, when the accelerator is used. <br />
+        /// This attribute is obsolete and retained only for backward compatibility with resource files designed for 16-bit Windows.
+        /// </summary>
+        FNOINVERT = 0x02,
+        /// <summary>
+        /// The SHIFT key must be held down when the accelerator key is pressed.
+        /// </summary>
+        FSHIFT = 0x04,
+        /// <summary>
+        /// The key member specifies a virtual-key code. <br />
+        /// If this flag is not specified, key is assumed to specify a character code.
+        /// </summary>
+        FVIRTKEY = 1,
+        /// <summary>
+        /// When this flag is specified , it means that it is the last entry in the accelerator table.
+        /// </summary>
+        LastEntry = 0x80
+    }
+
+    public enum GpStatus : System.Int32
+    {
+        Ok = 0,
+        GenericError = 1,
+        InvalidParameter = 2,
+        OutOfMemory = 3,
+        ObjectBusy = 4,
+        InsufficientBuffer = 5,
+        NotImplemented = 6,
+        Win32Error = 7,
+        WrongState = 8,
+        Aborted = 9,
+        FileNotFound = 10,
+        ValueOverflow = 11,
+        AccessDenied = 12,
+        UnknownImageFormat = 13,
+        FontFamilyNotFound = 14,
+        FontStyleNotFound = 15,
+        NotTrueTypeFont = 16,
+        UnsupportedGdiplusVersion = 17,
+        GdiplusNotInitialized = 18,
+        PropertyNotFound = 19,
+        PropertyNotSupported = 20,
+        ProfileNotFound = 21
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct GdipStartupInput
+    {
+        public int GdiplusVersion;
+
+        public IntPtr DebugEventCallback;
+
+        public bool SuppressBackgroundThread;
+
+        public bool SuppressExternalCodecs;
+
+        public static GdipStartupInput GetDefault()
+        {
+            GdipStartupInput result = default;
+            result.GdiplusVersion = 1;
+            result.SuppressBackgroundThread = false;
+            result.SuppressExternalCodecs = false;
+            return result;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct GdipStartupOutput
+    {
+        public IntPtr hook;
+
+        public IntPtr unhook;
+    }
+
     public static class User32
     {
         // Note that the version parameter must be greater than or equal to 0x00020000 and less or equal than 0x00030000.
@@ -152,6 +251,22 @@ internal static class Interop
 
         [DllImport(Libraries.User32 , EntryPoint = "ReleaseDC")]
         public static extern System.Int32 ReleaseDC(System.IntPtr hwnd, System.IntPtr hdc);
+
+        [DllImport(Libraries.User32, EntryPoint = "CreateAcceleratorTableA", SetLastError = true)]
+        public static unsafe extern System.IntPtr CreateAcceleratorTable_Native(void* table, System.Int32 count);
+
+        public static unsafe System.IntPtr CreateAcceleratorTable(ACCEL[] data)
+        {
+            void* ptr = ACCEL.CreateUnmanagedArray(data);
+            try {
+                return CreateAcceleratorTable_Native(ptr, data.Length);
+            } finally {
+                Marshal.FreeHGlobal(new IntPtr(ptr));
+            }
+        }
+
+        [DllImport(Libraries.User32, EntryPoint = "DestroyAcceleratorTable")]
+        public static extern BOOL DestroyAcceleratorTable(System.IntPtr acceltable);
     }
 
     public static class Gdi32
@@ -161,7 +276,7 @@ internal static class Interop
         // The CreateDeviceIndependentBitmap API creates a device-independent handle , which can be handled by the System.Drawing.Bitmap class.
         // Note that WinForms do only support the second API so for .NET developers that operate at WinForms level the second API is preferred.
         // For other .NET developers that work in lower manipulation layer , using the device-dependent API might be seem useful.
-        [DllImport(Libraries.Gdi32 , EntryPoint = "CreateBitmap")]
+        [DllImport(Libraries.Gdi32 , EntryPoint = "CreateBitmap" ,SetLastError = true)]
         public static unsafe extern System.IntPtr CreateBitmap(System.Int32 Width , System.Int32 Height , System.UInt32 Planes , System.UInt32 BitCount , System.Byte* pbytes);
 
         [DllImport(Libraries.Gdi32 , EntryPoint = "DeleteObject" , SetLastError = true , ExactSpelling = true)]
@@ -182,18 +297,22 @@ internal static class Interop
             return arraysize - (hdrsize + size);
         }
 
-        public static unsafe System.IntPtr LoadBitmap(System.Byte[] raw)
+        public static unsafe System.IntPtr LoadBitmap(System.Byte[] raw,  System.Int32 startindex)
         {
-            BITMAPINFOHEADER header = BITMAPINFOHEADER.ReadFromArray(raw, 0);
-            fixed (byte* ptr = &raw[raw.Length - RequiredBitMapBufferSize(header)]) 
+            BITMAPINFOHEADER header = BITMAPINFOHEADER.ReadFromArray(raw, startindex);
+            System.UInt32 ctsize = header.ColorTablesSize;
+            System.Int32 index = (ctsize > 0 ? (System.Int32)(header.Size + ctsize) : raw.Length - RequiredBitMapBufferSize(header)) + startindex;
+            fixed (byte* ptr = &raw[index])
             {
-                return CreateBitmap(header.Width, header.Height, header.Planes, header.BitCount, ptr);
+                System.IntPtr hbitmap = CreateBitmap(header.Width, header.Height, header.Planes, header.BitCount, ptr);
+                if (hbitmap == IntPtr.Zero) { throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()); }
+                return hbitmap;
             }
         }
 
-        public static unsafe System.IntPtr LoadDIBitmap(System.Byte[] raw)
+        public static unsafe System.IntPtr LoadDIBitmap(System.Byte[] raw , System.Int32 startindex)
         {
-            BITMAPHEADER header = BITMAPHEADER.ReadFromArray(raw, 0);
+            BITMAPHEADER header = BITMAPHEADER.ReadFromArray(raw, startindex);
             System.IntPtr dc = User32.GetDC(System.IntPtr.Zero);
             if (dc == IntPtr.Zero) { throw new ArgumentException("Could not inject device context. Creation failed."); }
             System.IntPtr dib;
@@ -207,10 +326,16 @@ internal static class Interop
                 // Do not allocate any data if is invalid , return handle as-it-is so that native interop can detect that.
                 // Otherwise the Unsafe.CopyBlockUnaligned would have indefinitely failed.
                 if (dib == IntPtr.Zero) { error = Marshal.GetLastWin32Error(); goto _done; }
-                System.Int32 size = RequiredBitMapBufferSize(header);
-                fixed (System.Byte* source = &raw[raw.Length - size])
+                // If we can have color table size , it will be used;
+                // Otherwise , use the old method as a valid fallback.
+                System.UInt32 cssize = header.GetHeader().ColorTablesSize;
+                // Do not call RequiredBitMapBufferSize unless required.
+                System.Int32 bsize1 = cssize <= 0 ? RequiredBitMapBufferSize(header) : 0;
+                System.Int32 index = (cssize > 0 ? (System.Int32)(header.Size + cssize) : raw.Length - bsize1) + startindex;
+                System.UInt32 bsize2 = (cssize > 0 ? raw.Length - index : bsize1).ToUInt32();
+                fixed (System.Byte* source = &raw[index])
                 {
-                    Unsafe.CopyBlockUnaligned(target, source, (System.UInt32)size);
+                    Unsafe.CopyBlockUnaligned(target, source, bsize2);
                 }
             }
          _done:
@@ -219,6 +344,37 @@ internal static class Interop
             // Throw the native exception here, I cannot save the error on the thread of older frameworks.
             if (error != 0) { throw new System.ComponentModel.Win32Exception(error); }
             return dib;
+        }
+
+        public static unsafe System.Byte[] DecodeRLEBitmap(System.Byte[] raw , System.Int32 startindex)
+        {
+            BITMAPINFOHEADER hdr = BITMAPINFOHEADER.ReadFromArray(raw, startindex);
+            if (hdr.Compression == ImageType.BI_RLE8 || hdr.Compression == ImageType.BI_RLE4)
+            {
+                System.UInt32 size = (hdr.Size + startindex).ToUInt32();
+                System.ReadOnlySpan<System.Byte> src = new(raw, size.ToInt32(), (raw.Length - size).ToInt32());
+                System.Int32 declen = RunLengthEncoder.GetDecodedLength(src);
+                System.Span<System.Byte> dst = new(new System.Byte[declen]);
+                if (RunLengthEncoder.TryDecode(src , dst , out int wr))
+                {
+                    // Delete src at this point we do not need it from now on.
+                    src = ReadOnlySpan<System.Byte>.Empty;
+                    if (wr != declen) { throw new ArgumentException("The data given are invalid."); }
+                    System.Byte[] bytesfinal = new System.Byte[wr + hdr.Size];
+                    // Since the RLE decode happened , this can now happen.
+                    hdr.Compression = ImageType.BI_RGB;
+                    // Set this for known reasons.
+                    hdr.ImageSize = declen.ToUInt16();
+                    Array.ConstrainedCopy(hdr.GetBytes(), 0, bytesfinal, 0, 36);
+                    for (System.Int32 I = 36 , J = 0; I < bytesfinal.Length && J < dst.Length; I++ , J++)
+                    {
+                        bytesfinal[I] = dst[J];
+                    }
+                    dst = Span<System.Byte>.Empty;
+                    return bytesfinal;
+                }
+            }
+            throw new InvalidOperationException("The given bitmap must have been encoded using RLE4 or RLE8.");
         }
 
         [DllImport(Libraries.Gdi32 , EntryPoint = "CreateDIBSection" , SetLastError = true)]
@@ -237,11 +393,563 @@ internal static class Interop
         public static unsafe extern System.Int32 GetBits_DI(System.IntPtr hdc , System.IntPtr bitmap , System.UInt32 firstline , System.UInt32 linecount , void* buffer , ref BITMAPHEADER header , DIBColorType usage);
     }
 
+    public static class GdiPlus
+    {
+        [System.Diagnostics.DebuggerHidden]
+        public static void StatusToExceptionMarshaller(GpStatus status)
+        {
+            switch (status)
+            {
+                case GpStatus.Ok:
+                    return;
+                case GpStatus.GdiplusNotInitialized:
+                    throw new InvalidOperationException("GDI+ is uninitialized.");
+                case GpStatus.UnsupportedGdiplusVersion:
+                    throw new PlatformNotSupportedException("The version that the DLL requires as a GDI+ version is unavailable on this OS version.");
+                case GpStatus.FileNotFound:
+                    throw new System.IO.FileNotFoundException("A file required by GDI+ was not found.");
+                case GpStatus.GenericError:
+                    throw new ExternalException("A generic error occured in GDI+.");
+                case GpStatus.OutOfMemory:
+                    throw new OutOfMemoryException("GDI+ did not have enough memory to complete the operation.");
+                case GpStatus.Win32Error:
+                    throw new System.ComponentModel.Win32Exception("GDI+ failed because of a Win32 error.");
+                case GpStatus.InvalidParameter:
+                    throw new ArgumentException("GDI+ failed because an invalid parameter was passed in the call.");
+                case GpStatus.ObjectBusy:
+                    throw new InvalidOperationException("Invalid attempt to perform a method call which is performed already in another thread.");
+                default:
+                    throw new ExternalException($"GDI+ failed due to {status} .");
+            }
+        }
+
+        /// <summary>
+        /// Handles the usage and startup/shutdown of GDI+.
+        /// </summary>
+        public sealed class GDIPManager : IDisposable
+        {
+            private static GDIPManager instance;
+
+            /// <summary>
+            /// Gets the only and default handle manager.
+            /// </summary>
+            public static GDIPManager Default => instance ??= new();
+
+            private System.Collections.Generic.List<System.IntPtr> bitmaphandles;
+            private System.IntPtr tokengdip;
+
+            public GDIPManager() {
+                bitmaphandles = new();
+                tokengdip = System.IntPtr.Zero;
+                CreateGDIPlus();
+                System.AppDomain.CurrentDomain.DomainUnload += DU_HandleManager;
+            }
+
+            private void DU_HandleManager(System.Object send, System.EventArgs e) => Dispose();
+
+            public System.IntPtr GetBitmapHandleFromStream(System.IO.Stream stream , System.Boolean ICM)
+            {
+                System.IntPtr ret = System.IntPtr.Zero;
+                GpStatus st;
+                CreateGDIPlus();
+                if (stream is null) { return System.IntPtr.Zero; }
+                if (ICM) {
+                    if ((st = CreateGdipBitmapFromStreamICM_Native(new COM.GPStream(stream), out ret)) != GpStatus.Ok) {
+                        StatusToExceptionMarshaller(st);
+                    }
+                } else {
+                    if ((st = CreateGdipBitmapFromStream_Native(new COM.GPStream(stream), out ret)) != GpStatus.Ok) {
+                        StatusToExceptionMarshaller(st);
+                    }
+                }
+                bitmaphandles.Add(ret);
+                return ret;
+            }
+
+            public System.IntPtr GetBitmapHandleFromHICON(System.IntPtr hicon)
+            {
+                System.IntPtr ret = System.IntPtr.Zero;
+                GpStatus st;
+                CreateGDIPlus();
+                if ((st = CreateGdipBitmapFromHICON(hicon , out ret)) != GpStatus.Ok) {
+                    StatusToExceptionMarshaller(st);
+                }
+                bitmaphandles.Add(ret);
+                return ret;
+            }
+
+            public unsafe System.IntPtr GetBitmapHandleFromDIB(System.Byte[] data , System.Int32 startindex)
+            {
+                System.IntPtr ret = System.IntPtr.Zero;
+                GpStatus st;
+                CreateGDIPlus();
+                BITMAPHEADER header = BITMAPHEADER.ReadFromArray(data, startindex);
+                // If we can have color table size , it will be used;
+                // Otherwise , use the old method as a valid fallback.
+                System.UInt32 cssize = header.GetHeader().ColorTablesSize;
+                // Do not call RequiredBitMapBufferSize unless required.
+                System.Int32 bsize1 = cssize <= 0 ? Gdi32.RequiredBitMapBufferSize(header) : 0;
+                System.Int32 index = (cssize > 0 ? (System.Int32)(header.Size + cssize) : data.Length - bsize1) + startindex;
+                fixed (System.Byte* source = &data[index])
+                {
+                    if ((st = CreateGdipBitmapFromDIB(header , source , out ret)) != GpStatus.Ok) {
+                        StatusToExceptionMarshaller(st);
+                    }
+                }
+                bitmaphandles.Add(ret);
+                return ret;
+            }
+
+            public bool IsAlive(System.IntPtr hnd) => bitmaphandles.Contains(hnd);
+
+            public bool RemoveBitmapHandle(System.IntPtr hnd)
+            {
+                GpStatus st;
+                try
+                {
+                    if (bitmaphandles.Contains(hnd) && (st = DisposeGdipBitmap(hnd)) != GpStatus.Ok)
+                    {
+                        StatusToExceptionMarshaller(st);
+                    }
+                } catch (Exception ex) when 
+                    (ex is System.Security.SecurityException || ex is System.OutOfMemoryException ||
+                     ex is System.IndexOutOfRangeException || ex is System.NullReferenceException) {
+                    throw;
+                }
+                bool ret = bitmaphandles.Remove(hnd);
+                if (ret && bitmaphandles.Count == 0)
+                {
+                    // The GDI+ context can be safely disposed.
+                    DisposeGDIPlus();
+                }
+                return ret;
+            }
+
+            public void Clear()
+            {
+                GpStatus st;
+                foreach (var hnd in bitmaphandles)
+                {
+                    if ((st = DisposeGdipBitmap(hnd)) != GpStatus.Ok) {
+                        StatusToExceptionMarshaller(st);
+                    }
+                }
+                bitmaphandles.Clear();
+            }
+
+            private void CreateGDIPlus()
+            {
+                if (tokengdip == System.IntPtr.Zero)
+                {
+                    GpStatus st;
+                    if ((st = CreateGDIPEnvironment(out tokengdip, GdipStartupInput.GetDefault(), out GdipStartupOutput _)) != GpStatus.Ok)
+                    {
+                        StatusToExceptionMarshaller(st);
+                    }
+                }
+            }
+
+            private void DisposeGDIPlus()
+            {
+                if (tokengdip != IntPtr.Zero)
+                {
+                    DestroyGDIPEnvironment(tokengdip);
+                    tokengdip = IntPtr.Zero;
+                }
+            }
+
+            /// <summary>
+            /// Call this when GDI+ can be uninitialized , or when you want to dispose all GDI+ data.
+            /// </summary>
+            public void Dispose()
+            {
+                if (bitmaphandles is not null)
+                {
+                    Clear();
+                    bitmaphandles = null;
+                }
+                DisposeGDIPlus();
+                System.AppDomain.CurrentDomain.DomainUnload -= DU_HandleManager;
+            }
+        }
+
+        [DllImport(Libraries.GdiPlus, EntryPoint = "GdipCreateBitmapFromStream", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        public static extern GpStatus CreateGdipBitmapFromStream_Native(COM.IStream stream , out System.IntPtr ptr);
+
+        [DllImport(Libraries.GdiPlus, EntryPoint = "GdipCreateBitmapFromStreamICM", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        public static extern GpStatus CreateGdipBitmapFromStreamICM_Native(COM.IStream stream, out System.IntPtr ptr);
+
+        [DllImport(Libraries.GdiPlus, EntryPoint = "GdipCreateBitmapFromGdiDib", ExactSpelling = true)]
+        public static unsafe extern GpStatus CreateGdipBitmapFromDIB(BITMAPHEADER header, void* gdibits, out System.IntPtr bitmap);
+
+        [DllImport(Libraries.GdiPlus , EntryPoint = "GdipCreateBitmapFromHICON" , ExactSpelling = true)]
+        public static extern GpStatus CreateGdipBitmapFromHICON(System.IntPtr hicon , out System.IntPtr bitmap);
+
+        [DllImport(Libraries.GdiPlus, EntryPoint = "GdipCreateHICONFromBitmap" , ExactSpelling = true)]
+        public static extern GpStatus GetHICONFromGdipBitmap(System.IntPtr ptr, out System.IntPtr iconhandle);
+
+        [DllImport(Libraries.GdiPlus , EntryPoint = "GdipCreateHBITMAPFromBitmap" , ExactSpelling = true)]
+        public static extern GpStatus GetHBITMAPFromGdipBitmap(System.IntPtr ptr , out System.IntPtr bitmaphandle, System.Int32 background = -2894893);
+
+        [DllImport(Libraries.GdiPlus, EntryPoint = "GdipImageForceValidation", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        public static extern GpStatus ForceGdipBitmapValidation(System.IntPtr image);
+
+        [DllImport(Libraries.GdiPlus, CharSet = CharSet.Unicode, EntryPoint = "GdipDisposeImage", ExactSpelling = true)]
+        public static extern GpStatus DisposeGdipBitmap(System.IntPtr image);
+
+        [DllImport(Libraries.GdiPlus , CharSet = CharSet.Unicode , EntryPoint = "GdiplusStartup" , ExactSpelling = true, SetLastError = true)]
+        public static extern GpStatus CreateGDIPEnvironment(out System.IntPtr token, in GdipStartupInput si, out GdipStartupOutput so);
+
+        [DllImport(Libraries.GdiPlus, CharSet = CharSet.Unicode , EntryPoint = "GdiplusShutdown" , ExactSpelling = true, SetLastError = true)]
+        public static extern void DestroyGDIPEnvironment(IntPtr token);
+
+        [DllImport(Libraries.GdiPlus , EntryPoint = "GdipGetImageWidth" , CharSet = CharSet.Unicode ,  ExactSpelling = true)]
+        public static extern GpStatus GetGdipBitmapWidth(System.IntPtr bitmaphandle , out System.UInt32 width);
+
+        [DllImport(Libraries.GdiPlus , EntryPoint = "GdipGetImageHeight" , CharSet = CharSet.Unicode , ExactSpelling = true)]
+        public static extern GpStatus GetGdipBitmapHeight(System.IntPtr bitmaphandle , out System.UInt32 height);
+
+        [DllImport(Libraries.GdiPlus , EntryPoint = "GdipGetImageFlags" , CharSet = CharSet.Unicode , ExactSpelling = true)]
+        public static extern GpStatus GetGdipBitmapFlags(System.IntPtr bitmaphandle, out System.UInt32 flags);
+
+        [DllImport(Libraries.GdiPlus , EntryPoint = "GdipGetImageRawFormat" , CharSet = CharSet.Unicode , ExactSpelling = true)]
+        public static extern GpStatus GetGdipBitmapFormat(System.IntPtr bitmaphandle, out GUID format);
+
+        [DllImport(Libraries.GdiPlus , EntryPoint = "GdipGetImageHorizontalResolution" , CharSet = CharSet.Unicode , ExactSpelling = true)]
+        public static extern GpStatus GetGdipBitmapHorizontalResolution(System.IntPtr bitmaphandle, out System.Single hres);
+
+        [DllImport(Libraries.GdiPlus, EntryPoint = "GdipGetImageVerticalResolution", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        public static extern GpStatus GetGdipBitmapVerticalResolution(System.IntPtr bitmaphandle, out System.Single vres);
+    }
+
+    public static class COM
+    {
+        [ComImport]
+        [Guid("0000000C-0000-0000-C000-000000000046")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IStream
+        {
+            int Read([In] IntPtr buf, [In] int len);
+
+            int Write([In] IntPtr buf, [In] int len);
+
+            [return: MarshalAs(UnmanagedType.I8)]
+            long Seek([In][MarshalAs(UnmanagedType.I8)] long dlibMove, [In] int dwOrigin);
+
+            void SetSize([In][MarshalAs(UnmanagedType.I8)] long libNewSize);
+
+            [return: MarshalAs(UnmanagedType.I8)]
+            long CopyTo([In][MarshalAs(UnmanagedType.Interface)] IStream pstm, [In][MarshalAs(UnmanagedType.I8)] long cb, [Out][MarshalAs(UnmanagedType.LPArray)] long[] pcbRead);
+
+            void Commit([In] int grfCommitFlags);
+
+            void Revert();
+
+            void LockRegion([In][MarshalAs(UnmanagedType.I8)] long libOffset, [In][MarshalAs(UnmanagedType.I8)] long cb, [In] int dwLockType);
+
+            void UnlockRegion([In][MarshalAs(UnmanagedType.I8)] long libOffset, [In][MarshalAs(UnmanagedType.I8)] long cb, [In] int dwLockType);
+
+            void Stat([In] System.IntPtr pstatstg, [In] int grfStatFlag);
+
+            [return: MarshalAs(UnmanagedType.Interface)]
+            IStream Clone();
+        }
+
+        internal class GPStream : IStream
+        {
+            protected System.IO.Stream dataStream;
+
+            private long virtualPosition = -1L;
+
+            internal GPStream(System.IO.Stream stream)
+            {
+                if (stream is null)
+                {
+                    throw new ArgumentNullException(nameof(stream));
+                }
+                if (!stream.CanSeek)
+                {
+                    byte[] array = new byte[256];
+                    int num = 0;
+                    int num2;
+                    do
+                    {
+                        if (array.Length < num + 256) {
+                            byte[] array2 = new byte[array.Length * 2];
+                            Array.Copy(array, array2, array.Length);
+                            array = array2;
+                        }
+                        num2 = stream.Read(array, num, 256);
+                        num += num2;
+                    }
+                    while (num2 != 0);
+                    dataStream = new System.IO.MemoryStream(array);
+                } else {
+                    dataStream = stream;
+                }
+            }
+
+            private void ActualizeVirtualPosition()
+            {
+                if (virtualPosition != -1)
+                {
+                    if (virtualPosition > dataStream.Length)
+                    {
+                        dataStream.SetLength(virtualPosition);
+                    }
+                    dataStream.Position = virtualPosition;
+                    virtualPosition = -1L;
+                }
+            }
+
+            public virtual IStream Clone()
+            {
+                NotImplemented();
+                return null;
+            }
+
+            public virtual void Commit(int grfCommitFlags)
+            {
+                dataStream.Flush();
+                ActualizeVirtualPosition();
+            }
+
+            public virtual long CopyTo(IStream pstm, long cb, long[] pcbRead)
+            {
+                int num = 4096;
+                IntPtr intPtr = Marshal.AllocHGlobal(num);
+                if (intPtr == IntPtr.Zero)
+                {
+                    throw new OutOfMemoryException();
+                }
+                long num2 = 0L;
+                try
+                {
+                    int num4;
+                    for (; num2 < cb; num2 += num4)
+                    {
+                        int num3 = num;
+                        if (num2 + num3 > cb)
+                        {
+                            num3 = (int)(cb - num2);
+                        }
+                        num4 = Read(intPtr, num3);
+                        if (num4 == 0)
+                        {
+                            break;
+                        }
+                        if (pstm.Write(intPtr, num4) != num4)
+                        {
+                            throw EFail("Wrote an incorrect number of bytes");
+                        }
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(intPtr);
+                }
+                if (pcbRead != null && pcbRead.Length != 0)
+                {
+                    pcbRead[0] = num2;
+                }
+                return num2;
+            }
+
+            public virtual System.IO.Stream GetDataStream() => dataStream;
+
+            public virtual void LockRegion(long libOffset, long cb, int dwLockType) {}
+
+            protected static ExternalException EFail(string msg)
+            {
+                throw new ExternalException(msg, -2147467259);
+            }
+
+            protected static void NotImplemented()
+            {
+                throw new ExternalException("This method call is not implemented.", -2147467263);
+            }
+
+            public virtual int Read(IntPtr buf, int length)
+            {
+                byte[] array = new byte[length];
+                int result = Read(array, length);
+                Marshal.Copy(array, 0, buf, length);
+                return result;
+            }
+
+            public virtual int Read(byte[] buffer, int length)
+            {
+                ActualizeVirtualPosition();
+                return dataStream.Read(buffer, 0, length);
+            }
+
+            public virtual void Revert() => NotImplemented();
+
+            public virtual long Seek(long offset, int origin)
+            {
+                long position = virtualPosition;
+                if (virtualPosition == -1)
+                {
+                    position = dataStream.Position;
+                }
+                long length = dataStream.Length;
+                switch (origin)
+                {
+                    case 0:
+                        if (offset <= length)
+                        {
+                            dataStream.Position = offset;
+                            virtualPosition = -1L;
+                        }
+                        else
+                        {
+                            virtualPosition = offset;
+                        }
+                        break;
+                    case 2:
+                        if (offset <= 0)
+                        {
+                            dataStream.Position = length + offset;
+                            virtualPosition = -1L;
+                        }
+                        else
+                        {
+                            virtualPosition = length + offset;
+                        }
+                        break;
+                    case 1:
+                        if (offset + position <= length)
+                        {
+                            dataStream.Position = position + offset;
+                            virtualPosition = -1L;
+                        }
+                        else
+                        {
+                            virtualPosition = offset + position;
+                        }
+                        break;
+                }
+                if (virtualPosition != -1)
+                {
+                    return virtualPosition;
+                }
+                return dataStream.Position;
+            }
+
+            public virtual void SetSize(long value) => dataStream.SetLength(value);
+
+            public virtual void Stat(System.IntPtr pstatstg, int grfStatFlag)
+            {
+                STATSTG sTATSTG = new();
+                sTATSTG.cbSize = dataStream.Length;
+                sTATSTG.ctime = FILETIME.ToNative(System.DateTime.Now);
+                Marshal.StructureToPtr(sTATSTG, pstatstg, pstatstg != IntPtr.Zero);
+            }
+
+            public virtual void UnlockRegion(long libOffset, long cb, int dwLockType) {}
+
+            public virtual int Write(IntPtr buf, int length)
+            {
+                byte[] array = new byte[length];
+                Marshal.Copy(buf, array, 0, length);
+                return Write(array, length);
+            }
+
+            public virtual int Write(byte[] buffer, int length)
+            {
+                ActualizeVirtualPosition();
+                dataStream.Write(buffer, 0, length);
+                return length;
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit , Size = 76)]
+        public struct STATSTG
+        {
+            //
+            // Summary:
+            //     Specifies the last access time for this storage, stream, or byte array.
+            [FieldOffset(0)]
+            public FILETIME atime;
+            //
+            // Summary:
+            //     Specifies the size, in bytes, of the stream or byte array.
+            [FieldOffset(8)]
+            public long cbSize;
+            //
+            // Summary:
+            //     Indicates the class identifier for the storage object.
+            [FieldOffset(16)]
+            public GUID clsid;
+            //
+            // Summary:
+            //     Indicates the creation time for this storage, stream, or byte array.
+            [FieldOffset(32)]
+            public FILETIME ctime;
+            //
+            // Summary:
+            //     Indicates the types of region locking supported by the stream or byte array.
+            [FieldOffset(40)]
+            public int grfLocksSupported;
+            //
+            // Summary:
+            //     Indicates the access mode that was specified when the object was opened.
+            [FieldOffset(44)]
+            public int grfMode;
+            //
+            // Summary:
+            //     Indicates the current state bits of the storage object (the value most recently
+            //     set by the IStorage::SetStateBits method).
+            [FieldOffset(48)]
+            public int grfStateBits;
+            //
+            // Summary:
+            //     Indicates the last modification time for this storage, stream, or byte array.
+            [FieldOffset(52)]
+            public FILETIME mtime;
+            //
+            // Summary:
+            //     Represents a pointer to a null-terminated string containing the name of the object
+            //     described by this structure.
+            [FieldOffset(60)]
+            public System.IntPtr pwcsName;
+            //
+            // Summary:
+            //     Reserved for future use.
+            [FieldOffset(68)]
+            public int reserved;
+            //
+            // Summary:
+            //     Indicates the type of storage object, which is one of the values from the STGTY
+            //     enumeration.
+            [FieldOffset(72)]
+            public int type;
+        }
+
+        [StructLayout(LayoutKind.Explicit , Size = 8)]
+        public struct FILETIME
+        {
+            [FieldOffset(0)]
+            public System.Int64 FileTime;
+            [FieldOffset(0)]
+            public int HighDateTime;
+            [FieldOffset(4)]
+            public int LowDateTime;
+
+            public System.Int64 ToTicks() => (((System.UInt64)HighDateTime << 32).ToInt64() + LowDateTime);
+
+            public System.DateTime ToDateTime() => System.DateTime.FromFileTimeUtc(FileTime);
+
+            public static unsafe FILETIME ToNative(System.DateTime datetime) => new() { FileTime = datetime.ToFileTimeUtc() };
+        }
+
+    }
+
     // Native Bitmap Information header so as to get the bitmap information.
     [StructLayout(LayoutKind.Explicit , Size = 36)]
-    public struct BITMAPINFOHEADER
+    public unsafe struct BITMAPINFOHEADER
     {
-        public static unsafe BITMAPINFOHEADER ReadFromArray(System.Byte[] bytes , System.Int32 startindex)
+        public static BITMAPINFOHEADER ReadFromArray(System.Byte[] bytes , System.Int32 startindex)
         {
             if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
             if (sizeof(BITMAPINFOHEADER) > bytes.Length - startindex)
@@ -253,7 +961,7 @@ internal static class Interop
             {
                 fixed (System.Byte* array = &bytes[startindex])
                 {
-                    Unsafe.CopyBlockUnaligned(ptr, array, (System.UInt32)sizeof(BITMAPINFOHEADER));
+                    Unsafe.CopyBlockUnaligned(ptr, array, sizeof(BITMAPINFOHEADER).ToUInt32());
                 }
             }
             return result;
@@ -307,14 +1015,62 @@ internal static class Interop
             }
         }
 
-        public unsafe readonly System.Byte[] GetBytes()
+        /// <summary>
+        /// Gets a value of how many color tables must/or exist in the image. <br />
+        /// A value of 0 means that the image type is invalid to compute color indices , 
+        /// or the image does not require color tables.
+        /// </summary>
+        public readonly System.UInt32 ColorTablesCount
+        {
+            get {
+                System.UInt32 result = 0;
+                // Color tables are not required for 16-bit bitmaps and above.
+                if (Compression == ImageType.BI_RGB && BitCount <= 8) {
+                    if (ColorIndices == 0) { 
+                        result = (System.UInt32)System.Math.Pow(2, BitCount); 
+                    } else {
+                        result = ColorIndices;
+                    }
+                // But if these are existing for 16-bit and above , return them.
+                } else if (ColorIndices > 0) {
+                    result = ColorIndices;
+                }
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Gets the final size of the color tables in bytes. <br />
+        /// This value can be zero when this value is not required or when the image type is invalid.
+        /// </summary>
+        public readonly System.UInt32 ColorTablesSize
+        {
+            // The below code is pretty-much based on multiple articles that specify how color tables are laid out.
+            // For a basic grasp you can see https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfoheader#color-tables
+            get {
+                // Size of a single color table. (It is named that way because the original color table structure is named RGBQUAD) 
+                const System.Int32 RGBQUADSIZE = 4; 
+                System.UInt32 result = 0;
+                if (Compression == ImageType.BI_RGB) {
+                    result = ColorTablesCount * RGBQUADSIZE;
+                } else if (Compression == ImageType.BI_BITFIELDS) {
+                    // In this case we have 3 masks , each of which is a DWORD so it is 3 * the size of a System.UInt32.
+                    // If we also have color tables , add them too!
+                    // It works correctly when ColorTablesCount == 0 because all the expression will evaluate to zero.
+                    result = (3 * sizeof(System.UInt32)) + (ColorTablesCount * RGBQUADSIZE);
+                }
+                return result;
+            }
+        }
+
+        public readonly System.Byte[] GetBytes()
         {
             System.Byte[] result = new System.Byte[sizeof(BITMAPINFOHEADER)];
             fixed (byte* dest = result)
             {
                 fixed (byte* src = &Unsafe.AsRef(pin))
                 {
-                    Unsafe.CopyBlockUnaligned(dest, src, (System.UInt32)sizeof(BITMAPINFOHEADER));
+                    Unsafe.CopyBlockUnaligned(dest, src, sizeof(BITMAPINFOHEADER).ToUInt32());
                 }
             }
             return result;
@@ -327,21 +1083,19 @@ internal static class Interop
     {
         public static System.Byte[] CreateBitmap(System.Byte[] withoutheader)
         {
-            const System.Int32 RGBQUADSIZE = 4; // Size of RGBQUAD structure
+            System.Int32 filehdrsize = sizeof(BITMAPFILEHEADER);
             BITMAPINFOHEADER data = BITMAPINFOHEADER.ReadFromArray(withoutheader, 0);
             BITMAPFILEHEADER header = new();
             header.Type = 0x4d42; // Is the 'BM' string in ASCII.
-            // The below two fields are set based on this article: https://learn.microsoft.com/en-us/windows/win32/gdi/storing-an-image
-            header.Size = (System.UInt32)(sizeof(BITMAPFILEHEADER) + data.Size + (data.ColorIndices * RGBQUADSIZE) + data.ImageSize);
-            header.Offset = (System.UInt32)(sizeof(BITMAPFILEHEADER) + data.Size + (data.ColorIndices * RGBQUADSIZE));
+            // Because the final size of the entire bitmap data is known due to the array ,
+            // it is possible to just add the header size plus the raw data length themselves.
+            header.Size = (filehdrsize + withoutheader.Length).ToUInt32();
+            // The below field is set based on this article: https://learn.microsoft.com/en-us/windows/win32/gdi/storing-an-image
+            header.Offset = (filehdrsize + data.Size + data.ColorTablesSize).ToUInt32();
             // Set reserved fields to zero (although that setting to them other values would not be problem)
             header.RSVD1 = 0; header.RSVD2 = 0;
-            // destroy the data structure we do not need it.
-            data = default;
             // Get header bytes so as to write them.
             System.Byte[] headerdat = header.GetBytes();
-            // destroy the header structure we do not need it.
-            header = default; 
             // Combine the data and return them.
             System.Byte[] result = new System.Byte[headerdat.Length + withoutheader.Length];
             Array.ConstrainedCopy(headerdat, 0, result, 0, headerdat.Length);
@@ -362,7 +1116,7 @@ internal static class Interop
             {
                 fixed (System.Byte* array = &bytes[startindex])
                 {
-                    Unsafe.CopyBlockUnaligned(ptr, array, (System.UInt32)sizeof(BITMAPFILEHEADER));
+                    Unsafe.CopyBlockUnaligned(ptr, array, sizeof(BITMAPFILEHEADER).ToUInt32());
                 }
             }
             return result;
@@ -393,7 +1147,7 @@ internal static class Interop
             {
                 fixed (byte* src = &Unsafe.AsRef(pin))
                 {
-                    Unsafe.CopyBlockUnaligned(dest, src , (System.UInt32)sizeof(BITMAPFILEHEADER));
+                    Unsafe.CopyBlockUnaligned(dest, src , sizeof(BITMAPFILEHEADER).ToUInt32());
                 }
             }
             return result;
@@ -406,13 +1160,21 @@ internal static class Interop
         public static BITMAPHEADER ReadFromArray(System.Byte[] bytes, System.Int32 startindex)
         {
             if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
-            System.UInt32 reqsize = (System.UInt32)sizeof(BITMAPHEADER);
+            System.UInt32 reqsize = sizeof(BITMAPHEADER).ToUInt32();
+            BITMAPINFOHEADER hdr = BITMAPINFOHEADER.ReadFromArray(bytes, startindex);
+            if (hdr.Compression == ImageType.BI_RLE8 || hdr.Compression == ImageType.BI_RLE4)
+            {
+                // Decode the bitmap if it is an RLE
+                System.Byte[] temp = Gdi32.DecodeRLEBitmap(bytes, startindex);
+                // Recursive call to now read the header using RGB understandable by CreateDeviceIndependentBitmap
+                return ReadFromArray(temp, 0);
+            }
             // There are some cases that bytes do not contain at least 1060 bytes , so possibly the bitmap does not contain 256 tables.
             // The below code checks if we have less size than the required and if so , the structure is initialized with only the required size.
-            BITMAPINFOHEADER hdr = BITMAPINFOHEADER.ReadFromArray(bytes, startindex);
             if (reqsize > bytes.Length - startindex)
             {
-                reqsize = (System.UInt32)(hdr.Size + ((bytes.Length - startindex) - hdr.DataSize));
+                // Color table is not required for above 8bpp but if it does require them , get them. 
+                reqsize = hdr.Size + hdr.ColorTablesSize;
             }
             // We have the required size , we can initialize BITMAPHEADER without losing information.
             if (reqsize > bytes.Length - startindex)
@@ -475,7 +1237,7 @@ internal static class Interop
             BITMAPINFOHEADER result = new();
             fixed (System.Byte* source = &Unsafe.AsRef(pin))
             {
-                Unsafe.CopyBlockUnaligned(Unsafe.AsPointer(ref result), source, (System.UInt32)sizeof(BITMAPINFOHEADER));
+                Unsafe.CopyBlockUnaligned(Unsafe.AsPointer(ref result), source, sizeof(BITMAPINFOHEADER).ToUInt32());
             }
             return result;
         }
@@ -497,7 +1259,7 @@ internal static class Interop
             {
                 fixed (System.Byte* array = &bytes[startindex])
                 {
-                    Unsafe.CopyBlockUnaligned(ptr, array, (System.UInt32)sizeof(NEWHEADER));
+                    Unsafe.CopyBlockUnaligned(ptr, array, sizeof(NEWHEADER).ToUInt32());
                 }
             }
             return result;
@@ -539,7 +1301,7 @@ internal static class Interop
             {
                 fixed (System.Byte* array = &bytes[startindex])
                 {
-                    Unsafe.CopyBlockUnaligned(ptr, array, (System.UInt32)sizeof(RESDIR));
+                    Unsafe.CopyBlockUnaligned(ptr, array, sizeof(RESDIR).ToUInt32());
                 }
             }
             return result;
@@ -596,6 +1358,171 @@ internal static class Interop
 
         [FieldOffset(2)]
         public System.UInt16 Height;
+    }
+
+    // Defines the accelerator table structure.
+    [StructLayout(LayoutKind.Explicit, Size = 6, Pack = 2)]
+    public unsafe struct ACCEL
+    {
+        public static void* CreateUnmanagedArray(ACCEL[] accelerators)
+        {
+            if (accelerators is null) { throw new ArgumentNullException(nameof(accelerators)); }
+            if (accelerators.Length == 0) { throw new ArgumentException("At least one element is required to create the unmanaged array."); }
+            System.Int32 bc = accelerators.Length * sizeof(ACCEL);
+            System.IntPtr ptr = Marshal.AllocHGlobal(bc);
+            fixed (ACCEL* src = accelerators)
+            {
+                Unsafe.CopyBlockUnaligned((void*)ptr, src, bc.ToUInt32());
+            }
+            return (void*)ptr;
+        }
+
+        public static ACCEL ReadFromArray(System.Byte[] bytes, System.Int32 startindex)
+        {
+            if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+            System.Int32 sdt = sizeof(ACCEL);
+            if (sdt > bytes.Length - startindex)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bytes), "There are not enough elements so that the ACCEL structure can be initialized.");
+            }
+            ACCEL ret = new();
+            fixed (System.Byte* target = &Unsafe.AsRef(ret.pin))
+            {
+                fixed (System.Byte* source = &bytes[startindex])
+                {
+                    Unsafe.CopyBlockUnaligned(target, source, sdt.ToUInt32());
+                }
+            }
+            return ret;
+        }
+
+        [FieldOffset(0)]
+        private System.Byte pin;
+
+        [FieldOffset(0)]
+        public VirtualKeyFlags FVirtual;
+
+        [FieldOffset(1)]
+        public System.Char Key;
+
+        [FieldOffset(3)]
+        public System.UInt16 IdOrCommand;
+    }
+
+    // Although that this structure does not exist in any header , this is a single accelerator table entry in RC format.
+    [StructLayout(LayoutKind.Explicit , Size = 8)]
+    public unsafe struct ACCELTABLEENTRY
+    {
+        public static ACCELTABLEENTRY ReadFromArray(System.Byte[] bytes, System.Int32 startindex)
+        {
+            if (bytes is null) { throw new ArgumentNullException(nameof(bytes)); }
+            System.Int32 sdt = sizeof(ACCELTABLEENTRY);
+            if (sdt > bytes.Length - startindex)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bytes), "There are not enough elements so that the ACCEL structure can be initialized.");
+            }
+            ACCELTABLEENTRY ret = new();
+            fixed (System.Byte* target = &Unsafe.AsRef(ret.pin))
+            {
+                fixed (System.Byte* source = &bytes[startindex])
+                {
+                    Unsafe.CopyBlockUnaligned(target, source, sdt.ToUInt32());
+                }
+            }
+            return ret;
+        }
+
+        [FieldOffset(0)]
+        private System.Byte pin;
+
+        [FieldOffset(0)]
+        public VirtualKeyFlags FVirtual;
+
+        [FieldOffset(2)]
+        public System.Char KeyCode;
+
+        [FieldOffset(4)]
+        public System.UInt16 IdOrCommand;
+
+        /// <summary>
+        /// The number of bytes inserted to ensure that the structure is aligned on a System.UInt32 boundary.
+        /// </summary>
+        [FieldOffset(6)]
+        public System.UInt16 Padding;
+
+        public readonly ACCEL ToAccelerator() {
+            ACCEL ret = new();
+            ret.FVirtual = FVirtual;
+            ret.Key = KeyCode;
+            ret.IdOrCommand = IdOrCommand;
+            return ret;
+        }
+    }
+
+    /// <summary>
+    /// GUID native marshalling type. <br />
+    /// Provides also methods to convert from , and to , a <see cref="System.Guid"/> structure.
+    /// </summary>
+    [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 4)]
+    public unsafe struct GUID
+    {
+        [FieldOffset(0)]
+        private System.Byte pin;
+        [FieldOffset(0)]
+        public System.UInt32 Data1;
+        [FieldOffset(4)]
+        public System.UInt16 Data2;
+        [FieldOffset(6)]
+        public System.UInt16 Data3;
+        [FieldOffset(8)]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
+        public System.Byte[] Data4;
+
+        public GUID()
+        {
+            pin = 0;
+            Data1 = 0;
+            Data2 = 0;
+            Data3 = 0;
+            Data4 = new System.Byte[8];
+        }
+
+        public readonly System.Guid GetGuid()
+        {
+            System.Byte[] temp = new System.Byte[16];
+            fixed (System.Byte* source = &Unsafe.AsRef(pin))
+            {
+                fixed (System.Byte* target = temp)
+                {
+                    Unsafe.CopyBlockUnaligned(target, source, 16);
+                }
+            }
+            return new(temp);
+        }
+
+        public static GUID FromGUID(System.Guid guid)
+        {
+            GUID result = new();
+            System.Byte[] bytes = guid.ToByteArray();
+            fixed (System.Byte* source = bytes)
+            {
+                fixed (System.Byte* target = &Unsafe.AsRef(result.pin)) 
+                {
+                    Unsafe.CopyBlockUnaligned(target, source, 16);
+                }
+            }
+            bytes = null;
+            return result;
+        }
+
+        public static GUID Empty = new();
+
+        public static GUID FromString(System.String str) => FromGUID(new(str));
+
+        /// <summary>
+        /// Returns the fully constructed GUID.
+        /// </summary>
+        public override readonly System.String ToString() => GetGuid().ToString();
     }
 
     public static System.UInt16 MAKEFOURCC(System.Char ch0, System.Char ch1, System.Char ch2, System.Char ch3)

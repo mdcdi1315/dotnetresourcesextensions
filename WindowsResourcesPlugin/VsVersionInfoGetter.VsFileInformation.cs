@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using DotNetResourcesExtensions.Internal;
 
 namespace DotNetResourcesExtensions
 {
@@ -120,7 +121,7 @@ namespace DotNetResourcesExtensions
         [FieldOffset(48)]
         public System.UInt32 FileCreationDateLow;
 
-        private readonly System.Int64 FileCreationTimeToTicks() => (System.Int64)(((System.UInt64)FileCreationDateHigh << 32) + FileCreationDateLow);
+        private readonly System.Int64 FileCreationTimeToTicks() => ((FileCreationDateHigh.ToUInt64() << 32) + FileCreationDateLow).ToInt64();
 
         /// <summary>
         /// Gets a <see cref="DateTime"/> that represents the result of the two <see cref="FileCreationDateHigh"/> and <see cref="FileCreationDateLow"/> fields.
@@ -151,13 +152,12 @@ namespace DotNetResourcesExtensions
         public readonly System.Version Version
         {
             get {
-                System.Byte[] high = System.BitConverter.GetBytes(FileVersionHigh) , 
-                    low = System.BitConverter.GetBytes(FileVersionLow);
+                System.Byte[] high = FileVersionHigh.GetBytes() , low = FileVersionLow.GetBytes();
                 return new(
-                    System.BitConverter.ToUInt16(high , 2),
-                    System.BitConverter.ToUInt16(high , 0),
-                    System.BitConverter.ToUInt16(low ,2),
-                    System.BitConverter.ToUInt16(low ,0));
+                    high.ToUInt16(2),
+                    high.ToUInt16(0),
+                    low.ToUInt16(2),
+                    low.ToUInt16(0));
             }
         }
 
@@ -168,13 +168,13 @@ namespace DotNetResourcesExtensions
         public readonly System.Version ProductVersion
         {
             get {
-                System.Byte[] high = System.BitConverter.GetBytes(ProductVersionHigh),
-                    low = System.BitConverter.GetBytes(ProductVersionLow);
+                System.Byte[] high = ProductVersionHigh.GetBytes(),
+                    low = ProductVersionLow.GetBytes();
                 return new(
-                    System.BitConverter.ToUInt16(high, 2),
-                    System.BitConverter.ToUInt16(high, 0),
-                    System.BitConverter.ToUInt16(low, 2),
-                    System.BitConverter.ToUInt16(low, 0));
+                    high.ToUInt16(2),
+                    high.ToUInt16(0),
+                    low.ToUInt16(2),
+                    low.ToUInt16(0));
             }
         }
 
@@ -184,8 +184,8 @@ namespace DotNetResourcesExtensions
         public readonly System.Version StructureVersion
         {
             get {
-                System.Byte[] bytes = System.BitConverter.GetBytes(StructVersion);
-                return new(System.BitConverter.ToUInt16(bytes, 2), System.BitConverter.ToUInt16(bytes, 0));
+                System.Byte[] bytes = StructVersion.GetBytes();
+                return new(bytes.ToUInt16(2), bytes.ToUInt16(0));
             }
         }
 

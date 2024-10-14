@@ -287,7 +287,9 @@ namespace ResourceEditor
                 if (Helper.ShowQuestionMessage($"Are you sure that you want to delete the resource " +
                         $"{ResourceView.Items[ResourceView.SelectedIndices[0]].Text} ?"))
                 {
-                    ResourceView.Items.RemoveAt(ResourceView.SelectedIndices[0]);
+                    System.Int32 d = ResourceView.SelectedIndices[0];
+                    ResourceView.Items.RemoveAt(d);
+                    objects.RemoveAt(d);
                     ResourceView.Update();
                     AssertFileChanges();
                 }
