@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 // Contains internal implementations that are only required for specific tasks.
 
@@ -102,6 +105,20 @@ namespace DotNetResourcesExtensions.Internal
         private const System.Byte EndOfBitmap = 1;
         private const System.Byte Delta = 2;
 
+        public ReadOnlySpan<T> Span { get; }
+
+        public SpanReader(ReadOnlySpan<T> span)
+        {
+            Span = span;
+            _unread = span;
+        }
+
+        public int Position
+        {
+            readonly get => Span.Length - _unread.Length;
+            set => _unread = Span[value..];
+        }
+
         /// <summary>
         /// Decodes the given data and returns the decoded <paramref name="input"/>.
         /// </summary>
@@ -118,10 +135,12 @@ namespace DotNetResourcesExtensions.Internal
                 fixed (System.Byte* src = &input[startindex + bih.Size])
                 {
                     System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(dest, src, bih.ColorTablesSize);
+                    }
+
+                    UnsafeAdvance(index);
                 }
-            }
             switch (bih.BitCount)
-            {
+        {
                 case 4:
                     return Index4(pixels, colors);
                 case 8:
@@ -129,7 +148,12 @@ namespace DotNetResourcesExtensions.Internal
                 default:
                     throw new NotSupportedException($"Decode operation for {bih.BitCount}-bpp bitmaps is currently not supported.");
             }
-        }
+            else
+            {
+                success = true;
+                value = _unread[0];
+                UnsafeAdvance(1);
+            }
 
         private static System.Byte[] Index4(System.UInt32[] pixels , System.UInt32[] colors)
         {
@@ -143,10 +167,10 @@ namespace DotNetResourcesExtensions.Internal
                 // Find first the color index that the pixels are matching to.
                 System.Int32 cid1 = -1, cid2 = -1;
                 for (System.Int32 K = 0; K < colors.Length; K++)
-                {
+            {
                     if (pixels[idx] == colors[K]) { cid1 = K; }
                     if (pixels[idx+1] == colors[K]) { cid2 = K; }
-                }
+            }
                 // If no color was found , set them to first color in the table.
                 if (cid1 == -1) { cid1 = 0; }
                 if (cid2 == -1) { cid2 = 0; }
@@ -156,11 +180,17 @@ namespace DotNetResourcesExtensions.Internal
                 for (J = 0; J < 8; J++) {
                     if (J == 4) { temp = cid2.ToByte(); }
                     if (temp.GetBit(J % 4)) { build.SetBit(J, true); }
-                }
+        }
                 result[I] = build;
             }
             return result;
-        }
+            }
+            else
+            {
+                success = true;
+                value = Unsafe.ReadUnaligned<TValue>(ref Unsafe.As<T, byte>(ref MemoryMarshal.GetReference(_unread)));
+                UnsafeAdvance(sizeof(TValue) / sizeof(T));
+            }
 
         private static System.Byte[] Index8(System.UInt32[] pixels, System.UInt32[] colors) 
         {
@@ -171,9 +201,9 @@ namespace DotNetResourcesExtensions.Internal
             {
                 System.Int32 cid = -1;
                 for (System.Int32 K = 0; K < colors.Length; K++)
-                {
+            {
                     if (pixels[idx] == colors[K]) { cid = K; break; }
-                }
+            }
                 if (cid == -1) { cid = 0; }
                 result[I] = cid.ToByte();
             }
@@ -191,7 +221,7 @@ namespace DotNetResourcesExtensions.Internal
         {
             Interop.BITMAPINFOHEADER bih = Interop.BITMAPINFOHEADER.ReadFromArray(input, startindex);
             return DecodeRaw_Internal(bih,input ,startindex);
-        }
+            }
 
         private static System.UInt32[] DecodeRaw_Internal(Interop.BITMAPINFOHEADER bih , System.Byte[] input , System.Int32 startindex)
         {
@@ -201,14 +231,14 @@ namespace DotNetResourcesExtensions.Internal
                 fixed (System.Byte* src = &input[startindex + bih.Size])
                 {
                     System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(dest, src, bih.ColorTablesSize);
+                    }
                 }
-            }
             System.UInt32[] pixels = null;
             try
-            {
+        {
                 System.Int64 sidx = startindex + bih.Size + bih.ColorTablesSize;
                 switch (bih.Compression)
-                {
+            {
                     case Interop.ImageType.BI_RLE8:
                         pixels = Decode8(input, colors, bih.Width, bih.Height, sidx.ToInt32(), bih.ImageSize);
                         break;
@@ -217,7 +247,7 @@ namespace DotNetResourcesExtensions.Internal
                         break;
                     default:
                         throw new InvalidOperationException("This method can only decode RLE bitmaps with compression by 4 or by 8.");
-                }
+            }
             } catch (InvalidOperationException) {
                 throw;
             } catch (System.Exception e) when (e is IndexOutOfRangeException) {
@@ -242,7 +272,7 @@ namespace DotNetResourcesExtensions.Internal
             {
                 nextbyte = encoded[I++];
                 if (nextbyte > 0)
-                {
+        {
                     // Encoded mode
                     // First byte: number of pixels
                     // Second byte: indexed colors (2)!
@@ -250,28 +280,28 @@ namespace DotNetResourcesExtensions.Internal
                     System.UInt32 colorA=0xFF000000|colors[(secondbyte&0xF0)>>4];
                     System.UInt32 colorB=0xFF000000|colors[secondbyte&0xF];
                     for (System.Byte pos=0; pos<nextbyte; pos++)
-                    {
+            {
                         // pos & 1 has better performance than pos % 2.
                         result[Y * width + X++] = (pos & 1) > 0 ? colorB : colorA;
-                    }
+        }
                 } else
-                {
+            {
                     secondbyte = encoded[I++];
                     if (secondbyte > 0x2)
-                    {
+        {
                         // Absolute mode
                         System.Byte pixel = 0;
                         bool second;
                         for (System.Byte pos = 0; pos < secondbyte; pos++)
-                        {
+        {
                             // pos & 1 has better performance than pos % 2.
                             if (!(second = (pos & 1) > 0)) { pixel = encoded[I++]; }
                             result[Y * width + (X++)] = 0xFF000000 | colors[(second ? (pixel & 0xF) : ((pixel & 0xF0) >> 4))];
-                        }
+    }
                         I += ((((uint)secondbyte + 1) / 2) & 1).ToInt32(); // Run must be word-aligned.
                     } else {
                         switch (secondbyte)
-                        {
+                {
                             case EndOfLine:
                                 // End of line.
                                 if (height > 0) { Y--; } else { Y++; }
@@ -285,9 +315,21 @@ namespace DotNetResourcesExtensions.Internal
                                 X += encoded[I++];
                                 Y += encoded[I++];
                                 break;
-                        }
-                    }
                 }
+            }
+
+            return length;
+        }
+
+        /// <summary>
+        ///  Get the decoded length, in bytes, of the given encoded data.
+        /// </summary>
+        public static int GetDecodedLength(ReadOnlySpan<System.Byte> encoded)
+        {
+            int length = 0;
+            for (int i = 0; i < encoded.Length; i += 2)
+            {
+                length += encoded[i];
             }
         g_exit:
             return result;
@@ -316,13 +358,13 @@ namespace DotNetResourcesExtensions.Internal
                 } else {
                     secondbyte = encoded[I++];
                     if (secondbyte > 0x2)
-                    {
+                {
                         // Absolute mode
                         for (System.Byte pos=0; pos < secondbyte; pos++) { result[Y * width + (X++)] = 0xFF000000 | colors[encoded[I++]]; }
                         I += ((secondbyte + 1) / 2) % 2; // Run must be word-aligned.
                     } else {
                         switch (secondbyte)
-                        {
+                    {
                             case EndOfLine:
                                 // End of line.
                                 if (height > 0) { Y--; } else { Y++; }
@@ -336,14 +378,33 @@ namespace DotNetResourcesExtensions.Internal
                                 X += encoded[I++];
                                 Y += encoded[I++];
                                 break;
-                        }
-                    }
                 }
             }
-        g_exit:
-            return result;
+
+            written = writer.Position;
+            return true;
         }
 
+        public static bool TryDecode(ReadOnlySpan<byte> encoded, Span<byte> data, out int written)
+        {
+            SpanReader<byte> reader = new(encoded);
+            SpanWriter<byte> writer = new(data);
+
+            while (reader.TryRead(out byte count))
+            {
+                if (!reader.TryRead(out byte value) || !writer.TryWriteCount(count, value))
+                {
+                    written = writer.Position;
+                    return false;
+                }
+        g_exit:
+            return result;
+            }
+
+            written = writer.Position;
+            return true;
+        }
     }
+
 
 }
