@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0">
+
+	<!-- 
+		This is the Global Items project definition. 
+		Every single source code or resource that is considered global for the project should be included here.
+	-->
+
+	<PropertyGroup>
+		<_GlobalItemsBaseDir>$(MSBuildThisFileDirectory)</_GlobalItemsBaseDir>
+		<AssemblyOriginatorKeyFile>$(_GlobalItemsBaseDir)ProjectKey.snk</AssemblyOriginatorKeyFile>
+	</PropertyGroup>
+		
+	<ItemGroup>
+		<Compile Include="$(_GlobalItemsBaseDir)DotNetCoreImports.cs" />
+		<Compile Include="$(_GlobalItemsBaseDir)UnsafeMethods.cs" />
+		<None Include="$(_GlobalItemsBaseDir)/../LICENSE.txt" Pack="true" PackagePath="/" />
+		<None Include="$(_GlobalItemsBaseDir)ProjectImage.png" Pack="true" PackagePath="/" />
+	</ItemGroup>
+
+</Project>

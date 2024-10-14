@@ -59,6 +59,9 @@ namespace DotNetResourcesExtensions
                 case WindowsResourceEntryType.RT_GROUP_CURSOR:
                     value = new ResourceGroupInformation(entry);
                     break;
+                case WindowsResourceEntryType.RT_ACCELERATOR:
+                    value = new AcceleratorTable(entry);
+                    break;
                 default:
                 case WindowsResourceEntryType.Unknown:
                     throw new System.FormatException("Cannot create a DeserializingWindowsResourceEntry instance from this entry.");

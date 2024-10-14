@@ -74,9 +74,14 @@ namespace DotNetResourcesExtensions
         private void Initialize()
         {
             // The stream will be elsewise managed by the class , no need to be handled by PEReader.
-            rdr = new(backstream , PEStreamOptions.LeaveOpen);
-            data = new(rdr);
-            if (data.IsEmpty) { throw new NoNativeResourcesFoundException();  }
+            try {
+                rdr = new(backstream, PEStreamOptions.LeaveOpen);
+                data = new(rdr);
+            } catch {
+                Dispose();
+                throw;
+            }
+            if (data.IsEmpty) { throw new NoNativeResourcesFoundException(); }
         }
 
         /// <summary>

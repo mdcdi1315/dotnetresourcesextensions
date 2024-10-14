@@ -12,7 +12,7 @@ namespace DotNetResourcesExtensions
     {
         private SafeIconHandle() : base(IntPtr.Zero , true) { }
 
-        private SafeIconHandle(System.IntPtr handle) : this() { this.handle = handle; }
+        internal SafeIconHandle(System.IntPtr handle) : this() { this.handle = handle; }
 
         /// <summary>
         /// Creates a new instance of the <see cref="SafeIconHandle"/> class by using the specified native entry that contains the icon.
@@ -147,6 +147,7 @@ namespace DotNetResourcesExtensions
     /// , or if you have an instance of this class , use the <see cref="ToDeviceIndependentHandle"/> method to convert it to a <see cref="SafeDeviceIndependentBitmapHandle"/> class. <br />
     /// This class cannot be inherited.
     /// </summary>
+    [Obsolete("This variant of bitmap handle is rarely used in .NET and in a subsequent release it will be removed.")]
     public sealed class SafeDeviceDependentBitmapHandle : SafeHandle , ICloneable
     {
         private SafeDeviceDependentBitmapHandle() : base(IntPtr.Zero , true) { }
@@ -171,7 +172,7 @@ namespace DotNetResourcesExtensions
             {
                 throw new ArgumentException("The entry's native type must be RT_BITMAP.");
             }
-            handle = Interop.Gdi32.LoadBitmap(entry.Value);
+            handle = Interop.Gdi32.LoadBitmap(entry.Value , 0);
         }
 
         /// <summary>
@@ -248,7 +249,7 @@ namespace DotNetResourcesExtensions
             {
                 throw new ArgumentException("The entry's native type must be RT_BITMAP.");
             }
-            handle = Interop.Gdi32.LoadDIBitmap(entry.Value);
+            handle = Interop.Gdi32.LoadDIBitmap(entry.Value , 0);
         }
 
         /// <summary>

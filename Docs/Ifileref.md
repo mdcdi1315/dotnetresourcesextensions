@@ -25,7 +25,7 @@ Although that this is the interface itself , a bunch of extension methods can be
 Purpose of any object implementing this interface is that all the data required to write the reference are encoded in the resource target , 
 but when the reference will be read out , the result data must be returned and not the reference data themselves.
 
-Additionally , any readers and writers must conform to a set of specified conditions:
+Additionally , any readers and writers must conform to the below set of specified conditions:
 
 1. Any writer must write the file reference efficiently and be aware of such references.
 2. The reader must know that the file reference will _NEVER_ be outputted to the user at any circumstance.
