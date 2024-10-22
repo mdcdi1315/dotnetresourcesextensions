@@ -4,7 +4,9 @@ using System.Collections.Generic;
 namespace DotNetResourcesExtensions
 {
     /// <summary>
-    /// Defines an accelerator table that is saved on a native resource entry.
+    /// Reads an accelerator table that is saved on a native resource entry. <br />
+    /// A single accelerator entry acts as a shortcut in application UI's. <br />
+    /// An example of an accelerator is the copy file operation in Windows Explorer which is performed with Ctrl+C.
     /// </summary>
     public sealed class AcceleratorTable
     {
@@ -119,6 +121,11 @@ namespace DotNetResourcesExtensions
                 return handle;
             }
         }
+
+        /// <summary>
+        /// Gets the number of the accelerator entries contained in the <see cref="Entries"/> property.
+        /// </summary>
+        public System.Int32 Count => entries.Count;
 
         /// <summary>
         /// Destroys this <see cref="AcceleratorTable"/> object.

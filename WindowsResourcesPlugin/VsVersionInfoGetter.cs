@@ -1,5 +1,7 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
+using DotNetResourcesExtensions.Internal;
 
 namespace DotNetResourcesExtensions
 {
@@ -11,22 +13,6 @@ namespace DotNetResourcesExtensions
     {
         private const System.String vsverinfohdr = "VS_VERSION_INFO" , 
             stringfileinfohdr = "StringFileInfo" , varfileinfohdr = "VarFileInfo";
-
-        private static System.Byte[] GetBytes(System.Byte[] bytes, System.Int64 idx, System.Int64 count)
-        {
-            System.Int64 len = count <= bytes.LongLength ? count : (count - bytes.LongLength);
-            System.Byte[] res = new System.Byte[len];
-            System.Int64 I = idx, J = 0;
-            for (; I < idx + count && I < bytes.LongLength; I++)
-            {
-                res[J] = bytes[I];
-                J++;
-            }
-            // Recursive call when the bytes read were less than the expected.
-            // In that case , the array length will be fixed to the number of elements read.
-            if (J < len) { return GetBytes(res, 0, J); }
-            return res;
-        }
 
         private System.Byte[] data;
         private VsFileInformation info;
@@ -72,11 +58,11 @@ namespace DotNetResourcesExtensions
             VS_FIXEDFILEINFO is a recursive structure -- will be parsed in a later stage.
              */
             System.Int32 idx = 0;
-            length = System.BitConverter.ToUInt16(data, idx);
+            length = data.ToUInt16(idx);
             idx += 2;
-            vallength = System.BitConverter.ToUInt16(data, idx);
+            vallength = data.ToUInt16(idx);
             idx += 2;
-            System.UInt16 type = System.BitConverter.ToUInt16(data, idx);
+            System.UInt16 type = data.ToUInt16(idx);
             idx += 2;
             if (type != 0) { throw new FormatException("Currently the parser can only process binary input."); }
             // OK. We know that we must read VS_VERSION_INFO exactly , but the format does not give any length for that - so we will presume that is there and
@@ -90,7 +76,7 @@ namespace DotNetResourcesExtensions
             // Update idx to the bytes read.
             idx += bytelen;
             // Gets the padding that the structure uses. Avoid these and move to the value.
-            System.UInt16 pad = System.BitConverter.ToUInt16(data , idx);
+            System.UInt16 pad = data.ToUInt16(idx);
             idx += (pad * 2) + 2;
             // Read the structure 
             info = VsFileInformation.FromPlainBytes(data, idx+2);
@@ -100,7 +86,7 @@ namespace DotNetResourcesExtensions
             }
             idx += 52; // 52 the bytes read.
             // Gets the second padding.
-            pad = System.BitConverter.ToUInt16(data ,idx);
+            pad = data.ToUInt16(idx);
             // Update again
             idx += (pad * 2) + 2;
             // OK . Now the StringFileInfo structure will be read.
@@ -112,7 +98,7 @@ namespace DotNetResourcesExtensions
         {
             System.Int32 idx = indx;
             // Read the structure length. This includes the sizes of ALL child structures.
-            System.UInt16 sfilen = System.BitConverter.ToUInt16(data, idx);
+            System.UInt16 sfilen = data.ToUInt16(idx);
             // Avoid next 2 because they do not get any value never.
             // And avoid next 2 because they are out of interest.
             idx += 6;
@@ -125,10 +111,11 @@ namespace DotNetResourcesExtensions
             // Update idx to the bytes read.
             idx += bytelen;
             // Apply padding as the format requires
-            System.Int32 pad = System.BitConverter.ToUInt16(data, idx);
+            System.Int32 pad = data.ToUInt16(idx);
+            // Update the index value
             idx += (pad * 2) + 2;
             // Next , head to read all the structures that this VS_VERSION_INFO defines.
-            while (idx < sfilen)
+            while (idx < sfilen + indx)
             {
                 (VsVersionInfoStringTable , System.Int32) tuple = DecomposeStringTable(idx);
                 idx += tuple.Item2;
@@ -140,7 +127,7 @@ namespace DotNetResourcesExtensions
         {
             System.Int32 idx = indx;
             // Read the StringTable length.
-            System.UInt16 stllen = System.BitConverter.ToUInt16(data , idx);
+            System.UInt16 stllen = data.ToUInt16(idx);
             // Update index appropriately.
             idx += 6;
             // Read the Language Identifier of this string table.
@@ -151,38 +138,51 @@ namespace DotNetResourcesExtensions
             // Update idx again
             idx += 16;
             // Read pad value.
-            System.UInt16 pad = System.BitConverter.ToUInt16(data , idx);
+            System.UInt16 pad = data.ToUInt16(idx);
             // Update and pad index
             idx += (pad * 2) + 2;
-            // Temporary stuff
-            System.Byte[] plain;
+            // Temporary key and value strings
+            System.String key, value;
             // Read recursively all string structures.
             // A string structure is a normal structure that all the values are used.
-            while (idx < stllen) 
+            while (idx < stllen + indx) // Now it is very fast too because it does not use any if statements!
             {
                 // This length is in bytes already
-                System.UInt16 len = (System.UInt16)(System.BitConverter.ToUInt16(data, idx) - 2);
+                System.UInt16 len = data.ToUInt16(idx);
                 idx += 2;
                 // The size is in characters , define it in bytes.
-                System.Int32 vallen = System.BitConverter.ToUInt16(data, idx) * 2;
+                System.Int32 vallen = data.ToUInt16(idx) * 2;
                 idx += 2;
-                System.UInt16 type = System.BitConverter.ToUInt16(data, idx);
-                // Since the format mandates that type must be either 0 or 1 , we can reposition in case of failure.
-                if (type > 1) { idx -= 6; continue; }
+                // Gets the type of the reasource but there is no need to use it actually.
+                // So just skip the type bytes.
+                // System.UInt16 type = data.ToUInt16(idx);
                 idx += 2;
-                // OK. Now we expect to find the string at this point.
-                // We cannot get the index string because we do not know it's size , but we can compute it now.
-                // Clear structure length without the type and value length members.
-                System.Int32 clearlen = len - 4;
-                // Read the structure data to a new array first
-                plain = GetBytes(data, idx, clearlen);
-                try {
-                    System.Int32 valuelen = plain.Length - vallen - 2;
-                    System.String value = valueencoding.GetString(plain, valuelen ,vallen);
-                    System.String key = encoding.GetString(plain, 0, valuelen);
-                    stt.Properties.Add(key.TrimEnd('\0'), value.TrimStart('\0'));
-                } catch { }
-                idx = idx + len - 2;
+                // OK. Now we expect to find the key at this point.
+                // Detect first the structure padding by using reverse methods.
+                // -2 due to the padding member.
+                System.Int32 keylen = (len-6) - vallen - 2;
+                // Then get the key.
+                key = encoding.GetString(data, idx, keylen);
+                // Update index.
+                idx += keylen;
+                // Read the applied padding.
+                pad = data.ToUInt16(idx);
+                // Apply padding by updating the index.
+                idx += (pad * 2) + 2;
+                value = valueencoding.GetString(data, idx, vallen);
+                // Windows loves to write strings with NULL-termination character sometimes! That's awful.
+                stt.Properties.Add(key.TrimEnd('\0'), value.TrimEnd('\0'));
+                key = null;
+                value = null;
+                // Update index.
+                idx += vallen;
+                // If the structure was not properly aligned in multiples of 4 then add to the index the missing bytes.
+                // This is what the problem was about from the beginning!
+                // This will work because if the missing byte is one it will skip one byte.
+                // If there are two bytes , two bytes will skip.
+                // If the structure happens to just align properly , then no addition will actually happen
+                // (it is like to perform idx += 0).
+                idx += len % 4;
             }
             // Return the table + the new index.
             return (stt, idx);

@@ -20,7 +20,7 @@
         /// <summary>Defines the RT_DIALOG constant.</summary>
         RT_DIALOG,
         /// <summary>
-        /// Defines the RT_STRING constant. When this is defined , then the resource value represents an array of string resources. <br />
+        /// Defines the RT_STRING constant. When this is defined , then the resource value represents a section of string table resources. <br />
         /// If you have such a resource entry , you can learn it's contents by constructing a new instance of <see cref="NativeStringsCollection"/> class.
         /// </summary>
         RT_STRING,
@@ -28,11 +28,19 @@
         RT_FONTDIR,
         /// <summary>Defines the RT_FONT constant. When this is defined , then the resource value represents a font file.</summary>
         RT_FONT,
-        /// <summary>Defines the RT_ACCELERATOR constant.</summary>
+        /// <summary>
+        /// Defines the RT_ACCELERATOR constant. <br />
+        /// Entries marked with this type contain keyboard acclerators. <br />
+        /// To read these , use the <see cref="AcceleratorTable"/> class.
+        /// </summary>
         RT_ACCELERATOR,
         /// <summary>Defines the RT_RCDATA constant. Usually the resource value is just the byte array itself.</summary>
         RT_RCDATA,
-        /// <summary>Defines the RT_MESSAGETABLE constant.</summary>
+        /// <summary>
+        /// Defines the RT_MESSAGETABLE constant. <br />
+        /// Entries marked with this type do contain format message strings for message boxes. <br />
+        /// To read such entries , use the <see cref="MessageTable"/> class.
+        /// </summary>
         RT_MESSAGETABLE,
         /// <summary>
         /// Defines the RT_GROUP_CURSOR constant. <br />
@@ -49,7 +57,8 @@
         /// <summary>
         /// Defines the RT_VERSION constant. <br />
         /// When this is defined , then the resource value represents the version block of the app. <br />
-        /// Use the <see cref="VsVersionInfoGetter"/> class to read such a block.
+        /// In most cases , there will be no or one resource entries of this type in a PE file. <br />
+        /// Use the <see cref="VsVersionInfoGetter"/> class to read such an entry.
         /// </summary>
         RT_VERSION = 16,
         /// <summary>Defines the RT_DLGINCLUDE constant.</summary>
@@ -68,7 +77,7 @@
         /// Defines the RT_MANIFEST constant. <br />
         /// This constant indicates that the value contains the embedded manifest for the application. <br />
         /// The value does usually contain XML document information for advanced startup settings. <br />
-        /// You can pass the resource value to an XML reader to see what it contains!
+        /// You can pass the resource value to a XML reader to see what it contains!
         /// </summary>
         RT_MANIFEST = 24,
     }
