@@ -19,6 +19,7 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="entry">The entry to create the deserializing entry from.</param>
         /// <exception cref="System.FormatException">The entry cannot be created.</exception>
+        /// <exception cref="System.ArgumentNullException"><paramref name="entry"/> was <see langword="null"/>.</exception>
         public DeserializingWindowsResourceEntry(NativeWindowsResourceEntry entry)
         {
             if (entry is null) { throw new System.ArgumentNullException(nameof(entry)); }
@@ -61,6 +62,9 @@ namespace DotNetResourcesExtensions
                     break;
                 case WindowsResourceEntryType.RT_ACCELERATOR:
                     value = new AcceleratorTable(entry);
+                    break;
+                case WindowsResourceEntryType.RT_MESSAGETABLE:
+                    value = new MessageTable(entry);
                     break;
                 default:
                 case WindowsResourceEntryType.Unknown:

@@ -8,7 +8,9 @@ namespace DotNetResourcesExtensions
 {
     /// <summary>
     /// Reads bitmap data out-of-the-box for any resource that defines them. <br />
-    /// And in select platforms , the reader also exposes a System.Drawing.Bitmap class to read the data.
+    /// Additionally , it converts cursors to bitmaps if these are passed to the constructor. <br />
+    /// And in select platforms , the reader also exposes a System.Drawing.Bitmap class to read the data. <br />
+    /// Note that always the resulting data will be a bitmap!
     /// </summary>
     public sealed class BitmapReader : IDisposable
     {
@@ -17,17 +19,25 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Gets a new instance of <see cref="BitmapReader"/> class by reading the specified native entry.
         /// </summary>
-        /// <param name="entry">The resource entry to read.</param>
+        /// <param name="entry">The resource entry to read bitmap data from.</param>
         /// <exception cref="ArgumentNullException"><paramref name="entry"/> was null.</exception>
-        /// <exception cref="ArgumentException">The <see cref="NativeWindowsResourceEntry.NativeType"/> property of <paramref name="entry"/> was not set to <see cref="WindowsResourceEntryType.RT_BITMAP"/>.</exception>
+        /// <exception cref="ArgumentException">The <see cref="NativeWindowsResourceEntry.NativeType"/> property of 
+        /// <paramref name="entry"/> was not set to <see cref="WindowsResourceEntryType.RT_BITMAP"/> or 
+        /// <see cref="WindowsResourceEntryType.RT_CURSOR"/>.</exception>
         public BitmapReader(NativeWindowsResourceEntry entry)
         {
             if (entry is null) { throw new ArgumentNullException(nameof(entry)); }
-            if (entry.NativeType != WindowsResourceEntryType.RT_BITMAP)
+            switch (entry.NativeType)
             {
-                throw new ArgumentException("The entry native type must have been set to RT_BITMAP.");
+                case WindowsResourceEntryType.RT_BITMAP:
+                    transformed = Interop.BITMAPFILEHEADER.CreateBitmap(entry.Value);
+                    break;
+                case WindowsResourceEntryType.RT_CURSOR:
+                    transformed = Interop.BITMAPFILEHEADER.CreateCursor(entry.Value);
+                    break;
+                default:
+                    throw new ArgumentException("The entry native type must have been set either to RT_BITMAP or RT_CURSOR.");
             }
-            transformed = Interop.BITMAPFILEHEADER.CreateBitmap(entry.Value);
         }
 
         /// <summary>
@@ -167,14 +177,14 @@ namespace DotNetResourcesExtensions
         /// Creates a new instance of <see cref="GdiPlusBitmap"/> class from the specified bitmap reader.
         /// </summary>
         /// <param name="reader">The bitmap reader to use.</param>
-        /// <param name="UseICM">An optional value whether to use ICM (Image Color Management) or not.</param>
         /// <exception cref="ArgumentNullException"><paramref name="reader"/> was null.</exception>
-        public GdiPlusBitmap(BitmapReader reader , System.Boolean UseICM = false) : this()
+        public GdiPlusBitmap(BitmapReader reader) : this()
         {
             if (reader is null) { throw new ArgumentNullException(nameof(reader)); }
-            System.IO.MemoryStream ms = new(reader.BitmapBytes);
+            System.IO.MemoryStream ms = new();
             try {
-                bitmapinst = Interop.GdiPlus.GDIPManager.Default.GetBitmapHandleFromStream(ms, UseICM);
+                reader.Save(ms);
+                bitmapinst = Interop.GdiPlus.GDIPManager.Default.GetBitmapHandleFromStream(ms, true);
                 ValidateBitmap();
             } finally {
                 ms?.Dispose();
@@ -225,6 +235,11 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Gets a <see cref="System.Drawing.Bitmap"/> object that is equal to this bitmap instance.
         /// </summary>
+        /// <remarks>
+        /// NEVER dispose the instance returned by this property; <br />
+        /// If you do that then you dispose this class instance without this instance to know about that. <br />
+        /// The property is provided only and only to do more operations on the bitmap. <br />
+        /// </remarks>
         /// <exception cref="NotImplementedException">The internal implementation required to 
         /// create the bitmap class has been altered or removed , so it is not implemented.</exception>
         public System.Drawing.Bitmap Bitmap
@@ -233,10 +248,11 @@ namespace DotNetResourcesExtensions
                 if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
                 // CreateImageObject seems to exist in all .NET platforms , so use it to get the desired result.
                 // NOTE: This uses private reflection and thus the signature of CreateImageObject can be changed at any time without notice.
-                foreach (System.Reflection.MethodInfo info in typeof(System.Drawing.Image).GetMember("CreateImageObject", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic))
+                foreach (System.Reflection.MethodInfo info in typeof(System.Drawing.Image).GetMember(
+                    "CreateImageObject", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic))
                 {
                     System.Int32 count = 0;
-                    foreach (var param in info.GetParameters()) 
+                    foreach (var param in info.GetParameters())
                     {
                         if (param.ParameterType == typeof(System.IntPtr) && count == 0)
                         {
@@ -259,8 +275,20 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Casts (actually maps) the current bitmap class to the real <see cref="System.Drawing.Bitmap"/> class.
         /// </summary>
+        /// <remarks>
+        /// NEVER dispose the instance returned by this method; <br />
+        /// If you do that then you dispose this class instance without this instance to know about that. <br />
+        /// The method is provided only and only to provide more operations on the bitmap. <br />
+        /// </remarks>
         /// <param name="bm">The bitmap object to map.</param>
-        public static explicit operator System.Drawing.Bitmap(GdiPlusBitmap bm) => bm.Bitmap;
+        public static explicit operator System.Drawing.Bitmap(GdiPlusBitmap bm)
+        {
+            try {
+                return bm.Bitmap;
+            } catch (NotImplementedException e) {
+                throw new InvalidCastException("Invalid attempt to cast to a Bitmap class." , e);
+            } catch (ObjectDisposedException) { throw; }
+        }
 #endif
 
         /// <summary>
@@ -269,6 +297,7 @@ namespace DotNetResourcesExtensions
         public System.Int32 Width
         {
             get {
+                if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
                 Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.GetGdipBitmapWidth(bitmapinst, out System.UInt32 width));
                 return width.ToInt32();
             }
@@ -280,6 +309,7 @@ namespace DotNetResourcesExtensions
         public System.Int32 Height
         {
             get {
+                if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
                 Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.GetGdipBitmapHeight(bitmapinst, out System.UInt32 height));
                 return height.ToInt32();
             }
@@ -291,6 +321,7 @@ namespace DotNetResourcesExtensions
         public System.Guid ImageFormat
         {
             get {
+                if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
                 Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.GetGdipBitmapFormat(bitmapinst, out Interop.GUID raw));
                 return raw.GetGuid();
             }
@@ -302,6 +333,7 @@ namespace DotNetResourcesExtensions
         public System.UInt32 Flags
         {
             get {
+                if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
                 Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.GetGdipBitmapFlags(bitmapinst, out System.UInt32 flags));
                 return flags;
             }
@@ -313,6 +345,7 @@ namespace DotNetResourcesExtensions
         public System.Single HorizontalResolution
         {
             get {
+                if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
                 Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.GetGdipBitmapHorizontalResolution(bitmapinst , out System.Single hr));
                 return hr;
             }
@@ -324,10 +357,16 @@ namespace DotNetResourcesExtensions
         public System.Single VerticalResolution
         {
             get {
+                if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
                 Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.GetGdipBitmapVerticalResolution(bitmapinst, out System.Single vr));
                 return vr;
             }
         }
+
+        /// <summary>
+        /// Returns the operating system handle that holds this bitmap.
+        /// </summary>
+        public System.IntPtr Handle => bitmapinst;
 
         private void ValidateBitmap()
         {
@@ -354,7 +393,7 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Gets a string that describes the current bitmap instance and state.
         /// </summary>
-        public override string ToString() => $"GdiPlusBitmap {{ Flags={Flags} , ImageFormat={ImageFormat} , HorizontalResolution={HorizontalResolution} , VerticalResolution={VerticalResolution} , Width={Width} , Height={Height} }}";
+        public override string ToString() => $"GdiPlusBitmap {{ Flags={Flags} , Handle={Handle} , ImageFormat={ImageFormat} , HorizontalResolution={HorizontalResolution} , VerticalResolution={VerticalResolution} , Width={Width} , Height={Height} }}";
 
         /// <summary>
         /// Disposes immediately this instance if it falls out of scope.

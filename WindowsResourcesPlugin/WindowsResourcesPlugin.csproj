@@ -14,11 +14,11 @@
 	<IsPackable>true</IsPackable>
 	<PackageId>$(AssemblyName)</PackageId>
 	<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-	<PackageVersion>1.0.4</PackageVersion>
+	<PackageVersion>1.0.5</PackageVersion>
 	<PackageReleaseNotes>v$(PackageVersion) of the Windows Native Resources Reader package.
-Added a new bitmap reader class that uses GDI+ to work.
-Added primitive &amp; preliminary support for decoding RLE bitmaps too.
-Added support for reading accelerator tables. Reading an accelerator table can work on any platform.
+Added the MessageTable class to read native message table strings.
+Fixed the issues regarding the reading of version info tables.
+All the data will be now always successfully acquired.
 </PackageReleaseNotes>
 	<PackageIcon>ProjectImage.png</PackageIcon>
 	<PackageTags>resources windows win32 native</PackageTags>
@@ -35,6 +35,7 @@ Added support for reading accelerator tables. Reading an accelerator table can w
     <Compile Include="BitmapReader.cs" />
     <Compile Include="DeserializingWindowsResEntry.cs" />
     <Compile Include="Exceptions.cs" />
+    <Compile Include="MessageTable.cs" />
     <Compile Include="NativeInterop.cs" />
     <Compile Include="NativeStringsCollection.cs" />
     <Compile Include="NativeWindowsResEntry.cs" />
@@ -51,7 +52,6 @@ Added support for reading accelerator tables. Reading an accelerator table can w
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.Contains(`$(NetCoreIdentifier)`))' != 'true'">
-	<PackageReference Include="System.Memory" Version="4.5.5" />
 	<PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
   </ItemGroup>
 
