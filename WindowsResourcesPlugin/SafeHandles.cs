@@ -34,8 +34,8 @@ namespace DotNetResourcesExtensions
             }
             fixed (System.Byte* ptr = entry.Value)
             {
-                handle = Interop.User32.CreateIconOrCursorExtended(ptr, 
-                    (System.UInt32)entry.Value.Length, 
+                handle = Interop.User32.CreateIconOrCursorExtended(ptr,
+                    Internal.UnsafeMethods.ToUInt32(entry.Value.Length), 
                     Interop.BOOL.TRUE,
                     0x00030000, 0, 0, 
                     Interop.IconCreationFlags.LR_DEFAULTCOLOR);
@@ -103,7 +103,7 @@ namespace DotNetResourcesExtensions
             fixed (System.Byte* ptr = entry.Value)
             {
                 handle = Interop.User32.CreateIconOrCursorExtended(ptr,
-                    (System.UInt32)entry.Value.Length,
+                    Internal.UnsafeMethods.ToUInt32(entry.Value.Length),
                     Interop.BOOL.FALSE,
                     0x00030000, 0, 0,
                     Interop.IconCreationFlags.LR_DEFAULTCOLOR);
@@ -145,6 +145,7 @@ namespace DotNetResourcesExtensions
     /// you need to pass also there a HDC handle and the class does not support such case. <br />
     /// If you want to use the resource with the System.Drawing.Bitmap class , use either the <see cref="BitmapReader"/> , the <see cref="SafeDeviceIndependentBitmapHandle"/> 
     /// , or if you have an instance of this class , use the <see cref="ToDeviceIndependentHandle"/> method to convert it to a <see cref="SafeDeviceIndependentBitmapHandle"/> class. <br />
+    /// This class should not be used nor recommended in new designs; the primary ctor will now throw exceptions at any case. <br />
     /// This class cannot be inherited.
     /// </summary>
     [Obsolete("This variant of bitmap handle is rarely used in .NET and in a subsequent release it will be removed.")]
@@ -163,16 +164,7 @@ namespace DotNetResourcesExtensions
         /// <exception cref="ArgumentException">The <see cref="NativeWindowsResourceEntry.NativeType"/> property of <paramref name="entry"/> was not <see cref="WindowsResourceEntryType.RT_BITMAP"/>.</exception>
         public unsafe SafeDeviceDependentBitmapHandle(NativeWindowsResourceEntry entry) : this()
         {
-            if (Interop.ApisSupported() == false)
-            {
-                throw new PlatformNotSupportedException("The SafeDeviceDependentBitmapHandle class can be only instantiated from Windows.");
-            }
-            if (entry is null) { throw new ArgumentNullException(nameof(entry)); }
-            if (entry.NativeType != WindowsResourceEntryType.RT_BITMAP)
-            {
-                throw new ArgumentException("The entry's native type must be RT_BITMAP.");
-            }
-            handle = Interop.Gdi32.LoadBitmap(entry.Value , 0);
+            throw new NotSupportedException("This class should not be used anymore. Move to the BitmapReader class or use GdiPlusBitmap class.");
         }
 
         /// <summary>
@@ -249,7 +241,14 @@ namespace DotNetResourcesExtensions
             {
                 throw new ArgumentException("The entry's native type must be RT_BITMAP.");
             }
-            handle = Interop.Gdi32.LoadDIBitmap(entry.Value , 0);
+            GdiPlusBitmap bm = null;
+            try {
+                bm = new(entry);
+                Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.GetHBITMAPFromGdipBitmap(bm.Handle, out handle));
+            } finally {
+                bm?.Dispose();
+                bm = null;
+            }
         }
 
         /// <summary>

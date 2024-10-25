@@ -1,5 +1,4 @@
-﻿using DotNetResourcesExtensions.Internal.CustomFormatter;
-
+﻿
 #pragma warning disable CA1416
 
 namespace DotNetResourcesExtensions

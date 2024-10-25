@@ -3,7 +3,6 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 
-
 namespace DotNetResourcesExtensions
 {
     /// <summary>
@@ -74,13 +73,13 @@ namespace DotNetResourcesExtensions
         public System.Boolean IsReadOnly => true;
 
         /// <inheritdoc />
-        public System.String this[int index] { get => strings[index]; set => throw new InvalidOperationException("This collection is read-only."); }
+        public System.String this[int index] { get => strings[index]; set => throw new NotSupportedException("This collection is read-only."); }
 
         /// <inheritdoc />
-        public void Add(System.String item) { throw new InvalidOperationException("This collection is read-only."); }
+        public void Add(System.String item) => throw new NotSupportedException("This collection is read-only.");
 
         /// <inheritdoc />
-        public void Clear() { throw new InvalidOperationException("This collection is read-only."); }
+        public void Clear() => throw new NotSupportedException("This collection is read-only.");
 
         /// <inheritdoc />
         public bool Contains(System.String item) => strings.Contains(item);
@@ -89,25 +88,16 @@ namespace DotNetResourcesExtensions
         public void CopyTo(System.String[] array, int arrayIndex) => strings.CopyTo(array, arrayIndex);
 
         /// <inheritdoc />
-        public bool Remove(System.String item)
-        {
-            throw new InvalidOperationException("This collection is read-only.");
-        }
+        public bool Remove(System.String item) => throw new NotSupportedException("This collection is read-only.");
 
         /// <inheritdoc />
         public int IndexOf(System.String item) => strings.IndexOf(item);
 
         /// <inheritdoc />
-        public void Insert(int index, System.String item)
-        {
-            throw new InvalidOperationException("This collection is read-only.");
-        }
+        public void Insert(int index, System.String item) => throw new NotSupportedException("This collection is read-only.");
 
         /// <inheritdoc />
-        public void RemoveAt(int index)
-        {
-            throw new InvalidOperationException("This collection is read-only.");
-        }
+        public void RemoveAt(int index) => throw new NotSupportedException("This collection is read-only.");
 
         /// <inheritdoc />
         public IEnumerator<System.String> GetEnumerator() => strings.GetEnumerator();

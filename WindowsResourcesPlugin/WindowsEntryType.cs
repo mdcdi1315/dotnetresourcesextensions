@@ -2,7 +2,7 @@
 {
     // Values took from the Win32 header WinUser.h .
     /// <summary>
-    /// Defines constants that specify the type that Windows understand as a valid type. <br />
+    /// Defines constants that specify the resource type that Windows understand as a common/valid type. <br />
     /// These constants are located in WinUser.h C/C++ header.
     /// </summary>
     public enum WindowsResourceEntryType : System.Int32

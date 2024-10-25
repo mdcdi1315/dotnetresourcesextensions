@@ -8,9 +8,31 @@ The purpose of the package is that it is fully optional; the `DotNetResourcesExt
 can operate without this package.
 
 The package includes a resource reader and a basic infrastracture for reading Win32
-resources out-of-the-box.
+resources out-of-the-box , for reading RC resources from PE files.
 
 Additionally , all the interface that does utilize does use common patterns of `DotNetResourcesExtensions` - 
 so that intergration can be made easy!
 
 For more information head to the repository website [here](https://github.com/mdcdi1315/dotnetresourcesextensions).
+
+Usage Example Code (Compilable as a C# program):
+
+~~~C# 
+ using DotNetResourcesExtensions;
+
+ class Program
+ {
+	public static void Main(System.String[] args)
+	{
+		NativeWindowsResourcesReader R = new("C:\\Windows\\System32\\User32.dll");
+		NativeWindowsResourceEntry temp;
+		var d = R.GetEnumerator();
+		while (d.MoveNext())
+		{
+			temp = d.ResourceEntry;
+			// Do something with this entry...
+		}
+		R.Dispose();
+	}
+ }
+~~~

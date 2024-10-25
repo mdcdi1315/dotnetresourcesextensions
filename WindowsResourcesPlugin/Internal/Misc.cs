@@ -93,7 +93,8 @@ namespace DotNetResourcesExtensions.Internal
     }
 
     // Provides a way to decode RLE compressed information.
-    // This does not still work well , but it is expected to be fixed soon.
+    // The decode algorithm works correctly.
+    // A transition to bitmap information was not found , so deprecating the old GDI API.
     internal static unsafe class RLEDecoder
     {
         private const System.Byte Command = 0;
@@ -101,101 +102,13 @@ namespace DotNetResourcesExtensions.Internal
         private const System.Byte EndOfBitmap = 1;
         private const System.Byte Delta = 2;
 
-        // Provides a decode array builder for RLE bitmaps.
-        private unsafe sealed class RLEBuilder
+        // Obtained from https://github.com/dotnet/runtime/blob/517b8355efb4524158001a320a177c2c1bd0b568/src/libraries/System.Collections/src/System/Collections/BitArray.cs
+        private static int GetByteArrayLengthFromBitLength(int n)
         {
-            private System.Int32 index;
-            private System.Byte[] result;
-
-            public RLEBuilder()
-            {
-                index = -1;
-                result = new System.Byte[1];
-            }
-
-            public RLEBuilder(System.Int32 cap)
-            {
-                index = 0;
-                result = new System.Byte[cap];
-            }
-
-            private void Expand(System.Int32 reqindex , System.Boolean iscount = false)
-            {
-                // Set the required elements multiplied by 3 so that this is not called at all times.
-                System.Int32 reqelements = iscount ? (reqindex+1) * 3 : ((reqindex+2) - result.Length) * 3;
-                // Do not expand the array if we already have that number of bytes!
-                if (reqelements+index <= result.Length || reqelements < 0) { return; }
-                System.Byte[] temp = new System.Byte[reqelements + result.Length];
-                System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(ref temp[0], ref result[0], (System.UInt32)result.Length);
-                result = temp;
-            }
-
-            public void Add(System.Int32 index , System.Byte value)
-            {
-                if (index < 0) { return; }
-                // Expand auto-validates if there is the required index.
-                Expand(index, false);
-                result[index] = value;
-                this.index = index;
-            }
-
-            public void Add(System.Byte value) => Add(++index, value);
-
-            public void AddRange(System.Byte[] data , System.Int32 startindex , System.Int32 count)
-            {
-                if (data is null) { return; }
-                if (data.Length == 0 || startindex < 0 || count < 0 || count > data.Length - startindex) { return; }
-                // Expand auto-validates if there are these requested elements.
-                Expand(count - startindex, true);
-                for (System.Int32 I = 0; I < count; I++) { Add(data[I+startindex]); }
-            }
-
-            public void SkipLineData(System.Int32 width)
-            {
-                System.Int32 skip = 0;
-                int remainingPixelsInRow = (index+1) % width;
-                if (remainingPixelsInRow > 0) { skip = width - remainingPixelsInRow; }
-                // Pad it up , actually when the image will be decoded in RGB these pads will be the color index 0.
-                Pad(skip);
-            }
-
-            public void SkipDeltaData(System.Int32 dx , System.Int32 dy , System.Int32 width)
-            {
-                System.Int32 delta = (width * dy) + dx;
-                Pad(delta);
-            }
-
-            public void Pad(System.Int32 padbytes)
-            {
-                // Ensure capacity
-                Expand(padbytes, true);
-                for (System.Int32 I = 0; I < padbytes; I++) { Add(0); }
-            }
-
-            /// <summary>
-            /// Index equal to -1 means that the index value is uninitialized.
-            /// Additionally provides the bytes that are truly written into the array if you do +1 to this property.
-            /// </summary>
-            public System.Int32 Index => index;
-
-            /// <summary>
-            /// Gets the internal array capacity.
-            /// </summary>
-            public System.Int32 Capacity => result.Length;
-
-            /// <summary>
-            /// Returns the bytes produced after all the add operations.
-            /// Note that this method will return the exact number of bytes but not much more than the required.
-            /// </summary>
-            public System.Byte[] Bytes
-            {
-                get {
-                    System.UInt32 cidx = (System.UInt32)index;
-                    System.Byte[] allocated = new System.Byte[index == -1 ? 1 : cidx+1];
-                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(ref allocated[0], ref result[0], cidx+1);
-                    return allocated;
-                }
-            }
+            const int BitShiftPerByte = 3;
+            // Due to sign extension, we don't need to special case for n == 0, since ((n - 1) >> 3) + 1 = 0
+            // This doesn't hold true for ((n - 1) / 8) + 1, which equals 1.
+            return ((uint)(n - 1 + (1 << BitShiftPerByte)) >> BitShiftPerByte).ToInt32();
         }
 
         /// <summary>
@@ -203,159 +116,201 @@ namespace DotNetResourcesExtensions.Internal
         /// </summary>
         /// <param name="input">The full bitmap data to decode.</param>
         /// <param name="startindex">The starting index inside the <paramref name="input"/> array to start decoding.</param>
-        /// <returns>The RGB decoded data.</returns>
+        /// <returns>The color-index decoded data.</returns>
         public static System.Byte[] Decode(System.Byte[] input, System.Int32 startindex)
         {
             Interop.BITMAPINFOHEADER bih = Interop.BITMAPINFOHEADER.ReadFromArray(input, startindex);
-            System.Byte[] indexes = null;
-            if (bih.Compression == Interop.ImageType.BI_RLE4) 
-            { indexes = Decode4(input ,bih.Width ,(startindex+bih.Size+bih.ColorTablesSize).ToInt32()); }
-            if (bih.Compression == Interop.ImageType.BI_RLE8)
-            { indexes = Decode8(input, bih.Width, (startindex + bih.Size + bih.ColorTablesSize).ToInt32()); }
-            if (indexes is null) { throw new InvalidOperationException("This method can only decode RLE bitmaps with compression by 4 or by 8."); }
-            System.Byte[] colors = new System.Byte[bih.ColorTablesSize];
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(ref colors[0], ref input[startindex + bih.Size] , bih.ColorTablesSize);
-            return DecodeRGB(indexes , colors , bih.Width , bih.Height);
+            System.UInt32[] pixels = DecodeRaw_Internal(bih ,input, startindex);
+            // Note that we get bit size here , so it must be converted to bytes.
+            System.Collections.BitArray arr = new(bih.Width * bih.Height * bih.BitCount);
+            // All the values in the beginning are empty.
+            arr.SetAll(false);
+            // Track I as bit index!
+            System.Int32 I = 0 , si = I;
+            System.UInt32[] colors = new System.UInt32[bih.ColorTablesCount];
+            fixed (System.UInt32* dest = colors)
+            {
+                fixed (System.Byte* src = &input[startindex + bih.Size])
+                {
+                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(dest, src, bih.ColorTablesSize);
+                }
+            }
+            for (System.Int32 idx = 0; idx < pixels.Length; idx++ , I += bih.BitCount)
+            {
+                // Find first the color index that the pixel is matching to.
+                System.Int32 cid = -1;
+                for (System.Int32 K = 0; K < colors.Length; K++) {
+                    if (pixels[idx] == colors[K]) { cid = K; break; }
+                }
+                // Default fallback for non-found colors.
+                if (cid == -1) { cid = 0; }
+                // Then , using the bit count copy the index to the target.
+                si = 0;
+                System.Byte index = cid.ToByte();
+                while (si < bih.BitCount)
+                {
+                    if (index.GetBit(si)) { arr[I + si] = true; }
+                    si++;
+                }
+            }
+            pixels = null; colors = null;
+            System.Byte[] array = new System.Byte[GetByteArrayLengthFromBitLength(arr.Count)];
+            System.Console.WriteLine($"Final array length is {array.Length} <- {arr.Count}.");
+            arr.CopyTo(array, 0);
+            arr = null;
+            return array;
         }
 
-        private static System.Byte[] Decode4(System.Byte[] encoded , System.Int32 width , System.Int32 startindex)
+        /// <summary>
+        /// Decodes the given data and returns the decoded <paramref name="input"/>.
+        /// </summary>
+        /// <param name="input">The full bitmap data to decode.</param>
+        /// <param name="startindex">The starting index inside the <paramref name="input"/> array to start decoding.</param>
+        /// <returns>The ARGB decoded data. These data can be directly marshaled to System.Drawing.Color structures and set them directly to the bitmap.</returns>
+        /// <exception cref="InvalidOperationException">The bitmap given is not a RLE4 or RLE8 bitmap.</exception>
+        public static System.UInt32[] DecodeRaw(System.Byte[] input , System.Int32 startindex)
         {
-            // Let's say the array size * 3 to be sure about the capacity.
-            RLEBuilder result = new((encoded.Length - startindex) * 3);
-            // Portions of the code used are adapted from the ImageSharp project. The original source file can be found at https://github.com/SixLabors/ImageSharp/blob/main/src/ImageSharp/Formats/Bmp/BmpDecoderCore.cs
-            // += 2 because the data are read into pairs.
-            for (System.Int32 I = startindex; I < encoded.Length; I += 2)
+            Interop.BITMAPINFOHEADER bih = Interop.BITMAPINFOHEADER.ReadFromArray(input, startindex);
+            return DecodeRaw_Internal(bih,input ,startindex);
+        }
+
+        private static System.UInt32[] DecodeRaw_Internal(Interop.BITMAPINFOHEADER bih , System.Byte[] input , System.Int32 startindex)
+        {
+            System.UInt32[] colors = new System.UInt32[bih.ColorTablesCount];
+            fixed (System.UInt32* dest = colors)
             {
-                if (encoded[I] == Command)
+                fixed (System.Byte* src = &input[startindex + bih.Size])
                 {
-                    switch (encoded[I+1]) 
+                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(dest, src, bih.ColorTablesSize);
+                }
+            }
+            System.UInt32[] pixels = null;
+            if (bih.Compression == Interop.ImageType.BI_RLE4) {
+                pixels = Decode4(input, colors, bih.Width, bih.Height, (startindex + bih.Size + bih.ColorTablesSize).ToInt32());
+            } else if (bih.Compression == Interop.ImageType.BI_RLE8) {
+                pixels = Decode8(input, colors, bih.Width, bih.Height, (startindex + bih.Size + bih.ColorTablesSize).ToInt32());
+            } else {
+                throw new InvalidOperationException("This method can only decode RLE bitmaps with compression by 4 or by 8.");
+            }
+            colors = null;
+            return pixels;
+        }
+
+        private static System.UInt32[] Decode4(System.Byte[] encoded , System.UInt32[] colors , System.Int32 width , System.Int32 height , System.Int32 startindex)
+        {
+            // The size of the final array is standard.
+            System.UInt32[] result = new System.UInt32[width * height];
+            // Portions of the code used are adapted from https://github.com/Extender/BMPDecoder/blob/master/bmp.cpp
+            // CPP code was adapted to C# by mdcdi1315 at 2024.
+            System.UInt32 Y = (height > 0 ? height - 1 : 0).ToUInt32() , X = 0;
+            if (height <= 0) { height *= -1; }
+            System.Int32 I = startindex;
+            System.Byte nextbyte , secondbyte;
+            while (true)
+            {
+                nextbyte = encoded[I++];
+                if (nextbyte > 0)
+                {
+                    // Encoded mode
+                    // First byte: number of pixels
+                    // Second byte: indexed colors (2)!
+                    secondbyte = encoded[I++];
+                    System.UInt32 colorA=0xFF000000|colors[(secondbyte&0xF0)>>4];
+                    System.UInt32 colorB=0xFF000000|colors[secondbyte&0xF];
+                    for (System.Byte pos=0; pos<nextbyte; pos++)
                     {
-                        case EndOfLine:
-                            result.SkipLineData(width);
-                            break;
-                        case EndOfBitmap:
-                            goto g_exit;
-                        case Delta:
-                            System.Int32 dx = encoded[I+2];
-                            System.Int32 dy = encoded[I+3];
-                            result.SkipDeltaData(dx, dy , width);
-                            // Skip two more bytes
-                            I += 2;
-                            break;
-                        default:
-                            // If the second byte > 2, we are in 'absolute mode'.
-                            // The second byte contains the number of color indexes that follow.
-                            int max = encoded[I+1];
-                            int bytesToRead = (((uint)max + 1) / 2).ToInt32();
-
-                            int idx = I+2;
-                            for (int i = 0; i < max; i++)
-                            {
-                                byte twoPixels = encoded[idx];
-                                if (i % 2 == 0) {
-                                    result.Add(((twoPixels >> 4) & 0xF).ToByte());
-                                } else {
-                                    result.Add((twoPixels & 0xF).ToByte());
-                                    idx++;
-                                }
-                            }
-
-                            // Absolute mode data is aligned to two-byte word-boundary.
-                            int padding = bytesToRead & 1;
-                            // Skip the pad data.
-                            I += padding;
-                            // Skip to BytesToRead.
-                            I += bytesToRead;
-                            break;
+                        // pos & 1 has better performance than pos % 2.
+                        result[Y * width + X++] = (pos & 1) > 0 ? colorB : colorA;
                     }
-                } else {
-                    int max = encoded[I];
-
-                    // The second byte contains two color indexes, one in its high-order 4 bits and one in its low-order 4 bits.
-                    byte twoPixels = encoded[I+1];
-                    byte rightPixel = (twoPixels & 0xF).ToByte();
-                    byte leftPixel = ((twoPixels >> 4) & 0xF).ToByte();
-
-                    for (int idx = 0; idx < max; idx++)
+                } else
+                {
+                    secondbyte = encoded[I++];
+                    if (secondbyte > 0x2)
                     {
-                        if (idx % 2 == 0) {
-                            result.Add(leftPixel);
-                        } else {
-                            result.Add(rightPixel);
+                        // Absolute mode
+                        System.Byte pixel = 0;
+                        bool second;
+                        for (System.Byte pos = 0; pos < secondbyte; pos++)
+                        {
+                            // pos & 1 has better performance than pos % 2.
+                            if (!(second = (pos & 1) > 0)) { pixel = encoded[I++]; }
+                            result[Y * width + (X++)] = 0xFF000000 | colors[(second ? (pixel & 0xF) : ((pixel & 0xF0) >> 4))];
+                        }
+                        I += ((((uint)secondbyte + 1) / 2) & 1).ToInt32(); // Run must be word-aligned.
+                    } else {
+                        switch (secondbyte)
+                        {
+                            case EndOfLine:
+                                // End of line.
+                                if (height > 0) { Y--; } else { Y++; }
+                                X = 0;
+                                break;
+                            case EndOfBitmap:
+                                // The bitmap ended , exit.
+                                goto g_exit;
+                            case Delta:
+                                // Reposition X and Y appropriately.
+                                X += encoded[I++];
+                                Y += encoded[I++];
+                                break;
                         }
                     }
-                    I += max;
                 }
             }
-            g_exit:
-            return result.Bytes;
+        g_exit:
+            return result;
         }
 
-        private static System.Byte[] Decode8(System.Byte[] encoded , System.Int32 width , System.Int32 startindex)
+        private static System.UInt32[] Decode8(System.Byte[] encoded, System.UInt32[] colors, System.Int32 width, System.Int32 height, System.Int32 startindex)
         {
-            // Let's say the array size * 3 to be sure about the capacity.
-            RLEBuilder result = new((encoded.Length - startindex) * 3);
-            // Portions of the code used are adapted from the ImageSharp project. The original source file can be found at https://github.com/SixLabors/ImageSharp/blob/main/src/ImageSharp/Formats/Bmp/BmpDecoderCore.cs
-            // += 2 because the data are read into pairs.
-            for (System.Int32 I = startindex; I < encoded.Length; I += 2)
+            // The size of the final array is standard.
+            System.UInt32[] result = new System.UInt32[width * height];
+            // Portions of the code used are adapted from https://github.com/Extender/BMPDecoder/blob/master/bmp.cpp
+            // CPP code was adapted to C# by mdcdi1315 at 2024.
+            System.UInt32 Y = (height > 0 ? height - 1 : 0).ToUInt32(), X = 0;
+            if (height <= 0) { height *= -1; }
+            System.Int32 I = startindex;
+            System.Byte nextbyte, secondbyte;
+            while (true)
             {
-                if (encoded[I] == Command)
-                {
-                    switch (encoded[I + 1]) {
-                        case EndOfBitmap:
-                            goto g_exit;
-                        case EndOfLine:
-                            result.SkipLineData(width);
-                            break;
-                        case Delta:
-                            System.Int32 dx = encoded[I + 2];
-                            System.Int32 dy = encoded[I + 3];
-                            result.SkipDeltaData(dx, dy, width);
-                            // Skip two more bytes
-                            I += 2;
-                            break;
-                        default:
-                            // If the second byte > 2, we are in 'absolute mode'.
-                            // Take this number of bytes from the stream as uncompressed data.
-                            int length = encoded[I+1];
-
-                            // Copy all the bytes to the target data.
-                            result.AddRange(encoded, I + 2, length);
-
-                            // Absolute mode data is aligned to two-byte word-boundary. (Expression length & 1).
-                            // Apply padding , update index with the length data.
-                            I += (length & 1) + length;
-                            break;
-                    }
+                nextbyte = encoded[I++];
+                if (nextbyte > 0) {
+                    // Encoded mode
+                    // First byte: number of pixels
+                    // Second byte: indexed color
+                    System.UInt32 color=0xFF000000|colors[encoded[I++]];
+                    for (System.Byte pos=0; pos < nextbyte; pos++) { result[Y * width + X++] = color; }
                 } else {
-                    int max = encoded[I];
-                    byte colorIdx = encoded[I+1]; // store the value to avoid the repeated indexer access inside the loop.
-
-                    for (System.Int32 c = 0; c < max; c++) { result.Add(colorIdx); }
-                    I += max;
+                    secondbyte = encoded[I++];
+                    if (secondbyte > 0x2)
+                    {
+                        // Absolute mode
+                        for (System.Byte pos=0; pos < secondbyte; pos++) { result[Y * width + (X++)] = 0xFF000000 | colors[encoded[I++]]; }
+                        I += ((((uint)secondbyte + 1) / 2) & 1).ToInt32(); // Run must be word-aligned.
+                    } else {
+                        switch (secondbyte)
+                        {
+                            case EndOfLine:
+                                // End of line.
+                                if (height > 0) { Y--; } else { Y++; }
+                                X = 0;
+                                break;
+                            case EndOfBitmap:
+                                // The bitmap ended , exit.
+                                goto g_exit;
+                            case Delta:
+                                // Reposition X and Y appropriately.
+                                X += encoded[I++];
+                                Y += encoded[I++];
+                                break;
+                        }
+                    }
                 }
             }
-            g_exit:
-            return result.Bytes;
+        g_exit:
+            return result;
         }
 
-        private static System.Byte[] DecodeRGB(System.Byte[] indexes, System.Byte[] colors , System.Int32 width , System.Int32 height)
-        {
-            // Read RGB data and decode!
-            System.Byte[] decoded = new System.Byte[indexes.Length * 3];
-            for (System.Int32 I = 0; I < indexes.Length; I++)
-            {
-                // The color table is defined as a table with 4 bytes that represent each color.
-                // Each index read represents a color index.
-                System.Int32 ci = indexes[I] * 4 , cd = I * 3;
-                // Map decoded colors...
-                // The data are decoded as the blue color first , the green and the red repectively.
-                decoded[cd] = colors[ci];
-                decoded[cd+1] = colors[ci+1];
-                decoded[cd+2] = colors[ci+2];
-            }
-            return decoded;
-        }
     }
 
 }

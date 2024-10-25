@@ -107,9 +107,10 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Disposes this class instance.
         /// </summary>
-        public void Dispose() {
-            transformed = null;
-        }
+        public void Dispose() { transformed = null; }
+
+        /// <summary>Returns the name of this type.</summary>
+        public override string ToString() => "BitmapReader";
     }
 
     /// <summary>
@@ -117,7 +118,7 @@ namespace DotNetResourcesExtensions
     /// A bridge option is also provided to cast this object to a System.Drawing.Bitmap class 
     /// , when the Windows Desktop platform is available on run-time.
     /// </summary>
-    public sealed class GdiPlusBitmap : IDisposable
+    public sealed class GdiPlusBitmap : IDisposable , ICloneable
     {
         private System.IntPtr bitmapinst;
 
@@ -138,6 +139,7 @@ namespace DotNetResourcesExtensions
         /// <param name="entry">The native entry to create the GDI+ bitmap from.</param>
         /// <exception cref="ArgumentNullException"><paramref name="entry"/> was null.</exception>
         /// <exception cref="ArgumentException">The resource entry type was not an icon or a bitmap.</exception>
+        /// <exception cref="PlatformNotSupportedException">This API was invoked in other platform than Windows.</exception>
         public GdiPlusBitmap(NativeWindowsResourceEntry entry) : this()
         {
             if (entry is null) { throw new ArgumentNullException(nameof(entry)); }
@@ -162,6 +164,7 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="iconhandle">The safe icon handle to create the bitmap from.</param>
         /// <exception cref="ArgumentNullException"><paramref name="iconhandle"/> was null.</exception>
+        /// <exception cref="PlatformNotSupportedException">This API was invoked in other platform than Windows.</exception>
         /// <exception cref="ArgumentException"><paramref name="iconhandle"/> was invalid or a disposed handle.</exception>
         public GdiPlusBitmap(SafeIconHandle iconhandle) : this()
         {
@@ -178,18 +181,11 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="reader">The bitmap reader to use.</param>
         /// <exception cref="ArgumentNullException"><paramref name="reader"/> was null.</exception>
-        public GdiPlusBitmap(BitmapReader reader) : this()
-        {
+        /// <exception cref="PlatformNotSupportedException">This API was invoked in other platform than Windows.</exception>
+        public GdiPlusBitmap(BitmapReader reader) : this() {
             if (reader is null) { throw new ArgumentNullException(nameof(reader)); }
-            System.IO.MemoryStream ms = new();
-            try {
-                reader.Save(ms);
-                bitmapinst = Interop.GdiPlus.GDIPManager.Default.GetBitmapHandleFromStream(ms, true);
-                ValidateBitmap();
-            } finally {
-                ms?.Dispose();
-                ms = null;
-            }
+            bitmapinst = Interop.GdiPlus.GDIPManager.Default.GetBitmapHandleFromDIB(reader.BitmapBytes, 14);
+            ValidateBitmap();
         }
 
         /// <summary>
@@ -198,17 +194,17 @@ namespace DotNetResourcesExtensions
         /// <param name="stream">The data stream to read from.</param>
         /// <param name="UseICM">An optional value whether to use ICM (Image Color Management) or not.</param>
         /// <exception cref="ArgumentNullException"><paramref name="stream"/> was null.</exception>
+        [System.Obsolete("Stream constructor does not work well and is obsoleted." , true)]
         public GdiPlusBitmap(System.IO.Stream stream , System.Boolean UseICM = false) : this()
         {
-            if (stream is null) { throw new ArgumentNullException(nameof(stream)); }
-            bitmapinst = Interop.GdiPlus.GDIPManager.Default.GetBitmapHandleFromStream(stream, UseICM);
-            ValidateBitmap();
+            throw new NotSupportedException("This constructor overload does not work well with all streams and it is deprecated.");
         }
 
         /// <summary>
         /// Gets the equivalent device-independent safe handle for this bitmap object. <br />
         /// Note: Do not call this property unless you need it! 
         /// </summary>
+        /// <exception cref="ObjectDisposedException">This instance is disposed.</exception>
         public SafeDeviceIndependentBitmapHandle SafeHandle
         {
             get {
@@ -222,6 +218,7 @@ namespace DotNetResourcesExtensions
         /// Gets a safe icon handle for this bitmap object. <br />
         /// Note: Do not call this property unless you need it! 
         /// </summary>
+        /// <exception cref="ObjectDisposedException">This instance is disposed.</exception>
         public SafeIconHandle IconHandle
         {
             get {
@@ -235,35 +232,44 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Gets a <see cref="System.Drawing.Bitmap"/> object that is equal to this bitmap instance.
         /// </summary>
-        /// <remarks>
-        /// NEVER dispose the instance returned by this property; <br />
-        /// If you do that then you dispose this class instance without this instance to know about that. <br />
-        /// The property is provided only and only to do more operations on the bitmap. <br />
-        /// </remarks>
+        /// <exception cref="ObjectDisposedException">This instance is disposed.</exception>
         /// <exception cref="NotImplementedException">The internal implementation required to 
         /// create the bitmap class has been altered or removed , so it is not implemented.</exception>
+        /// <exception cref="AggregateException">The reflected call failed , see the inner exceptions for more information.</exception>
         public System.Drawing.Bitmap Bitmap
         {
+            [System.Security.SecurityCritical]
             get {
                 if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
+                // So cloning the image will avoid the past issues existing with access violation exceptions.
+                System.IntPtr instance;
+                Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.CloneGdipBitmap(bitmapinst, out instance));
                 // CreateImageObject seems to exist in all .NET platforms , so use it to get the desired result.
                 // NOTE: This uses private reflection and thus the signature of CreateImageObject can be changed at any time without notice.
-                foreach (System.Reflection.MethodInfo info in typeof(System.Drawing.Image).GetMember(
-                    "CreateImageObject", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic))
-                {
-                    System.Int32 count = 0;
-                    foreach (var param in info.GetParameters())
+                try {
+                    foreach (System.Reflection.MethodInfo info in typeof(System.Drawing.Image).GetMember(
+                        "CreateImageObject", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic))
                     {
-                        if (param.ParameterType == typeof(System.IntPtr) && count == 0)
+                        System.Int32 count = 0;
+                        foreach (var param in info.GetParameters())
                         {
-                            try {
-                                return (System.Drawing.Bitmap)info.Invoke(null, new System.Object[] { bitmapinst });
-                            } catch (System.Reflection.TargetInvocationException tie) {
-                                throw tie.InnerException ?? new ArgumentException("Method invokation failed.");
+                            if (param.ParameterType == typeof(System.IntPtr) && count == 0)
+                            {
+                                try {
+                                    // Now we do not care about disposal issues since the handle will be explicitly handled by the created instance.
+                                    return (System.Drawing.Bitmap)info.Invoke(null, new System.Object[] { instance });
+                                } catch (System.Reflection.TargetInvocationException tie) {
+                                    // Dispose the cloned image if an error occured.
+                                    Interop.GdiPlus.DisposeGdipBitmap(instance);
+                                    throw new AggregateException("Internal Error occured while doing reflection. The bitmap creation failed.", tie.InnerException);
+                                }
                             }
+                            count++;
                         }
-                        count++;
                     }
+                } catch (System.InvalidCastException)  {
+                    // Dispose the cloned image if a casting error occured.
+                    Interop.GdiPlus.DisposeGdipBitmap(instance);
                 }
                 // If the CreateImageObject has been altered in a .NET release , throw this exception.
                 throw new NotImplementedException("The internal implementation might have been altered for this .NET release. " +
@@ -275,11 +281,6 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Casts (actually maps) the current bitmap class to the real <see cref="System.Drawing.Bitmap"/> class.
         /// </summary>
-        /// <remarks>
-        /// NEVER dispose the instance returned by this method; <br />
-        /// If you do that then you dispose this class instance without this instance to know about that. <br />
-        /// The method is provided only and only to provide more operations on the bitmap. <br />
-        /// </remarks>
         /// <param name="bm">The bitmap object to map.</param>
         public static explicit operator System.Drawing.Bitmap(GdiPlusBitmap bm)
         {
@@ -292,8 +293,24 @@ namespace DotNetResourcesExtensions
 #endif
 
         /// <summary>
+        /// Clones this GDI+ bitmap instance to a newly created instance.
+        /// </summary>
+        /// <returns>The cloned result that is created from this bitmap instance.</returns>
+        /// <exception cref="ObjectDisposedException">This instance is disposed.</exception>
+        public GdiPlusBitmap Clone()
+        {
+            if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
+            GdiPlusBitmap result = new();
+            Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.CloneGdipBitmap(bitmapinst, out result.bitmapinst));
+            return result;
+        }
+
+        System.Object ICloneable.Clone() => Clone();
+
+        /// <summary>
         /// Gets the width of this bitmap in pixels.
         /// </summary>
+        /// <exception cref="ObjectDisposedException">This instance is disposed.</exception>
         public System.Int32 Width
         {
             get {
@@ -306,6 +323,7 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Gets the height of this bitmap in pixels.
         /// </summary>
+        /// <exception cref="ObjectDisposedException">This instance is disposed.</exception>
         public System.Int32 Height
         {
             get {
@@ -316,8 +334,9 @@ namespace DotNetResourcesExtensions
         }
 
         /// <summary>
-        /// Gets the format of this image. This property maps to the <c>RawFormat</c> property of the System.Drawing.Bitmap class.
+        /// Gets the format of this bitmap. This property maps to the <c>RawFormat</c> property of the System.Drawing.Bitmap class.
         /// </summary>
+        /// <exception cref="ObjectDisposedException">This instance is disposed.</exception>
         public System.Guid ImageFormat
         {
             get {
@@ -328,8 +347,9 @@ namespace DotNetResourcesExtensions
         }
 
         /// <summary>
-        /// Gets the image flags for this bitmap.
+        /// Gets the flags for this bitmap.
         /// </summary>
+        /// <exception cref="ObjectDisposedException">This instance is disposed.</exception>
         public System.UInt32 Flags
         {
             get {
@@ -342,6 +362,7 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Returns the horizontal resolution, in dots per inch, of this bitmap.
         /// </summary>
+        /// <exception cref="ObjectDisposedException">This instance is disposed.</exception>
         public System.Single HorizontalResolution
         {
             get {
@@ -354,6 +375,7 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Returns the vertical resolution, in dots per inch, of this bitmap.
         /// </summary>
+        /// <exception cref="ObjectDisposedException">This instance is disposed.</exception>
         public System.Single VerticalResolution
         {
             get {
@@ -367,6 +389,43 @@ namespace DotNetResourcesExtensions
         /// Returns the operating system handle that holds this bitmap.
         /// </summary>
         public System.IntPtr Handle => bitmapinst;
+
+        /// <summary>
+        /// Gets an ARGB pixel from the specified coordinates.
+        /// </summary>
+        /// <param name="X">The X-coordinate of the bitmap to retrieve the pixel.</param>
+        /// <param name="Y">The Y-coordinate of the bitmap to retrieve the pixel.</param>
+        /// <returns>The ARGB pixel encoded as a <see cref="System.UInt32"/>.</returns>
+        /// <exception cref="ObjectDisposedException">The instance is disposed.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="X"/> or/and <paramref name="Y"/> are out of the image bounds.</exception>
+        public System.UInt32 GetPixel(System.Int32 X , System.Int32 Y)
+        {
+            if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
+            if (X < 0 || Y < 0 || X >= Width || Y >= Height)
+            {
+                throw new ArgumentOutOfRangeException("X and Y parameters must be zero-index numbers with upper bound their widths and heights.");
+            }
+            Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.GetGdipBitmapPixel(bitmapinst, X, Y, out System.UInt32 ret));
+            return ret;
+        }
+
+        /// <summary>
+        /// Sets the specified pixel on the image on the specified coordinates.
+        /// </summary>
+        /// <param name="X">The X-coordinate of the bitmap to retrieve the pixel.</param>
+        /// <param name="Y">The Y-coordinate of the bitmap to retrieve the pixel.</param>
+        /// <param name="Color">The color to set on the specified coordinates.</param>
+        /// <exception cref="ObjectDisposedException">The instance is disposed.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="X"/> or/and <paramref name="Y"/> are out of the image bounds.</exception>
+        public void SetPixel(System.Int32 X , System.Int32 Y , System.UInt32 Color)
+        {
+            if (bitmapinst == IntPtr.Zero) { throw new ObjectDisposedException(nameof(GdiPlusBitmap)); }
+            if (X < 0 || Y < 0 || X >= Width || Y >= Height)
+            {
+                throw new ArgumentOutOfRangeException("X and Y parameters must be zero-index numbers with upper bound their widths and heights.");
+            }
+            Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.SetGdipBitmapPixel(bitmapinst, X, Y, Color));
+        }
 
         private void ValidateBitmap()
         {
@@ -393,6 +452,7 @@ namespace DotNetResourcesExtensions
         /// <summary>
         /// Gets a string that describes the current bitmap instance and state.
         /// </summary>
+        /// <exception cref="ObjectDisposedException">This instance is disposed. The instance data are required to form the information.</exception>
         public override string ToString() => $"GdiPlusBitmap {{ Flags={Flags} , Handle={Handle} , ImageFormat={ImageFormat} , HorizontalResolution={HorizontalResolution} , VerticalResolution={VerticalResolution} , Width={Width} , Height={Height} }}";
 
         /// <summary>

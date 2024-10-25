@@ -14,11 +14,13 @@
 	<IsPackable>true</IsPackable>
 	<PackageId>$(AssemblyName)</PackageId>
 	<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-	<PackageVersion>1.0.5</PackageVersion>
+	<PackageVersion>1.0.6</PackageVersion>
 	<PackageReleaseNotes>v$(PackageVersion) of the Windows Native Resources Reader package.
-Added the MessageTable class to read native message table strings.
-Fixed the issues regarding the reading of version info tables.
-All the data will be now always successfully acquired.
+- The old GDI32 API interop used is now deprecated in favor of GdiPlusBitmap that can create the most image types.
+However , the SafeDeviceIndependentBitmap class still works (because internally uses the GdiPlusBitmap class).
+- Remove old and unused code
+- Improve code paths on certain aspects.
+- Improve the documentation shipped with the assembly.
 </PackageReleaseNotes>
 	<PackageIcon>ProjectImage.png</PackageIcon>
 	<PackageTags>resources windows win32 native</PackageTags>
