@@ -54,12 +54,6 @@ internal static class Interop
         LR_SHARED = 0x00008000
     }
 
-    public enum DIBColorType : System.UInt32
-    {
-        DIB_RGB_COLORS = 0,
-        DIB_PAL_COLORS = 1,
-    }
-
     public enum ImageType : System.UInt16
     {
         BI_RGB = 0,
@@ -229,10 +223,6 @@ internal static class Interop
             System.Int32 cydesired,
             IconCreationFlags flags);
 
-        // The below method is not used , but left here if anyone wants it to use in their sourcecode sometime...
-        [DllImport(Libraries.User32 , EntryPoint = "CopyIcon" , SetLastError = true)]
-        public static extern System.IntPtr CopyIconOrCursorHandle(System.IntPtr original);
-
         [DllImport(Libraries.User32 , EntryPoint = "CopyImage" , SetLastError = true)]
         public static extern System.IntPtr CopyImage(
             System.IntPtr image , 
@@ -246,12 +236,6 @@ internal static class Interop
 
         [DllImport(Libraries.User32 , EntryPoint = "DestroyCursor" , SetLastError = true)]
         public static extern BOOL DestroyCursor(System.IntPtr handle);
-
-        [DllImport(Libraries.User32 , EntryPoint = "GetDC" , SetLastError = false)]
-        public static extern System.IntPtr GetDC(System.IntPtr hwndtarget);
-
-        [DllImport(Libraries.User32 , EntryPoint = "ReleaseDC")]
-        public static extern System.Int32 ReleaseDC(System.IntPtr hwnd, System.IntPtr hdc);
 
         [DllImport(Libraries.User32, EntryPoint = "CreateAcceleratorTableA", SetLastError = true)]
         public static unsafe extern System.IntPtr CreateAcceleratorTable_Native(void* table, System.Int32 count);
@@ -273,122 +257,18 @@ internal static class Interop
     [System.Security.SuppressUnmanagedCodeSecurity]
     public static class Gdi32
     {
-        // Here are two distinct API's that work in the same manner , output same results , but:
-        // The CreateBitmap API creates a device-dependent handle , which it does mean that the image could only be directly rendered.
-        // The CreateDeviceIndependentBitmap API creates a device-independent handle , which can be handled by the System.Drawing.Bitmap class.
-        // Note that WinForms do only support the second API so for .NET developers that operate at WinForms level the second API is preferred.
-        // For other .NET developers that work in lower manipulation layer , using the device-dependent API might be seem useful.
-        [DllImport(Libraries.Gdi32 , EntryPoint = "CreateBitmap" ,SetLastError = true)]
-        public static unsafe extern System.IntPtr CreateBitmap(System.Int32 Width , System.Int32 Height , System.UInt32 Planes , System.UInt32 BitCount , System.Byte* pbytes);
-
         [DllImport(Libraries.Gdi32 , EntryPoint = "DeleteObject" , SetLastError = true , ExactSpelling = true)]
         public static extern BOOL DeleteObject(System.IntPtr handle);
 
-        public static System.Int32 RequiredBitMapBufferSize(BITMAPINFOHEADER header)
-            => (((header.Width * header.Planes * header.BitCount + 15) >> 4) << 1) * header.Height;
-
         public static System.Int32 RequiredBitMapBufferSize(BITMAPHEADER header)
             => (((header.Width * header.Planes * header.BitCount + 15) >> 4) << 1) * header.Height;
-
-        public static unsafe System.Int32 ColorTableEntriesInBytes(BITMAPINFOHEADER header , System.Int32 arraysize)
-        {
-            System.Int32 size = RequiredBitMapBufferSize(header);
-            System.Int32 hdrsize = sizeof(BITMAPINFOHEADER);
-            // We know the total size of the header + the data size , so find the color table bytes
-            // by using the arraysize parameter.
-            return arraysize - (hdrsize + size);
-        }
-
-        public static unsafe System.IntPtr LoadBitmap(System.Byte[] raw,  System.Int32 startindex)
-        {
-            BITMAPINFOHEADER header = BITMAPINFOHEADER.ReadFromArray(raw, startindex);
-            System.UInt32 ctsize = header.ColorTablesSize;
-            System.Int32 index = (ctsize > 0 ? (System.Int32)(header.Size + ctsize) : raw.Length - RequiredBitMapBufferSize(header)) + startindex;
-            fixed (byte* ptr = &raw[index])
-            {
-                System.IntPtr hbitmap = CreateBitmap(header.Width, header.Height, header.Planes, header.BitCount, ptr);
-                if (hbitmap == IntPtr.Zero) { throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()); }
-                return hbitmap;
-            }
-        }
-
-        public static unsafe System.IntPtr LoadDIBitmap(System.Byte[] raw , System.Int32 startindex)
-        {
-            BITMAPHEADER header = BITMAPHEADER.ReadFromArray(raw, startindex);
-            System.Boolean wasrle = false;
-            if (header.Compression == ImageType.BI_RLE8 || header.Compression == ImageType.BI_RLE4)
-            {
-                System.Int32 hdrsize = (header.Size + header.GetHeader().ColorTablesSize).ToInt32();
-                System.Byte[] dec = RLEDecoder.Decode(raw, startindex);
-                wasrle = true;
-                raw = dec;
-                dec = null;
-                header.Compression = ImageType.BI_RGB;
-                header.ImageSize = 0;
-                // Directly set the decoded data to the raw array , then special case the native call.
-                // Header does not need reconstruction since it remained the same.
-                // We are ready for the native call!
-            }
-            System.IntPtr dc = User32.GetDC(System.IntPtr.Zero);
-            if (dc == IntPtr.Zero) { throw new ArgumentException("Could not inject device context. Creation failed."); }
-            System.IntPtr dib;
-            System.Int32 error = 0;
-            // The 'target' pointer must be NullRef at the beginning.
-            // The CreateDeviceIndpendentBitmap will give us then a valid 'target'
-            // which can be fed to CopyBlockUnaligned to copy the bitmap data into it.
-            fixed (System.Byte* target = &Unsafe.NullRef<System.Byte>())
-            {
-                dib = CreateDeviceIndependentBitmap(dc, header, DIBColorType.DIB_RGB_COLORS, (void**)&target, System.IntPtr.Zero, 0);
-                // Do not allocate any data if is invalid , return handle as-it-is so that native interop can detect that.
-                // Otherwise the Unsafe.CopyBlockUnaligned call would have indefinitely failed.
-                if (dib == IntPtr.Zero) { error = Marshal.GetLastWin32Error(); goto _done; }
-                if (wasrle) {
-                    fixed (System.Byte* source = raw)
-                    {
-                        // Just freely use the raw.Length property .. no problem.
-                        Unsafe.CopyBlockUnaligned(target, source, raw.Length.ToUInt32());
-                    }
-                } else {
-                    // If we can have color table size , it will be used;
-                    // Otherwise , use the old method as a valid fallback.
-                    System.UInt32 cssize = header.GetHeader().ColorTablesSize;
-                    // Do not call RequiredBitMapBufferSize unless required.
-                    System.Int32 bsize1 = cssize <= 0 ? RequiredBitMapBufferSize(header) : 0;
-                    System.Int32 index = (cssize > 0 ? (System.Int32)(header.Size + cssize) : raw.Length - bsize1) + startindex;
-                    System.UInt32 bsize2 = (cssize > 0 ? raw.Length - index : bsize1).ToUInt32();
-                    fixed (System.Byte* source = &raw[index])
-                    {
-                        Unsafe.CopyBlockUnaligned(target, source, bsize2);
-                    }
-                }
-            }
-         _done:
-            // These handles are not 'exactly' released. See the remarks on https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-releasedc.
-            _ = User32.ReleaseDC(System.IntPtr.Zero, dc);
-            // Throw the native exception here, I cannot save the error on the thread of older frameworks.
-            if (error != 0) { throw new System.ComponentModel.Win32Exception(error); }
-            return dib;
-        }
-
-        [DllImport(Libraries.Gdi32 , EntryPoint = "CreateDIBSection" , SetLastError = true)]
-        public static unsafe extern System.IntPtr CreateDeviceIndependentBitmap(
-            System.IntPtr hdc , 
-            BITMAPHEADER header,
-            DIBColorType usage,
-            void** target,
-            System.IntPtr sectionnotused,
-            System.UInt32 sectionsizenotused);
-
-        [DllImport(Libraries.Gdi32 , EntryPoint = "CreateCompatibleBitmap", SetLastError = true)]
-        public static extern System.IntPtr CreateDeviceDependentBitmap(System.IntPtr hdc, System.Int32 x, System.Int32 y);
-
-        [DllImport(Libraries.Gdi32 , EntryPoint = "GetDIBits" , SetLastError = false)]
-        public static unsafe extern System.Int32 GetBits_DI(System.IntPtr hdc , System.IntPtr bitmap , System.UInt32 firstline , System.UInt32 linecount , void* buffer , ref BITMAPHEADER header , DIBColorType usage);
     }
 
     [System.Security.SuppressUnmanagedCodeSecurity]
     public static class GdiPlus
     {
+        public const System.Int32 Format_32bppargb = 2498570;
+
         [System.Diagnostics.DebuggerHidden]
         public static void StatusToExceptionMarshaller(GpStatus status)
         {
@@ -433,7 +313,7 @@ internal static class Interop
             private System.Collections.Generic.List<System.IntPtr> bitmaphandles;
             private System.IntPtr tokengdip;
 
-            public GDIPManager() {
+            private GDIPManager() {
                 bitmaphandles = new();
                 tokengdip = System.IntPtr.Zero;
                 CreateGDIPlus();
@@ -441,24 +321,6 @@ internal static class Interop
             }
 
             private void DU_HandleManager(System.Object send, System.EventArgs e) => Dispose();
-
-            public System.IntPtr GetBitmapHandleFromStream(System.IO.Stream stream , System.Boolean ICM)
-            {
-                System.IntPtr ret = System.IntPtr.Zero;
-                GpStatus st;
-                CreateGDIPlus();
-                COM.ComStream nativestream = new(stream);
-                if (stream is null) { return System.IntPtr.Zero; }
-                if (ICM) {
-                    st = CreateGdipBitmapFromStreamICM_Native(nativestream, out ret);
-                } else {
-                    st = CreateGdipBitmapFromStream_Native(nativestream, out ret);
-                }
-                StatusToExceptionMarshaller(st);
-                bitmaphandles.Add(ret);
-                nativestream = null;
-                return ret;
-            }
 
             public System.IntPtr GetBitmapHandleFromHICON(System.IntPtr hicon)
             {
@@ -477,23 +339,17 @@ internal static class Interop
                 System.IntPtr ret = System.IntPtr.Zero;
                 CreateGDIPlus();
                 BITMAPHEADER header = BITMAPHEADER.ReadFromArray(data, startindex);
-                System.Boolean wasrle = false;
                 if (header.Compression == ImageType.BI_RLE8 || header.Compression == ImageType.BI_RLE4)
                 {
-                    System.Byte[] dec = RLEDecoder.Decode(data, startindex);
-                    wasrle = true;
-                    header.Compression = ImageType.BI_RGB;
-                    header.ImageSize = 0;
-                    // Directly set the decoded data to the raw array , then special case the native call.
-                    // Header does not need reconstruction since it remained the same.
-                    // We are ready for the native call!
-                    fixed (System.Byte* source = dec)
-                    {
-                        StatusToExceptionMarshaller(CreateGdipBitmapFromDIB(header, source, out ret));
+                    System.UInt32[] dec = RLEDecoder.DecodeRaw(data, startindex);
+                    StatusToExceptionMarshaller(CreateGdipBitmapFromScan0(header.Width , header.Height,0 ,Format_32bppargb , System.IntPtr.Zero , out ret));
+                    for (System.Int32 Y = 0; Y < header.Height; Y++) {
+                        for (System.Int32 X = 0; X < header.Width; X++) {
+                            SetGdipBitmapPixel(ret , X , Y , dec[Y * header.Width + X]);
+                        }
                     }
                     dec = null;
-                }
-                if (wasrle == false) {
+                } else {
                     // If we can have color table size , it will be used;
                     // Otherwise , use the old method as a valid fallback.
                     System.UInt32 cssize = header.GetHeader().ColorTablesSize;
@@ -582,36 +438,29 @@ internal static class Interop
             }
         }
 
-        [DllImport(Libraries.GdiPlus, EntryPoint = "GdipCreateBitmapFromStream", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.Machine)]
-        public static extern GpStatus CreateGdipBitmapFromStream_Native(COM.IStream stream , out System.IntPtr ptr);
-
-        [DllImport(Libraries.GdiPlus, EntryPoint = "GdipCreateBitmapFromStreamICM", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.Machine)]
-        public static extern GpStatus CreateGdipBitmapFromStreamICM_Native(COM.IStream stream, out System.IntPtr ptr);
-
         [DllImport(Libraries.GdiPlus, EntryPoint = "GdipCreateBitmapFromGdiDib", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.Machine)]
         public static unsafe extern GpStatus CreateGdipBitmapFromDIB(BITMAPHEADER header, void* gdibits, out System.IntPtr bitmap);
 
+        [DllImport(Libraries.GdiPlus, EntryPoint = "GdipCreateBitmapFromScan0", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        public static extern GpStatus CreateGdipBitmapFromScan0(System.Int32 width, System.Int32 height, System.Int32 stride, System.Int32 format, System.IntPtr bytep, out System.IntPtr bitmap);
+
         [DllImport(Libraries.GdiPlus , EntryPoint = "GdipCreateBitmapFromHICON" , CharSet = CharSet.Unicode, ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.Machine)]
         public static extern GpStatus CreateGdipBitmapFromHICON(System.IntPtr hicon , out System.IntPtr bitmap);
 
         [DllImport(Libraries.GdiPlus, EntryPoint = "GdipCreateHICONFromBitmap" , CharSet = CharSet.Unicode, ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.Machine)]
         public static extern GpStatus GetHICONFromGdipBitmap(System.IntPtr ptr, out System.IntPtr iconhandle);
 
         [DllImport(Libraries.GdiPlus, EntryPoint = "GdipCreateHBITMAPFromBitmap", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.Machine)]
         public static extern GpStatus GetHBITMAPFromGdipBitmap(System.IntPtr ptr , out System.IntPtr bitmaphandle, System.Int32 background = -2894893);
 
         [DllImport(Libraries.GdiPlus, EntryPoint = "GdipImageForceValidation", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.None)]
         public static extern GpStatus ForceGdipBitmapValidation(System.IntPtr image);
 
         [DllImport(Libraries.GdiPlus, CharSet = CharSet.Unicode, EntryPoint = "GdipDisposeImage", ExactSpelling = true)]
         public static extern GpStatus DisposeGdipBitmap(System.IntPtr image);
+
+        [DllImport(Libraries.GdiPlus , CharSet = CharSet.Unicode , EntryPoint = "GdipCloneImage" , ExactSpelling = true)]
+        public static extern GpStatus CloneGdipBitmap(System.IntPtr bitmap , out System.IntPtr cloned);
 
         [DllImport(Libraries.GdiPlus , CharSet = CharSet.Unicode , EntryPoint = "GdiplusStartup" , ExactSpelling = true, SetLastError = true)]
         public static extern GpStatus CreateGDIPEnvironment(out System.IntPtr token, in GdipStartupInput si, out GdipStartupOutput so);
@@ -620,359 +469,28 @@ internal static class Interop
         public static extern void DestroyGDIPEnvironment(IntPtr token);
 
         [DllImport(Libraries.GdiPlus , EntryPoint = "GdipGetImageWidth" , CharSet = CharSet.Unicode ,  ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.None)]
         public static extern GpStatus GetGdipBitmapWidth(System.IntPtr bitmaphandle , out System.UInt32 width);
 
         [DllImport(Libraries.GdiPlus , EntryPoint = "GdipGetImageHeight" , CharSet = CharSet.Unicode , ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.None)]
         public static extern GpStatus GetGdipBitmapHeight(System.IntPtr bitmaphandle , out System.UInt32 height);
 
         [DllImport(Libraries.GdiPlus , EntryPoint = "GdipGetImageFlags" , CharSet = CharSet.Unicode , ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.None)]
         public static extern GpStatus GetGdipBitmapFlags(System.IntPtr bitmaphandle, out System.UInt32 flags);
 
         [DllImport(Libraries.GdiPlus , EntryPoint = "GdipGetImageRawFormat" , CharSet = CharSet.Unicode , ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.None)]
         public static extern GpStatus GetGdipBitmapFormat(System.IntPtr bitmaphandle, out GUID format);
 
         [DllImport(Libraries.GdiPlus , EntryPoint = "GdipGetImageHorizontalResolution" , CharSet = CharSet.Unicode , ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.None)]
         public static extern GpStatus GetGdipBitmapHorizontalResolution(System.IntPtr bitmaphandle, out System.Single hres);
 
         [DllImport(Libraries.GdiPlus, EntryPoint = "GdipGetImageVerticalResolution", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        [System.Runtime.Versioning.ResourceExposure(System.Runtime.Versioning.ResourceScope.None)]
         public static extern GpStatus GetGdipBitmapVerticalResolution(System.IntPtr bitmaphandle, out System.Single vres);
-    }
 
-    public static class COM
-    {
-        public class IStreamConsts
-        {
-            public const int LOCK_WRITE = 1;
+        [DllImport(Libraries.GdiPlus , EntryPoint = "GdipBitmapGetPixel" , CharSet = CharSet.Unicode, ExactSpelling = true)]
+        public static extern GpStatus GetGdipBitmapPixel(System.IntPtr bitmaphandle, System.Int32 X, System.Int32 Y , out System.UInt32 color);
 
-            public const int LOCK_EXCLUSIVE = 2;
-
-            public const int LOCK_ONLYONCE = 4;
-
-            public const int STATFLAG_DEFAULT = 0;
-
-            public const int STATFLAG_NONAME = 1;
-
-            public const int STATFLAG_NOOPEN = 2;
-
-            public const int STGC_DEFAULT = 0;
-
-            public const int STGC_OVERWRITE = 1;
-
-            public const int STGC_ONLYIFCURRENT = 2;
-
-            public const int STGC_DANGEROUSLYCOMMITMERELYTODISKCACHE = 4;
-
-            public const int STREAM_SEEK_SET = 0;
-
-            public const int STREAM_SEEK_CUR = 1;
-
-            public const int STREAM_SEEK_END = 2;
-        }
-
-        /// <summary>Provides the managed definition of the <see langword="IStream" /> interface, with <see langword="ISequentialStream" /> functionality.</summary>
-        [ComImport]
-        [Guid("0000000c-0000-0000-C000-000000000046")]
-        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        public interface IStream
-        {
-            /// <summary>Reads a specified number of bytes from the stream object into memory starting at the current seek pointer.</summary>
-            /// <param name="pv">When this method returns, contains the data read from the stream. This parameter is passed uninitialized.</param>
-            /// <param name="cb">The number of bytes to read from the stream object.</param>
-            /// <param name="pcbRead">A pointer to a <see langword="ULONG" /> variable that receives the actual number of bytes read from the stream object.</param>
-            void Read([Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] pv, int cb, IntPtr pcbRead);
-
-            /// <summary>Writes a specified number of bytes into the stream object starting at the current seek pointer.</summary>
-            /// <param name="pv">The buffer to write this stream to.</param>
-            /// <param name="cb">The number of bytes to write to the stream.</param>
-            /// <param name="pcbWritten">On successful return, contains the actual number of bytes written to the stream object. If the caller sets this pointer to <see cref="F:System.IntPtr.Zero" />, this method does not provide the actual number of bytes written.</param>
-            void Write([MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] pv, int cb, IntPtr pcbWritten);
-
-            /// <summary>Changes the seek pointer to a new location relative to the beginning of the stream, to the end of the stream, or to the current seek pointer.</summary>
-            /// <param name="dlibMove">The displacement to add to <paramref name="dwOrigin" />.</param>
-            /// <param name="dwOrigin">The origin of the seek. The origin can be the beginning of the file, the current seek pointer, or the end of the file.</param>
-            /// <param name="plibNewPosition">On successful return, contains the offset of the seek pointer from the beginning of the stream.</param>
-            void Seek(long dlibMove, int dwOrigin, IntPtr plibNewPosition);
-
-            /// <summary>Changes the size of the stream object.</summary>
-            /// <param name="libNewSize">The new size of the stream as a number of bytes.</param>
-            void SetSize(long libNewSize);
-
-            /// <summary>Copies a specified number of bytes from the current seek pointer in the stream to the current seek pointer in another stream.</summary>
-            /// <param name="pstm">A reference to the destination stream.</param>
-            /// <param name="cb">The number of bytes to copy from the source stream.</param>
-            /// <param name="pcbRead">On successful return, contains the actual number of bytes read from the source.</param>
-            /// <param name="pcbWritten">On successful return, contains the actual number of bytes written to the destination.</param>
-            void CopyTo(IStream pstm, long cb, IntPtr pcbRead, IntPtr pcbWritten);
-
-            /// <summary>Ensures that any changes made to a stream object that is open in transacted mode are reflected in the parent storage.</summary>
-            /// <param name="grfCommitFlags">A value that controls how the changes for the stream object are committed.</param>
-            void Commit(int grfCommitFlags);
-
-            /// <summary>Discards all changes that have been made to a transacted stream since the last <see cref="M:System.Runtime.InteropServices.ComTypes.IStream.Commit(System.Int32)" /> call.</summary>
-            void Revert();
-
-            /// <summary>Restricts access to a specified range of bytes in the stream.</summary>
-            /// <param name="libOffset">The byte offset for the beginning of the range.</param>
-            /// <param name="cb">The length of the range, in bytes, to restrict.</param>
-            /// <param name="dwLockType">The requested restrictions on accessing the range.</param>
-            void LockRegion(long libOffset, long cb, int dwLockType);
-
-            /// <summary>Removes the access restriction on a range of bytes previously restricted with the <see cref="M:System.Runtime.InteropServices.ComTypes.IStream.LockRegion(System.Int64,System.Int64,System.Int32)" /> method.</summary>
-            /// <param name="libOffset">The byte offset for the beginning of the range.</param>
-            /// <param name="cb">The length, in bytes, of the range to restrict.</param>
-            /// <param name="dwLockType">The access restrictions previously placed on the range.</param>
-            void UnlockRegion(long libOffset, long cb, int dwLockType);
-
-            /// <summary>Retrieves the <see cref="T:System.Runtime.InteropServices.STATSTG" /> structure for this stream.</summary>
-            /// <param name="pstatstg">When this method returns, contains a <see langword="STATSTG" /> structure that describes this stream object. This parameter is passed uninitialized.</param>
-            /// <param name="grfStatFlag">Members in the <see langword="STATSTG" /> structure that this method does not return, thus saving some memory allocation operations.</param>
-            void Stat(out STATSTG pstatstg, int grfStatFlag);
-
-            /// <summary>Creates a new stream object with its own seek pointer that references the same bytes as the original stream.</summary>
-            /// <param name="ppstm">When this method returns, contains the new stream object. This parameter is passed uninitialized.</param>
-            void Clone(out IStream ppstm);
-        }
-
-        /// <summary>
-        /// Represents a stream that is a wrapper to a COM Stream.
-        /// </summary>
-        internal class ComStream : System.IO.Stream, IStream
-        {
-            private System.IO.Stream stream;
-            /// <summary>
-            /// Gets a value whether this stream is syncronized.
-            /// </summary>
-            protected System.Boolean sync;
-
-            public override bool CanRead => stream.CanRead;
-
-            public override bool CanSeek => stream.CanSeek;
-
-            public override bool CanWrite => stream.CanWrite;
-
-            public override long Length => stream.Length;
-
-            public override long Position
-            {
-                get
-                {
-                    return stream.Position;
-                }
-                set
-                {
-                    stream.Position = value;
-                }
-            }
-
-            public ComStream(System.IO.Stream stream)
-                : this(stream, synchronizeStream: true)
-            {
-            }
-
-            private ComStream(System.IO.Stream stream, bool synchronizeStream)
-            {
-                if (stream is null)
-                {
-                    throw new ArgumentNullException(nameof(stream));
-                }
-                if (sync = synchronizeStream)
-                {
-                    stream = System.IO.Stream.Synchronized(stream);
-                }
-                this.stream = stream;
-            }
-
-            void IStream.Clone(out IStream ppstm) { ppstm = null; }
-
-            void IStream.Commit(int grfCommitFlags) => stream.Flush();
-
-            void IStream.CopyTo(IStream pstm, long cb, IntPtr pcbRead, IntPtr pcbWritten)
-            {
-                const System.Int32 buffersize = 2048;
-                if (cb > System.Int32.MaxValue)
-                {
-                    throw new NotSupportedException("Cannot copy the given number of bytes because it is extravagantly large to be handled by .NET.");
-                }
-                System.Int32 br = 0, bw = 0, blocks = (System.Int32)(cb / buffersize), remaining = (System.Int32)(cb % buffersize), trb;
-                System.IntPtr TBW = new(1);
-                System.Byte[] temp = new System.Byte[buffersize];
-                while (blocks > 0)
-                {
-                    trb = stream.Read(temp, 0, buffersize);
-                    pstm.Write(temp, trb, TBW);
-                    bw += Marshal.ReadInt32(TBW);
-                    br += trb;
-                    blocks--;
-                }
-                if (remaining > 0)
-                {
-                    trb = stream.Read(temp, 0, buffersize);
-                    pstm.Write(temp, trb, TBW);
-                    bw += Marshal.ReadInt32(TBW);
-                    br += trb;
-                }
-                if (pcbRead != System.IntPtr.Zero)
-                {
-                    Marshal.WriteInt32(pcbRead, br);
-                }
-                if (pcbWritten != System.IntPtr.Zero)
-                {
-                    Marshal.WriteInt32(pcbWritten, bw);
-                }
-            }
-
-            void IStream.LockRegion(long libOffset, long cb, int dwLockType) { }
-
-            void IStream.Read(byte[] pv, int cb, IntPtr pcbRead)
-            {
-                if (!CanRead)
-                {
-                    throw new InvalidOperationException("Stream is not readable.");
-                }
-                int val = Read(pv, 0, cb);
-                if (pcbRead != IntPtr.Zero)
-                {
-                    Marshal.WriteInt32(pcbRead, val);
-                }
-            }
-
-            void IStream.Revert() { }
-
-            void IStream.Seek(long dlibMove, int dwOrigin, IntPtr plibNewPosition)
-            {
-                long val = Seek(dlibMove, (System.IO.SeekOrigin)dwOrigin);
-                if (plibNewPosition != IntPtr.Zero)
-                {
-                    Marshal.WriteInt64(plibNewPosition, val);
-                }
-            }
-
-            void IStream.SetSize(long libNewSize) => SetLength(libNewSize);
-
-            void IStream.Stat(out STATSTG pstatstg, int grfStatFlag)
-            {
-                STATSTG sTATSTG = default;
-                sTATSTG.type = 2;
-                sTATSTG.cbSize = Length;
-                sTATSTG.grfMode = 0;
-                STATSTG ret = sTATSTG;
-                if (CanWrite && CanRead)
-                {
-                    ret.grfMode |= 2;
-                }
-                else if (CanRead)
-                {
-                    ret.grfMode |= 0;
-                }
-                else
-                {
-                    if (!CanWrite)
-                    {
-                        throw new ObjectDisposedException("Stream");
-                    }
-                    ret.grfMode |= 1;
-                }
-                ret.ctime = FILETIME.ToNative(System.DateTime.Now);
-                pstatstg = ret;
-            }
-
-            void IStream.UnlockRegion(long libOffset, long cb, int dwLockType) { }
-
-            void IStream.Write(byte[] pv, int cb, IntPtr pcbWritten)
-            {
-                if (!CanWrite)
-                {
-                    throw new InvalidOperationException("Stream is not writeable.");
-                }
-                Write(pv, 0, cb);
-                if (pcbWritten != IntPtr.Zero)
-                {
-                    Marshal.WriteInt32(pcbWritten, cb);
-                }
-            }
-
-            public override void Flush() => stream.Flush();
-
-            public override int Read(byte[] buffer, int offset, int count) => stream.Read(buffer, offset, count);
-
-            public override long Seek(long offset, System.IO.SeekOrigin origin) => stream.Seek(offset, origin);
-
-            public override void SetLength(long value) => stream.SetLength(value);
-
-            public override void Write(byte[] buffer, int offset, int count) => stream.Write(buffer, offset, count);
-
-            protected override void Dispose(bool disposing)
-            {
-                base.Dispose(disposing);
-                if (stream != null)
-                {
-                    stream.Dispose();
-                    stream = null;
-                }
-            }
-
-            public override void Close()
-            {
-                base.Close();
-                if (stream != null)
-                {
-                    stream.Close();
-                    stream = null;
-                }
-            }
-        }
-
-        // The older statstg had issues , using the one provided with System.Drawing instead.
-        [StructLayout(LayoutKind.Sequential)]
-        public struct STATSTG
-        {
-            public IntPtr pwcsName;
-            public int type;
-            [MarshalAs(UnmanagedType.I8)]
-            public long cbSize;
-            [MarshalAs(UnmanagedType.I8)]
-            public FILETIME mtime;
-            [MarshalAs(UnmanagedType.I8)]
-            public FILETIME ctime;
-            [MarshalAs(UnmanagedType.I8)]
-            public FILETIME atime;
-            [MarshalAs(UnmanagedType.I4)]
-            public int grfMode;
-            [MarshalAs(UnmanagedType.I4)]
-            public int grfLocksSupported;
-            public GUID clsid;
-            [MarshalAs(UnmanagedType.I4)]
-            public int grfStateBits;
-            [MarshalAs(UnmanagedType.I4)]
-            public int reserved;
-        }
-
-        [StructLayout(LayoutKind.Explicit , Size = 8 , Pack = 4)]
-        public struct FILETIME
-        {
-            [FieldOffset(0)]
-            private System.Int64 FileTime;
-            [FieldOffset(0)]
-            public int HighDateTime;
-            [FieldOffset(4)]
-            public int LowDateTime;
-
-            public readonly System.Int64 ToTicks() => (((System.UInt64)HighDateTime << 32).ToInt64() + LowDateTime);
-
-            // This is a bit redundant operation but does worth to have it this way.
-            public readonly System.Int64 ToFileTime() => FileTime;
-
-            public readonly System.DateTime ToDateTime() => System.DateTime.FromFileTimeUtc(FileTime);
-
-            public static unsafe FILETIME ToNative(System.DateTime datetime) => new() { FileTime = datetime.ToFileTimeUtc() };
-        }
-
+        [DllImport(Libraries.GdiPlus, EntryPoint = "GdipBitmapSetPixel", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        public static extern GpStatus SetGdipBitmapPixel(System.IntPtr bitmaphandle, System.Int32 X, System.Int32 Y, System.UInt32 color);
     }
 
     // Native Bitmap Information header so as to get the bitmap information.

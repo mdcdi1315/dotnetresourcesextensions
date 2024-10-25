@@ -24,6 +24,7 @@ namespace DotNetResourcesExtensions
         /// Constructs a new instance of <see cref="VsVersionInfoGetter"/> class.
         /// </summary>
         /// <param name="entry">The entry to read the version information from.</param>
+        /// <exception cref="ArgumentException">The <see cref="NativeWindowsResourceEntry.NativeType"/> property of <paramref name="entry"/> was not <see cref="WindowsResourceEntryType.RT_VERSION"/>.</exception>
         public VsVersionInfoGetter(NativeWindowsResourceEntry entry)
         {
             if (entry is null) { throw new ArgumentNullException(nameof(entry)); }
