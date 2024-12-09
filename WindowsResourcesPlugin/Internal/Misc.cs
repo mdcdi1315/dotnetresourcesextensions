@@ -102,15 +102,6 @@ namespace DotNetResourcesExtensions.Internal
         private const System.Byte EndOfBitmap = 1;
         private const System.Byte Delta = 2;
 
-        // Obtained from https://github.com/dotnet/runtime/blob/517b8355efb4524158001a320a177c2c1bd0b568/src/libraries/System.Collections/src/System/Collections/BitArray.cs
-        private static int GetByteArrayLengthFromBitLength(int n)
-        {
-            const int BitShiftPerByte = 3;
-            // Due to sign extension, we don't need to special case for n == 0, since ((n - 1) >> 3) + 1 = 0
-            // This doesn't hold true for ((n - 1) / 8) + 1, which equals 1.
-            return ((uint)(n - 1 + (1 << BitShiftPerByte)) >> BitShiftPerByte).ToInt32();
-        }
-
         /// <summary>
         /// Decodes the given data and returns the decoded <paramref name="input"/>.
         /// </summary>
@@ -121,12 +112,6 @@ namespace DotNetResourcesExtensions.Internal
         {
             Interop.BITMAPINFOHEADER bih = Interop.BITMAPINFOHEADER.ReadFromArray(input, startindex);
             System.UInt32[] pixels = DecodeRaw_Internal(bih ,input, startindex);
-            // Note that we get bit size here , so it must be converted to bytes.
-            System.Collections.BitArray arr = new(bih.Width * bih.Height * bih.BitCount);
-            // All the values in the beginning are empty.
-            arr.SetAll(false);
-            // Track I as bit index!
-            System.Int32 I = 0 , si = I;
             System.UInt32[] colors = new System.UInt32[bih.ColorTablesCount];
             fixed (System.UInt32* dest = colors)
             {
@@ -135,30 +120,64 @@ namespace DotNetResourcesExtensions.Internal
                     System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(dest, src, bih.ColorTablesSize);
                 }
             }
-            for (System.Int32 idx = 0; idx < pixels.Length; idx++ , I += bih.BitCount)
+            switch (bih.BitCount)
             {
-                // Find first the color index that the pixel is matching to.
+                case 4:
+                    return Index4(pixels, colors);
+                case 8:
+                    return Index8(pixels, colors);
+                default:
+                    throw new NotSupportedException($"Decode operation for {bih.BitCount}-bpp bitmaps is currently not supported.");
+            }
+        }
+
+        private static System.Byte[] Index4(System.UInt32[] pixels , System.UInt32[] colors)
+        {
+            // BitCount is 4 , so 2 pixels are saved on each byte.
+            System.Byte[] result = new System.Byte[(pixels.Length / 2)];
+            System.Int32 I = 0 , J = 0;
+            System.Byte build, temp;
+            // Read 2 pixels each time.
+            for (System.Int32 idx = 0; idx < pixels.Length; idx += 2 , I++)
+            {
+                // Find first the color index that the pixels are matching to.
+                System.Int32 cid1 = -1, cid2 = -1;
+                for (System.Int32 K = 0; K < colors.Length; K++)
+                {
+                    if (pixels[idx] == colors[K]) { cid1 = K; }
+                    if (pixels[idx+1] == colors[K]) { cid2 = K; }
+                }
+                // If no color was found , set them to first color in the table.
+                if (cid1 == -1) { cid1 = 0; }
+                if (cid2 == -1) { cid2 = 0; }
+                // Save the first index on the first 4 bits , the second index on the next 4 bits.
+                build = 0;
+                temp = cid1.ToByte();
+                for (J = 0; J < 8; J++) {
+                    if (J == 4) { temp = cid2.ToByte(); }
+                    if (temp.GetBit(J % 4)) { build.SetBit(J, true); }
+                }
+                result[I] = build;
+            }
+            return result;
+        }
+
+        private static System.Byte[] Index8(System.UInt32[] pixels, System.UInt32[] colors) 
+        {
+            // BitCount is 8 , so 1 pixel is saved on each byte.
+            System.Byte[] result = new System.Byte[pixels.Length];
+            System.Int32 I = 0;
+            for (System.Int32 idx = 0; idx < pixels.Length;idx++ , I++)
+            {
                 System.Int32 cid = -1;
-                for (System.Int32 K = 0; K < colors.Length; K++) {
+                for (System.Int32 K = 0; K < colors.Length; K++)
+                {
                     if (pixels[idx] == colors[K]) { cid = K; break; }
                 }
-                // Default fallback for non-found colors.
                 if (cid == -1) { cid = 0; }
-                // Then , using the bit count copy the index to the target.
-                si = 0;
-                System.Byte index = cid.ToByte();
-                while (si < bih.BitCount)
-                {
-                    if (index.GetBit(si)) { arr[I + si] = true; }
-                    si++;
-                }
+                result[I] = cid.ToByte();
             }
-            pixels = null; colors = null;
-            System.Byte[] array = new System.Byte[GetByteArrayLengthFromBitLength(arr.Count)];
-            System.Console.WriteLine($"Final array length is {array.Length} <- {arr.Count}.");
-            arr.CopyTo(array, 0);
-            arr = null;
-            return array;
+            return result;
         }
 
         /// <summary>
@@ -185,14 +204,27 @@ namespace DotNetResourcesExtensions.Internal
                 }
             }
             System.UInt32[] pixels = null;
-            if (bih.Compression == Interop.ImageType.BI_RLE4) {
-                pixels = Decode4(input, colors, bih.Width, bih.Height, (startindex + bih.Size + bih.ColorTablesSize).ToInt32());
-            } else if (bih.Compression == Interop.ImageType.BI_RLE8) {
-                pixels = Decode8(input, colors, bih.Width, bih.Height, (startindex + bih.Size + bih.ColorTablesSize).ToInt32());
-            } else {
-                throw new InvalidOperationException("This method can only decode RLE bitmaps with compression by 4 or by 8.");
+            try
+            {
+                System.Int64 sidx = startindex + bih.Size + bih.ColorTablesSize;
+                switch (bih.Compression)
+                {
+                    case Interop.ImageType.BI_RLE8:
+                        pixels = Decode8(input, colors, bih.Width, bih.Height, sidx.ToInt32(), bih.ImageSize);
+                        break;
+                    case Interop.ImageType.BI_RLE4:
+                        pixels = Decode4(input, colors, bih.Width, bih.Height, sidx.ToInt32());
+                        break;
+                    default:
+                        throw new InvalidOperationException("This method can only decode RLE bitmaps with compression by 4 or by 8.");
+                }
+            } catch (InvalidOperationException) {
+                throw;
+            } catch (System.Exception e) when (e is IndexOutOfRangeException) {
+                throw new AggregateException("RLE Bitmap decode failed. The bitmap might be corrupted. Try to use the BitmapReader class instead." , e);
+            } finally {
+                colors = null;
             }
-            colors = null;
             return pixels;
         }
 
@@ -261,10 +293,11 @@ namespace DotNetResourcesExtensions.Internal
             return result;
         }
 
-        private static System.UInt32[] Decode8(System.Byte[] encoded, System.UInt32[] colors, System.Int32 width, System.Int32 height, System.Int32 startindex)
+        private static System.UInt32[] Decode8(System.Byte[] encoded, System.UInt32[] colors, System.Int32 width, System.Int32 height, System.Int32 startindex , System.Int32 recsize)
         {
             // The size of the final array is standard.
-            System.UInt32[] result = new System.UInt32[width * height];
+            System.UInt32[] result;
+            if (recsize > width * height) { result = new System.UInt32[recsize]; } else { result = new System.UInt32[width * height]; }
             // Portions of the code used are adapted from https://github.com/Extender/BMPDecoder/blob/master/bmp.cpp
             // CPP code was adapted to C# by mdcdi1315 at 2024.
             System.UInt32 Y = (height > 0 ? height - 1 : 0).ToUInt32(), X = 0;
@@ -286,7 +319,7 @@ namespace DotNetResourcesExtensions.Internal
                     {
                         // Absolute mode
                         for (System.Byte pos=0; pos < secondbyte; pos++) { result[Y * width + (X++)] = 0xFF000000 | colors[encoded[I++]]; }
-                        I += ((((uint)secondbyte + 1) / 2) & 1).ToInt32(); // Run must be word-aligned.
+                        I += ((secondbyte + 1) / 2) % 2; // Run must be word-aligned.
                     } else {
                         switch (secondbyte)
                         {

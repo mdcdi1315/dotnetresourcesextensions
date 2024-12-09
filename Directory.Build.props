@@ -11,6 +11,9 @@
 		<NetCoreWindowsIdentifier>net7.0-windows10.0.19041.0</NetCoreWindowsIdentifier>
 		<EnableWindowsTargeting>True</EnableWindowsTargeting>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<!-- Includes spanning support for the targets that include Memory API support or is .NET6+. -->
+		<!-- To use this , you must set to the required project this property to true. -->
+		<DNTRESEXT_INCLUDESPANSUPPORT>False</DNTRESEXT_INCLUDESPANSUPPORT>
 	</PropertyGroup>
 
 </Project>

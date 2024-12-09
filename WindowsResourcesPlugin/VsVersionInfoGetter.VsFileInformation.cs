@@ -121,7 +121,7 @@ namespace DotNetResourcesExtensions
         [FieldOffset(48)]
         public System.UInt32 FileCreationDateLow;
 
-        private readonly System.Int64 FileCreationTimeToTicks() => ((FileCreationDateHigh.ToUInt64() << 32) + FileCreationDateLow).ToInt64();
+        private readonly System.Int64 FileCreationTimeToTicks() => (FileCreationDateHigh.ToInt64() << 32) + FileCreationDateLow;
 
         /// <summary>
         /// Gets a <see cref="DateTime"/> that represents the result of the two <see cref="FileCreationDateHigh"/> and <see cref="FileCreationDateLow"/> fields.

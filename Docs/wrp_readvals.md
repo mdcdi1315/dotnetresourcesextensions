@@ -170,12 +170,25 @@ As I stated above I am still looking of how to fix that.
 :notebook: *NOTE*: Anything that applies to icons applies in a similar manner to cursors too.
 The equivalent class for cursor handles is called `SafeCursorHandle`.
 
-The icons can be only obtained as a Windows icon handles at run-time.
-You may also directly save the icon resource entry bytes to a file , if 
-the platform you are working on is not Windows.
+The icons can be obtained as a Windows icon handles at run-time.
+You may also directly save the icon resource entry bytes to a file , 
+by using the `IconCursorPackageReader` class.
 
 For Windows only , you can obtain a Windows icon handle to the icon resource entry
 by using the `SafeIconHandle` class. This can be then used for a lot of things. 
 Among them, you may also use it to instantiate a `System.Drawing.Icon` class!
+
+- The `IconCursorPackageReader` class
+
+The class is a platform-independent method to write valid icons and cursors
+that have the .ico and .cur extensions , respectively.
+
+The created data can be then saved to a file or a stream of your choice.
+
+For icons only , you can also create randomly-typed icon packages
+from a handful of resource entries that you have selected , thus not
+requiring the reader object to obtain any icons.
+
+
 
 

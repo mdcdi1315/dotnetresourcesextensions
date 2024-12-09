@@ -60,6 +60,7 @@ Additionally , it defines new types for doing resource serializations never thou
 		<EnableDefaultCompileItems>False</EnableDefaultCompileItems>
 		<DebugType Condition="'$(Configuration)' == 'Debug'">Full</DebugType>
 		<UseWPF Condition="'$(TargetFramework)' == '$(NetFrameworkIdentifier)' OR '$(TargetFramework)' == '$(NetCoreWindowsIdentifier)'">True</UseWPF>
+		<DNTRESEXT_INCLUDESPANSUPPORT>True</DNTRESEXT_INCLUDESPANSUPPORT>
 	</PropertyGroup>
 
   <ItemGroup>

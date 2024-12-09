@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Reflection.Metadata;
+using DotNetResourcesExtensions.Internal.AssemblyReader;
 
 namespace DotNetResourcesExtensions.Win32Resources
 {
