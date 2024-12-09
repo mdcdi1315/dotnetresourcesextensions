@@ -14,13 +14,11 @@
 	<IsPackable>true</IsPackable>
 	<PackageId>$(AssemblyName)</PackageId>
 	<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-	<PackageVersion>1.0.6</PackageVersion>
+	<PackageVersion>1.0.7</PackageVersion>
 	<PackageReleaseNotes>v$(PackageVersion) of the Windows Native Resources Reader package.
-- The old GDI32 API interop used is now deprecated in favor of GdiPlusBitmap that can create the most image types.
-However , the SafeDeviceIndependentBitmap class still works (because internally uses the GdiPlusBitmap class).
-- Remove old and unused code
-- Improve code paths on certain aspects.
-- Improve the documentation shipped with the assembly.
+- Add a new and platform-independent method to write icon or cursor files from resource readers.
+- Add a new resource reader and writer that utilize the .RES format that the RC tool uses.
+- Use internal code to read the PE Resource Directory , deprecate System.Reflection.Metadata dependency.
 </PackageReleaseNotes>
 	<PackageIcon>ProjectImage.png</PackageIcon>
 	<PackageTags>resources windows win32 native</PackageTags>
@@ -29,6 +27,9 @@ However , the SafeDeviceIndependentBitmap class still works (because internally 
 	<PackageProjectUrl>https://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
 	<Authors>mdcdi1315</Authors>
 	<Copyright>© MDCDI1315 (2024). All work is licensed under the MIT License.</Copyright>
+	<!-- It is possible now to include spaning support in the project since elsewise is used by the central project -->
+	<!-- and the internally-bundled PE reader uses spans to work ,so it's support impact is trivial. -->
+	<DNTRESEXT_INCLUDESPANSUPPORT>True</DNTRESEXT_INCLUDESPANSUPPORT>
   </PropertyGroup>
 
   <ItemGroup>
@@ -37,12 +38,44 @@ However , the SafeDeviceIndependentBitmap class still works (because internally 
     <Compile Include="BitmapReader.cs" />
     <Compile Include="DeserializingWindowsResEntry.cs" />
     <Compile Include="Exceptions.cs" />
+    <Compile Include="IconCursorPackageReader.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\BlobReader.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\CoffHeader.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\CorFlags.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\CorHeader.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\DirectoryEntry.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\ImmutableMemoryStream.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\Machine.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\AbstractMemoryBlock.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\ByteArrayMemoryBlock.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\ByteArrayMemoryProvider.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\CriticalDisposableObject.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\ExternalMemoryBlock.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\ExternalMemoryBlockProvider.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\MemoryBlock.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\MemoryBlockProvider.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\MemoryMappedFileBlock.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\NativeHeapMemoryBlock.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\PinnedObject.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\StreamConstraints.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\MemoryBlocks\StreamMemoryBlockProvider.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\PEBinaryReader.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\PEFileFlags.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\PEHeader.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\PEHeaders.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\PEMemoryBlock.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\PEReader.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\PEStreamOptions.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\ReadOnlyUnmanagedMemoryStream.cs" />
+    <Compile Include="Internal\AssemblyReaderPortable\SectionHeader.cs" />
     <Compile Include="MessageTable.cs" />
     <Compile Include="NativeInterop.cs" />
     <Compile Include="NativeStringsCollection.cs" />
     <Compile Include="NativeWindowsResEntry.cs" />
+    <Compile Include="NativeWindowsResFilesEnumerator.cs" />
     <Compile Include="NativeWindowsResourcesEnumerator.cs" />
     <Compile Include="NativeWindowsResourcesReader.cs" />
+    <Compile Include="NativeWindowsResourcesWriter.cs" />
     <Compile Include="ResourceGroupInformation.cs" />
     <Compile Include="SafeHandles.cs" />
     <Compile Include="VsVersionInfoGetter.cs" />
@@ -58,7 +91,6 @@ However , the SafeDeviceIndependentBitmap class still works (because internally 
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Reflection.Metadata" Version="8.0.0" />
 	<ProjectReference Include="../Source/DotNetResourcesExtensions.csproj" />
 	<FrameworkReference Remove="Microsoft.Windows.SDK.NET.Ref" />
   </ItemGroup>

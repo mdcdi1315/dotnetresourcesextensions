@@ -26,3 +26,4 @@
     - [Read a PE file that contains compiled resources](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/wrp_readpefile.md)
 	- [Enumerate and manipulate the resources contained in any native PE resource reader](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/wrp_manageres.md)
 	- [Read resource values from various resource types](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/wrp_readvals.md)
+	- [Read and/or write .RES files that contain RC compiled resources](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/Docs/wrp_readwriteresfile.md)

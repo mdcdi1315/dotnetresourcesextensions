@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DotNetResourcesExtensions.Internal;
+using System;
 using System.Collections.Generic;
 
 namespace DotNetResourcesExtensions
@@ -13,6 +14,13 @@ namespace DotNetResourcesExtensions
         private WindowsResourceEntryType entriestype;
         private List<IconCursorInformationEntry> entries;
 
+        private ResourceGroupInformation()
+        {
+            entries = null;
+            entrycount = 0;
+            entriestype = 0;
+        }
+
         /// <summary>
         /// Constructs a new instance of <see cref="ResourceGroupInformation"/> class from the specified entry
         /// that contains icon or cursor directory entries.
@@ -22,7 +30,7 @@ namespace DotNetResourcesExtensions
         /// <exception cref="ArgumentException">The <see cref="NativeWindowsResourceEntry.NativeType"/> property of <paramref name="entry"/>
         /// was not <see cref="WindowsResourceEntryType.RT_GROUP_CURSOR"/> or <see cref="WindowsResourceEntryType.RT_GROUP_ICON"/>.
         /// </exception>
-        public ResourceGroupInformation(NativeWindowsResourceEntry entry)
+        public ResourceGroupInformation(NativeWindowsResourceEntry entry) : this()
         {
             if (entry is null) { throw new ArgumentNullException(nameof(entry)); }
             if (entry.NativeType != WindowsResourceEntryType.RT_GROUP_CURSOR &&
@@ -39,6 +47,32 @@ namespace DotNetResourcesExtensions
                 _ => WindowsResourceEntryType.Unknown
             };
             ReadEntries(entry.Value);
+        }
+
+        internal static ResourceGroupInformation CreateTyped(params NativeWindowsResourceEntry[] entries)
+        {
+            ResourceGroupInformation cr = new();
+            cr.entrycount = entries.Length;
+            cr.entries = new(cr.entrycount);
+            cr.entriestype = WindowsResourceEntryType.RT_ICON;
+            for (System.Int32 I = 0; I < entries.Length; I++)
+            {
+                Interop.BITMAPINFOHEADER bih = Interop.BITMAPINFOHEADER.ReadFromArray(entries[I].Value, 0);
+                var dir = new Interop.RESDIR() {
+                    BitCount = bih.BitCount,
+                    BytesInRes = entries[I].Value.Length.ToUInt32(),
+                    Planes = bih.Planes,
+                    IconCursorId = entries[I].NumericName,
+                    Icon = new() { 
+                        ColorCount = bih.ColorIndices.ToByte(), 
+                        Height = bih.Height.ToByte(), 
+                        Width = bih.Width.ToByte(), 
+                        Reserved = 0 
+                    }
+                };
+                cr.entries.Add(new(dir , cr.entriestype));
+            }
+            return cr;
         }
 
         private void ReadEntries(System.Byte[] data)
@@ -85,8 +119,12 @@ namespace DotNetResourcesExtensions
         private Interop.RESDIR native;
         private WindowsResourceEntryType entrytype;
 
-        internal IconCursorInformationEntry(System.Byte[] data , System.Int32 idx, WindowsResourceEntryType entrytype) {
-            native = Interop.RESDIR.ReadFromArray(data, idx);
+        internal IconCursorInformationEntry(System.Byte[] data , System.Int32 idx, WindowsResourceEntryType entrytype) 
+            : this(Interop.RESDIR.ReadFromArray(data, idx) , entrytype) {}
+
+        internal IconCursorInformationEntry(Interop.RESDIR dat , WindowsResourceEntryType entrytype)
+        {
+            native = dat;
             this.entrytype = entrytype;
         }
 
@@ -101,6 +139,11 @@ namespace DotNetResourcesExtensions
         /// A value 0 could also mean the value 256.
         /// </summary>
         public System.UInt16 Height => entrytype == WindowsResourceEntryType.RT_ICON ? native.Icon.Height : native.Cursor.Height;
+
+        /// <summary>
+        /// Specifies the icon's color count in the color palletes. This field is not present for cursors and will always return 0 for such cases.
+        /// </summary>
+        public System.Int32 ColorCount => entrytype == WindowsResourceEntryType.RT_ICON ? native.Icon.ColorCount : 0;
 
         /// <summary>
         /// Gets the current resource size.

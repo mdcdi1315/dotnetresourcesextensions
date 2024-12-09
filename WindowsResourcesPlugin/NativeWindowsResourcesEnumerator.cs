@@ -9,7 +9,8 @@ using DotNetResourcesExtensions.Collections;
 namespace DotNetResourcesExtensions
 {
     /// <summary>
-    /// Defines the enumerator instance class layout that is currently used by <see cref="NativeWindowsResourcesReader"/>.
+    /// Defines the enumerator instance class layout that is currently used by <see cref="NativeWindowsResourcesReader"/>. <br />
+    /// You cannot create an instance of this class; instead use the <see cref="NativeWindowsResourcesReader.GetEnumerator()"/> method.
     /// </summary>
     public sealed class NativeWindowsResourcesEnumerator : ISpecificResourceEntryEnumerator<NativeWindowsResourceEntry>
     {

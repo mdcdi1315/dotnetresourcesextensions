@@ -37,13 +37,13 @@ namespace DotNetResourcesExtensions
             [FieldOffset(0)]
             private System.Byte pin;
 
-            // The last message ID defined in this block.
-            [FieldOffset(0)]
-            public System.UInt32 HighID;
-
             // The first message ID defined in this block.
-            [FieldOffset(4)]
+            [FieldOffset(0)]
             public System.UInt32 LowID;
+
+            // The last message ID defined in this block.
+            [FieldOffset(4)]
+            public System.UInt32 HighID;
 
             // The offset required in order to reach the message entries.
             [FieldOffset(8)]
@@ -80,14 +80,14 @@ namespace DotNetResourcesExtensions
                 blocks[I] = MessageTableBlock.Read(data, idx);
                 idx += 12;
             }
-            System.UInt32 id , nentries;
+            System.UInt32 id, nentries;
             System.Int32 coffset;
             // For each message block , read it's message entries.
             for (System.Int32 I = 0; I < blkcount; I++)
             {
                 id = blocks[I].LowID;
-                // Get the number of entries , and expand the list capacity.
-                strings.Capacity += (nentries = (blocks[I].HighID+1) - id).ToInt32();
+                // Get the number of entries , and increase array capacity
+                strings.Capacity += (nentries = (blocks[I].HighID + 1) - id).ToInt32();
                 // Get the starting offset.
                 coffset = blocks[I].OffsetToEntries.ToInt32();
                 for (System.UInt32 J = 0; J < nentries; J++)

@@ -45,7 +45,11 @@ namespace DotNetResourcesExtensions
                     break;
 #endif
                 // Return RT_MANIFEST as plain array so that XML processors can process it if the user demands it.
-                case WindowsResourceEntryType.RT_MANIFEST: 
+                case WindowsResourceEntryType.RT_MANIFEST:
+                // Animated cursors and HTML files are just files that have been directly saved and they do not require any additional processing.
+                case WindowsResourceEntryType.RT_ANICURSOR:
+                case WindowsResourceEntryType.RT_HTML:
+                // Represents a plain byte array , usually coming from a custom file
                 case WindowsResourceEntryType.RT_RCDATA:
                     value = entry.Value;
                     break;

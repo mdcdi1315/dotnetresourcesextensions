@@ -147,6 +147,9 @@ namespace DotNetResourcesExtensions
                 bitmapinst = Interop.GdiPlus.GDIPManager.Default.GetBitmapHandleFromDIB(entry.Value, 0);
             } else if (entry.NativeType == WindowsResourceEntryType.RT_ICON) {
                 SafeIconHandle sih = new(entry);
+                if (sih.IsInvalid || sih.IsClosed) {
+                    throw new ArgumentException("Cannot create a GDI+ bitmap from a invalid or disposed handle.");
+                }
                 try {
                     bitmapinst = Interop.GdiPlus.GDIPManager.Default.GetBitmapHandleFromHICON(sih.DangerousGetHandle());
                 } finally {

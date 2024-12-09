@@ -135,38 +135,36 @@ namespace DotNetResourcesExtensions.Internal
                 throw new FormatException($"This base64 length is invalid: {count}");
             fixed (byte* _char2val = char2val)
             {
-                fixed (char* _chars = &Unsafe.Add(ref sp.Data, index))
+                char* _chars = (System.Char*)Unsafe.Add<System.Char>(sp.Data, index);
+                int totalCount = 0;
+                char* pch = _chars;
+                char* pchMax = _chars + count;
+                while (pch < pchMax)
                 {
-                    int totalCount = 0;
-                    char* pch = _chars;
-                    char* pchMax = _chars + count;
-                    while (pch < pchMax)
-                    {
-                        System.Diagnostics.Debug.Assert(pch + 4 <= pchMax, "");
-                        char pch0 = pch[0];
-                        char pch1 = pch[1];
-                        char pch2 = pch[2];
-                        char pch3 = pch[3];
+                    System.Diagnostics.Debug.Assert(pch + 4 <= pchMax, "");
+                    char pch0 = pch[0];
+                    char pch1 = pch[1];
+                    char pch2 = pch[2];
+                    char pch3 = pch[3];
 
-                        if ((pch0 | pch1 | pch2 | pch3) >= 128)
-                            throw new FormatException($"The given base64 sequence is invalid: {new System.String(pch, 0, 4)}");
+                    if ((pch0 | pch1 | pch2 | pch3) >= 128)
+                        throw new FormatException($"The given base64 sequence is invalid: {new System.String(pch, 0, 4)}");
 
-                        // xx765432 xx107654 xx321076 xx543210
-                        // 76543210 76543210 76543210
-                        int v1 = _char2val[pch0];
-                        int v2 = _char2val[pch1];
-                        int v3 = _char2val[pch2];
-                        int v4 = _char2val[pch3];
+                    // xx765432 xx107654 xx321076 xx543210
+                    // 76543210 76543210 76543210
+                    int v1 = _char2val[pch0];
+                    int v2 = _char2val[pch1];
+                    int v3 = _char2val[pch2];
+                    int v4 = _char2val[pch3];
 
-                        if (!IsValidLeadBytes(v1, v2, v3, v4) || !IsValidTailBytes(v3, v4))
-                            throw new FormatException($"The given base64 sequence is invalid: {new System.String(pch, 0, 4)}");
+                    if (!IsValidLeadBytes(v1, v2, v3, v4) || !IsValidTailBytes(v3, v4))
+                        throw new FormatException($"The given base64 sequence is invalid: {new System.String(pch, 0, 4)}");
 
-                        int byteCount = (v4 != 64 ? 3 : (v3 != 64 ? 2 : 1));
-                        totalCount += byteCount;
-                        pch += 4;
-                    }
-                    return totalCount;
+                    int byteCount = (v4 != 64 ? 3 : (v3 != 64 ? 2 : 1));
+                    totalCount += byteCount;
+                    pch += 4;
                 }
+                return totalCount;
             }
         }
 
@@ -271,53 +269,52 @@ namespace DotNetResourcesExtensions.Internal
             System.Byte[] result = new System.Byte[bc];
             fixed (byte* _char2val = char2val)
             {
-                fixed (char* _chars = &Unsafe.Add(ref sp.Data , index)) // Even if 0 is fed , the call will return what is expected.
+                // Even if 0 is fed , the call will return what is expected.
+                char* _chars = (System.Char*)Unsafe.Add<System.Char>(sp.Data, index);
+                fixed (byte* _bytes = &result[0])
                 {
-                    fixed (byte* _bytes = &result[0])
+                    char* pch = _chars;
+                    char* pchMax = _chars + count;
+                    byte* pb = _bytes;
+                    byte* pbMax = _bytes + bc;
+                    while (pch < pchMax)
                     {
-                        char* pch = _chars;
-                        char* pchMax = _chars + count;
-                        byte* pb = _bytes;
-                        byte* pbMax = _bytes + bc;
-                        while (pch < pchMax)
+                        System.Diagnostics.Debug.Assert(pch + 4 <= pchMax, "");
+                        char pch0 = pch[0];
+                        char pch1 = pch[1];
+                        char pch2 = pch[2];
+                        char pch3 = pch[3];
+
+                        if ((pch0 | pch1 | pch2 | pch3) >= 128)
+                            throw new FormatException($"Invalid base64 sequence detected: {new System.String(pch, 0, 4)}");
+                        // xx765432 xx107654 xx321076 xx543210
+                        // 76543210 76543210 76543210
+
+                        int v1 = _char2val[pch0];
+                        int v2 = _char2val[pch1];
+                        int v3 = _char2val[pch2];
+                        int v4 = _char2val[pch3];
+
+                        if (!IsValidLeadBytes(v1, v2, v3, v4) || !IsValidTailBytes(v3, v4))
+                            throw new FormatException($"Invalid base64 sequence detected: {new System.String(pch, 0, 4)}");
+
+                        int byteCount = (v4 != 64 ? 3 : (v3 != 64 ? 2 : 1));
+                        if (pb + byteCount > pbMax)
+                            throw new ArgumentException("This array is too small to fit all bytes.", "bytes");
+
+                        pb[0] = ((v1 << 2) | ((v2 >> 4) & 0x03)).ToByte();
+                        if (byteCount > 1)
                         {
-                            System.Diagnostics.Debug.Assert(pch + 4 <= pchMax, "");
-                            char pch0 = pch[0];
-                            char pch1 = pch[1];
-                            char pch2 = pch[2];
-                            char pch3 = pch[3];
-
-                            if ((pch0 | pch1 | pch2 | pch3) >= 128)
-                                throw new FormatException($"Invalid base64 sequence detected: {new System.String(pch, 0, 4)}");
-                            // xx765432 xx107654 xx321076 xx543210
-                            // 76543210 76543210 76543210
-
-                            int v1 = _char2val[pch0];
-                            int v2 = _char2val[pch1];
-                            int v3 = _char2val[pch2];
-                            int v4 = _char2val[pch3];
-
-                            if (!IsValidLeadBytes(v1, v2, v3, v4) || !IsValidTailBytes(v3, v4))
-                                throw new FormatException($"Invalid base64 sequence detected: {new System.String(pch, 0, 4)}");
-
-                            int byteCount = (v4 != 64 ? 3 : (v3 != 64 ? 2 : 1));
-                            if (pb + byteCount > pbMax)
-                                throw new ArgumentException("This array is too small to fit all bytes.", "bytes");
-
-                            pb[0] = ((v1 << 2) | ((v2 >> 4) & 0x03)).ToByte();
-                            if (byteCount > 1)
+                            pb[1] = ((v2 << 4) | ((v3 >> 2) & 0x0F)).ToByte();
+                            if (byteCount > 2)
                             {
-                                pb[1] = ((v2 << 4) | ((v3 >> 2) & 0x0F)).ToByte();
-                                if (byteCount > 2)
-                                {
-                                    pb[2] = ((v3 << 6) | ((v4 >> 0) & 0x3F)).ToByte();
-                                }
+                                pb[2] = ((v3 << 6) | ((v4 >> 0) & 0x3F)).ToByte();
                             }
-                            pb += byteCount;
-                            pch += 4;
                         }
-                        return result; // We do care to just take the bytes array back.
+                        pb += byteCount;
+                        pch += 4;
                     }
+                    return result; // We do care to just take the bytes array back.
                 }
             }
         }

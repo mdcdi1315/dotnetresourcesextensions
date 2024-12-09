@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 // The below warning is disabled because all calls that evolve it are sizeof's which only get sizes of unmanaged types.
@@ -7,70 +6,6 @@ using System.Runtime.CompilerServices;
 
 namespace DotNetResourcesExtensions.Internal
 {
-    /// <summary>
-    /// Represents the private data of the official <see cref="System.String"/> structure. <br />
-    /// Use this pinnable when you want to do pointer operations and avoid allocating unnecessarily new arrays.
-    /// </summary>
-    // A pinnable that gets the offset to data when we are on any platform.
-    // Seems that the String has not been structurally changed during the time ...
-    // Required for UnsafeMethods class.
-    [StructLayout(LayoutKind.Explicit, Size = 8)] // As the size of System.String is
-    internal sealed class StringPinnable
-    {
-        /// <summary>
-        /// Gets a new instance of <see cref="StringPinnable"/> from the specified data.
-        /// </summary>
-        /// <param name="data">The data to get from.</param>
-        /// <returns>A new <see cref="StringPinnable"/> that is the unmanaged surface of <paramref name="data"/>.</returns>
-        public static StringPinnable GetAsPinnable(System.String data) => Unsafe.As<StringPinnable>(data);
-
-        public static unsafe StringPinnable ReadFromArray(System.Char[] chars , System.Int32 startindex)
-        {
-            if (chars is null) { throw new ArgumentNullException(nameof(chars)); }
-            if (startindex < 0 || startindex >= chars.Length) { throw new ArgumentOutOfRangeException(nameof(startindex) ,"startindex must not be negative and be less than the array length."); }
-            StringPinnable pinnable = new();
-            pinnable.Length = chars.Length - startindex;            
-            fixed (System.Char* src = &chars[startindex])
-            {
-                fixed (System.Char* dst = &pinnable.Data)
-                {
-                    Unsafe.CopyBlockUnaligned(dst, src, (pinnable.Length * Unsafe.SizeOf<System.Char>()).ToUInt32());
-                }
-            }
-            return pinnable;
-        }
-
-        public static unsafe StringPinnable Create(System.Int32 length)
-        {
-            StringPinnable pinnable = new();
-            if (length < 0) { throw new ArgumentOutOfRangeException(nameof(length) , "length must not be negative."); }
-            pinnable.Length = length;
-            fixed (System.Char* target = &pinnable.Data)
-            {
-                Unsafe.InitBlock(target, 48, (pinnable.Length * Unsafe.SizeOf<System.Char>()).ToUInt32());
-            }
-            return pinnable;
-        }
-
-
-        // Avoiding direct construction - use the GetAsPinnable method.
-        private StringPinnable() { }
-
-        /// <summary>
-        /// The length of the provided string.
-        /// </summary>
-        [FieldOffset(0)] public System.Int32 Length;
-        /// <summary>
-        /// The first element of the string. Use the &amp; operator to get a pointer to the whole data array.
-        /// </summary>
-        [FieldOffset(4)] public System.Char Data;
-
-        /// <summary>
-        /// Reconverts back to the original string if you want it again...
-        /// </summary>
-        public override string ToString() => Unsafe.As<System.String>(this);
-    }
-
     /// <summary>
     /// Provides unsafe extension methods for the <see cref="DotNetResourcesExtensions"/> project
     /// for manipulating primitive information and byte arrays.
@@ -130,10 +65,6 @@ namespace DotNetResourcesExtensions.Internal
             return bytes;
         }
 
-        // Same as above but also pins the data to a span.
-        [System.Diagnostics.DebuggerHidden]
-        private static System.Span<System.Byte> GetBytesTemplate2<T>(T input) where T : unmanaged => new(GetBytesTemplate(input));
-
         // Converts the given plain data to a new structure with type T.
         // Be noted that the method only requires the minimum amount of bytes in order to recreate the structure;
         // the method does not test against exact size.
@@ -149,26 +80,17 @@ namespace DotNetResourcesExtensions.Internal
             return Unsafe.ReadUnaligned<T>(ref bytes[sidx]);
         }
 
-        // Same as above.
-        [System.Diagnostics.DebuggerHidden]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage" , "CA2208" , 
-            Justification = "This method is always hidden by the debugger and any methods that use this pass the sidx parameter as StartIndex.")]
-        private static T GetFromBytesTemplate2<T>(System.Span<System.Byte> span , System.Int32 sidx) where T : unmanaged
-        {
-            if (sidx < 0 || (sidx + sizeof(T)) > span.Length)
-            {
-                throw new ArgumentOutOfRangeException("StartIndex", "StartIndex must be more or equal to zero and smaller than the array length minus the size of the structure.");
-            }
-            return Unsafe.ReadUnaligned<T>(ref span[sidx]);
-        }
-
         /// <summary>
         /// Gets the managed reference of the first array element in <paramref name="array"/>.
         /// </summary>
         /// <typeparam name="T">The array type.</typeparam>
         /// <param name="array">The array to retrieve the first element from.</param>
         /// <returns>The reference of the first element in <paramref name="array"/>.</returns>
-        public static ref T GetFirstArrayElementRef<T>(this T[] array) where T : notnull => ref array[0];
+        public static ref T GetFirstArrayElementRef<T>(this T[] array) where T : notnull
+        {
+            if (array is null || array.Length <= 0) { return ref Unsafe.NullRef<T>(); }
+            return ref array[0];
+        }
 
         /// <summary>
         /// Copies the value of the primitive type <typeparamref name="T"/> to a new instance of <typeparamref name="T"/>.
@@ -178,19 +100,41 @@ namespace DotNetResourcesExtensions.Internal
         /// <returns>A copied version of <paramref name="input"/>.</returns>
         public static T Copy<T>(this T input) where T : unmanaged
         {
-            System.Span<System.Byte> temp = GetBytesTemplate2(input);
-            System.Span<System.Byte> copied = new(new System.Byte[temp.Length]);
+            System.Byte[] temp = GetBytesTemplate(input);
+            System.Byte[] copied = new System.Byte[temp.Length];
             Unsafe.CopyBlockUnaligned(ref copied[0] , ref temp[0] , temp.Length.ToUInt32());
+            temp = null;
             return Unsafe.ReadUnaligned<T>(ref copied[0]);
         }
 
         /// <summary>
-        /// Reverses endianess for the primitive type <typeparamref name="T"/>.
+        /// Reads a managed array or native memory from the <paramref name="input"/> managed pointer and copies the 
+        /// result to a new managed array.
+        /// </summary>
+        /// <typeparam name="T">The managed type to read from the native or managed memory.</typeparam>
+        /// <param name="input">The managed pointer to read data from.</param>
+        /// <param name="length">The data length. The number given here will be the length of the returned array.</param>
+        /// <returns>A new array of <typeparamref name="T"/> copied from <paramref name="input"/>.</returns>
+        /// <exception cref="System.ArgumentNullException"><paramref name="input"/> represents a null pointer.</exception>
+        public static T[] ReadCopy<T>(this ref T input, System.UInt32 length) where T : struct
+        {
+            if (Unsafe.IsNullRef(ref input)) { throw new ArgumentNullException(nameof(input)); }
+            T[] result = new T[length];
+            for (System.Int32 I = 0; I < length; I++)
+            {
+                result[I] = Unsafe.Add(ref input, I);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Reverses endianess for the primitive type <typeparamref name="T"/>. <br />
+        /// If the <typeparamref name="T"/> is <see cref="System.Byte"/> , then it performs endianess swap in bit level.
         /// </summary>
         /// <typeparam name="T">The primitive type to reverse endianess for.</typeparam>
         /// <param name="input">The input type to reverse.</param>
         /// <returns>The reversed endianess result of <paramref name="input"/>.</returns>
-        // The method 
+        // The method does special-case the byte type so that endianess reversal can be performed to it.
         public static T ReverseEndianess<T>(this T input) where T : unmanaged
         {
             if (input is System.Byte b) {
@@ -198,9 +142,9 @@ namespace DotNetResourcesExtensions.Internal
                 b = ReverseEndianess_Byte(b);
                 return Unsafe.As<System.Byte , T>(ref b);
             }
-            System.Span<System.Byte> bt = GetBytesTemplate2(input);
+            System.Byte[] bt = GetBytesTemplate(input);
             bt.Reverse();
-            return GetFromBytesTemplate2<T>(bt , 0);
+            return GetFromBytesTemplate<T>(bt , 0);
         }
 
         private static System.Byte ReverseEndianess_Byte(System.Byte b)
@@ -227,7 +171,26 @@ namespace DotNetResourcesExtensions.Internal
             // This allows an optimized method for doing reversals faster in .NET Framework.
             // For Core runtimes it could be said that their perf is better than this ,
             // but this is also acceptable , due to the fact that it uses pinned pointers (which all runtimes can easily manipulate them).
-            ((System.Span<T>)array).Reverse();
+            if (array is null) { return; }
+            ReverseInner(ref GetFirstArrayElementRef(array), new System.UIntPtr(array.GetLength(0).ToUInt32()));
+        }
+
+        // Acquired from https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/SpanHelpers.cs
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReverseInner<T>(ref T elements, nuint length)
+        {
+            if (length <= 1) { return; }
+
+            ref T first = ref elements;
+            ref T last = ref Unsafe.Subtract(ref Unsafe.Add(ref first, length), 1);
+            do
+            {
+                T temp = first;
+                first = last;
+                last = temp;
+                first = ref Unsafe.Add(ref first, 1);
+                last = ref Unsafe.Subtract(ref last, 1);
+            } while (Unsafe.IsAddressLessThan(ref first, ref last));
         }
 
         #region Conversions to Int64
@@ -438,6 +401,20 @@ namespace DotNetResourcesExtensions.Internal
         /// </summary>
         /// <param name="character">The character to convert.</param>
         public static System.Byte ToByte(this System.Char character) => NarrowingConversion<System.Char , System.Byte>(character);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.UInt16"/> to a <see cref="System.Byte"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Byte ToByte(this System.UInt16 number) => NarrowingConversion<System.UInt16 , System.Byte>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.UInt32"/> to a <see cref="System.Byte"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Byte ToByte(this System.UInt32 number) => NarrowingConversion<System.UInt32, System.Byte>(number);
         #endregion
 
         #region Conversions to Char
@@ -555,6 +532,13 @@ namespace DotNetResourcesExtensions.Internal
         /// <param name="number">The number to convert.</param>
         /// <returns>The equivalent array representation of <paramref name="number"/>.</returns>
         public static System.Byte[] GetBytes(this System.Decimal number) => GetBytesTemplate(number);
+
+        /// <summary>
+        /// Returns the equivalent byte array representation of this Unicode character.
+        /// </summary>
+        /// <param name="ch">The number to convert.</param>
+        /// <returns>The equivalent array representation of <paramref name="ch"/>.</returns>
+        public static System.Byte[] GetBytes(this System.Char ch) => GetBytesTemplate(ch);
         #endregion
 
         #region Convert to numeric types from bytes
@@ -585,18 +569,6 @@ namespace DotNetResourcesExtensions.Internal
         }
 
         /// <summary>
-        /// Gets a <see cref="System.Single"/> from a byte array returned from <c>GetBytes</c> method.
-        /// </summary>
-        /// <param name="array">The array that contains the information to create a <see cref="System.Single"/>.</param>
-        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
-        /// <returns>The read number.</returns>
-        public static System.Single ToSingle(this System.Span<System.Byte> array, System.Int32 StartIndex)
-        {
-            System.Int32 rn = GetFromBytesTemplate2<System.Int32>(array, StartIndex);
-            return LinearConversion<System.Int32, System.Single>(rn);
-        }
-
-        /// <summary>
         /// Gets a <see cref="System.Double"/> from a byte array returned from <c>GetBytes</c> method.
         /// </summary>
         /// <param name="array">The array that contains the information to create a <see cref="System.Double"/>.</param>
@@ -609,18 +581,6 @@ namespace DotNetResourcesExtensions.Internal
         }
 
         /// <summary>
-        /// Gets a <see cref="System.Double"/> from a byte array returned from <c>GetBytes</c> method.
-        /// </summary>
-        /// <param name="array">The array that contains the information to create a <see cref="System.Double"/>.</param>
-        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
-        /// <returns>The read number.</returns>
-        public static System.Double ToDouble(this System.Span<System.Byte> array, System.Int32 StartIndex)
-        {
-            System.Int64 rn = GetFromBytesTemplate2<System.Int64>(array, StartIndex);
-            return LinearConversion<System.Int64, System.Double>(rn);
-        }
-
-        /// <summary>
         /// Gets a <see cref="System.Decimal"/> from a byte array returned from <c>GetBytes</c> method.
         /// </summary>
         /// <param name="array">The array that contains the information to create a <see cref="System.Decimal"/>.</param>
@@ -628,14 +588,7 @@ namespace DotNetResourcesExtensions.Internal
         /// <returns>The read number.</returns>
         public static System.Decimal ToDecimal(this System.Byte[] array, System.Int32 StartIndex) => GetFromBytesTemplate<System.Decimal>(array, StartIndex);
 
-        /// <summary>
-        /// Gets a <see cref="System.Decimal"/> from a byte array returned from <c>GetBytes</c> method.
-        /// </summary>
-        /// <param name="array">The array that contains the information to create a <see cref="System.Decimal"/>.</param>
-        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
-        /// <returns>The read number.</returns>
-        public static System.Decimal ToDecimal(this System.Span<System.Byte> array, System.Int32 StartIndex) => GetFromBytesTemplate2<System.Decimal>(array, StartIndex);
-
+        
         /// <summary>
         /// Gets a <see cref="System.Int16"/> from a byte array returned from <c>GetBytes</c> method.
         /// </summary>
@@ -691,99 +644,15 @@ namespace DotNetResourcesExtensions.Internal
             => GetFromBytesTemplate<System.UInt16>(array, StartIndex);
 
         /// <summary>
-        /// Gets a <see cref="System.Int16"/> from a byte array returned from <c>GetBytes</c> method.
-        /// </summary>
-        /// <param name="array">The array that contains the information to create a <see cref="System.Int16"/>.</param>
-        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
-        /// <returns>The read number.</returns>
-        public static System.Int16 ToInt16(this System.Span<System.Byte> array, System.Int32 StartIndex)
-            => GetFromBytesTemplate2<System.Int16>(array, StartIndex);
-
-        /// <summary>
-        /// Gets a <see cref="System.Int32"/> from a byte array returned from <c>GetBytes</c> method.
-        /// </summary>
-        /// <param name="array">The array that contains the information to create a <see cref="System.Int32"/>.</param>
-        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
-        /// <returns>The read number.</returns>
-        public static System.Int32 ToInt32(this System.Span<System.Byte> array, System.Int32 StartIndex)
-            => GetFromBytesTemplate2<System.Int32>(array, StartIndex);
-
-        /// <summary>
-        /// Gets a <see cref="System.Int64"/> from a byte array returned from <c>GetBytes</c> method.
-        /// </summary>
-        /// <param name="array">The array that contains the information to create a <see cref="System.Int64"/>.</param>
-        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
-        /// <returns>The read number.</returns>
-        public static System.Int64 ToInt64(this System.Span<System.Byte> array, System.Int32 StartIndex)
-            => GetFromBytesTemplate2<System.Int64>(array, StartIndex);
-
-        /// <summary>
-        /// Gets a <see cref="System.UInt64"/> from a byte array returned from <c>GetBytes</c> method.
-        /// </summary>
-        /// <param name="array">The array that contains the information to create a <see cref="System.UInt64"/>.</param>
-        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
-        /// <returns>The read number.</returns>
-        public static System.UInt64 ToUInt64(this System.Span<System.Byte> array, System.Int32 StartIndex)
-            => GetFromBytesTemplate2<System.UInt64>(array, StartIndex);
-
-        /// <summary>
-        /// Gets a <see cref="System.UInt32"/> from a byte array returned from <c>GetBytes</c> method.
-        /// </summary>
-        /// <param name="array">The array that contains the information to create a <see cref="System.UInt32"/>.</param>
-        /// <param name="StartIndex">The zero-based index position to start reading from.</param>
-        /// <returns>The read number.</returns>
-        public static System.UInt32 ToUInt32(this System.Span<System.Byte> array, System.Int32 StartIndex)
-            => GetFromBytesTemplate2<System.UInt32>(array, StartIndex);
-
-        /// <summary>
-        /// Gets a <see cref="System.UInt16"/> from a byte array returned from <c>GetBytes</c> method.
+        /// Gets a <see cref="System.Char"/> from a byte array returned from <c>GetBytes</c> method.
         /// </summary>
         /// <param name="array">The array that contains the information to create a <see cref="System.UInt16"/>.</param>
         /// <param name="StartIndex">The zero-based index position to start reading from.</param>
         /// <returns>The read number.</returns>
-        public static System.UInt16 ToUInt16(this System.Span<System.Byte> array, System.Int32 StartIndex)
-            => GetFromBytesTemplate2<System.UInt16>(array, StartIndex);
+        public static System.Char ToChar(this System.Byte[] array , System.Int32 StartIndex)
+            => GetFromBytesTemplate<System.Char>(array , StartIndex);
+
         #endregion
-
-        /// <summary>
-        /// Uses unsafe schemes to copy a string to a new character array , starting from the specified index and copying <paramref name="count"/> charaters to target.
-        /// </summary>
-        /// <param name="str">The string to copy.</param>
-        /// <param name="index">The index to start copying characters from.</param>
-        /// <param name="count">The number of characters to copy.</param>
-        /// <returns>A new array which has characters copied from <paramref name="str"/>.</returns>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> or <paramref name="count"/> were less than zero , or <paramref name="count"/> was greater than the input string.</exception>
-        public static System.Char[] ToCharArrayUnsafe(this System.String str , System.Int32 index , System.Int32 count)
-        {
-            if (str is null) { return System.Array.Empty<System.Char>(); }
-            if (index < 0) { throw new ArgumentOutOfRangeException(nameof(index), "index must not be negative."); }
-            if (count < 0) { throw new ArgumentOutOfRangeException(nameof(index), "count must be positive."); }
-            StringPinnable pnt = StringPinnable.GetAsPinnable(str);
-            if (count == 0 || pnt.Length == 0) { return System.Array.Empty<System.Char>(); }
-            if (count > pnt.Length - index) {
-                throw new ArgumentOutOfRangeException(nameof(count) , $"Count must be less than or equal to {pnt.Length - index} .");
-            }
-            System.Char[] result = new System.Char[count];
-            fixed (System.Char* ptr = result)
-            {
-                // Gets the starting reference of pnt.Data where the user prefers to start copying from.
-                // If index == 0 (might be the most common case btw) , then pnt.Data is returned from Unsafe.Add as-it-is.
-                fixed (System.Char* src = &Unsafe.Add(ref pnt.Data , index))
-                {
-                    // Uses cpblk , fast and efficient.
-                    // Also be noted that we need byte count , and not character count , so we convert it to bytes at run-time.
-                    Unsafe.CopyBlockUnaligned(ptr, src, (count * Unsafe.SizeOf<System.Char>()).ToUInt32());
-                }
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Uses unsafe schemes to copy a string to a new character array.
-        /// </summary>
-        /// <param name="str">The string to copy.</param>
-        /// <returns>A new array which has characters copied from <paramref name="str"/>.</returns>
-        public static System.Char[] ToCharArrayUnsafe(this System.String str) => ToCharArrayUnsafe(str, 0, str.Length);
 
         // Parts of bit conversion code also belong from referencesource.microsoft.com/en-us !.
         private static System.Byte GetBitValue(System.Int32 bitidx) => (1 << (bitidx & 7)).ToByte();

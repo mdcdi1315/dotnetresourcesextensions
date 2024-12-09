@@ -7,8 +7,8 @@ repository.
 The purpose of the package is that it is fully optional; the `DotNetResourcesExtensions` package
 can operate without this package.
 
-The package includes a resource reader and a basic infrastracture for reading Win32
-resources out-of-the-box , for reading RC resources from PE files.
+The package includes resource readers and a basic infrastracture for reading Win32
+resources out-of-the-box , for reading RC resources from PE files , or even reading and writing .RES files too!
 
 Additionally , all the interface that does utilize does use common patterns of `DotNetResourcesExtensions` - 
 so that intergration can be made easy!

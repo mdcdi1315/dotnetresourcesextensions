@@ -349,18 +349,19 @@ internal static class Interop
                         }
                     }
                     dec = null;
-                } else {
-                    // If we can have color table size , it will be used;
-                    // Otherwise , use the old method as a valid fallback.
-                    System.UInt32 cssize = header.GetHeader().ColorTablesSize;
-                    // Do not call RequiredBitMapBufferSize unless required.
-                    System.Int32 bsize1 = cssize <= 0 ? Gdi32.RequiredBitMapBufferSize(header) : 0;
-                    System.Int32 index = (cssize > 0 ? (System.Int32)(header.Size + cssize) : data.Length - bsize1) + startindex;
-                    fixed (System.Byte* source = &data[index])
-                    {
-                        StatusToExceptionMarshaller(CreateGdipBitmapFromDIB(header, source, out ret));
-                    }
+                    goto G_end;
                 }
+                // If we can have color table size , it will be used;
+                // Otherwise , use the old method as a valid fallback.
+                System.UInt32 cssize = header.GetHeader().ColorTablesSize;
+                // Do not call RequiredBitMapBufferSize unless required.
+                System.Int32 bsize1 = cssize <= 0 ? Gdi32.RequiredBitMapBufferSize(header) : 0;
+                System.Int32 index = (cssize > 0 ? (System.Int32)(header.Size + cssize) : data.Length - bsize1) + startindex;
+                fixed (System.Byte* source = &data[index])
+                {
+                    StatusToExceptionMarshaller(CreateGdipBitmapFromDIB(header, source, out ret));
+                }
+            G_end:
                 bitmaphandles.Add(ret);
                 return ret;
             }
@@ -591,6 +592,10 @@ internal static class Interop
                         // But if these are existing for 16-bit and above , return them.
                         if (ColorIndices > 0) { result = ColorIndices; }
                         break;
+                }
+                // Additionally , if the important color indices is not zero , return that instead.
+                if (ImportantIndices > 0 && ColorIndices > 0) {
+                    result = ImportantIndices;
                 }
                 return result;
             }

@@ -9,11 +9,11 @@
     {
         /// <summary>A special constant that indicates that the resource type could not be determined.</summary>
         Unknown = -1,
-        /// <summary>Defines the RT_CURSOR constant. When this is defined , then the resource value represents a cursor file.</summary>
+        /// <summary>Defines the RT_CURSOR constant. When this is defined , then the resource value represents a cursor.</summary>
         RT_CURSOR = 1,
         /// <summary>Defines the RT_BITMAP constant. When this is defined , then the resource value represents a bitmap file.</summary>
         RT_BITMAP,
-        /// <summary>Defines the RT_ICON constant. When this is defined , then the resource value represents a Windows icon file.</summary>
+        /// <summary>Defines the RT_ICON constant. When this is defined , then the resource value represents a Windows icon.</summary>
         RT_ICON,
         /// <summary>Defines the RT_MENU constant.</summary>
         RT_MENU,

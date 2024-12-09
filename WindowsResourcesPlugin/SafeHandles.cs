@@ -28,9 +28,9 @@ namespace DotNetResourcesExtensions
                 throw new PlatformNotSupportedException("The SafeIconHandle class can be only instantiated from Windows.");
             }
             if (entry is null) { throw new ArgumentNullException(nameof(entry)); }
-            if (entry.NativeType != WindowsResourceEntryType.RT_ICON)
+            if (entry.NativeType != WindowsResourceEntryType.RT_ICON && entry.NativeType != WindowsResourceEntryType.RT_ANIICON)
             {
-                throw new ArgumentException("The entry's native type must be RT_ICON.");
+                throw new ArgumentException("The resource entry native type must be RT_ICON or RT_ANIICON.");
             }
             fixed (System.Byte* ptr = entry.Value)
             {
@@ -96,7 +96,7 @@ namespace DotNetResourcesExtensions
                 throw new PlatformNotSupportedException("The SafeCursorHandle class can be only instantiated from Windows.");
             }
             if (entry is null) { throw new ArgumentNullException(nameof(entry)); }
-            if (entry.NativeType != WindowsResourceEntryType.RT_CURSOR)
+            if (entry.NativeType != WindowsResourceEntryType.RT_CURSOR && entry.NativeType != WindowsResourceEntryType.RT_ANICURSOR)
             {
                 throw new ArgumentException("The entry's native type must be RT_CURSOR.");
             }
