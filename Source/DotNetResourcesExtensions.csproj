@@ -34,23 +34,24 @@
 		<IsPackable>True</IsPackable>
 		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageVersion>1.0.8</PackageVersion>
+		<PackageVersion>1.0.9</PackageVersion>
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
 		<PackageProjectUrl>http://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
 		<PackageReleaseNotes>v$(PackageVersion) release of DotNetResourcesExtensions package.
 For more additional details , visit $(PackageProjectUrl) .
-This release makes minor changes in the repository internals.
-It is not required to move to this package version; otherwise , no direct changes are performed in 1.0.8.
+The BuildTasks project was changed in order to accept multiple resource files and to output them to multiple files.
+Additionally , the release does some stability fixes on the project code in general and fixes some issues with the 
+strongly-typed resource class generation.
+Additionally, make the BuildTasks have support for .NET 9 targets.
 </PackageReleaseNotes>
 		<Authors>mdcdi1315</Authors>
 		<AssemblyName>$(_ProjName)</AssemblyName>
-		<AssemblyVersion>1.0.0.8</AssemblyVersion>
+		<AssemblyVersion>1.0.0.9</AssemblyVersion>
 		<ProductName>$(_ProjName)</ProductName>
 		<Product>$(_ProjName) is a project that defines new possibilities on handling resources of a .NET application.
-Additionally , it defines new types for doing resource serializations never thought of.
-		</Product>
+Additionally , it defines new types for doing resource serializations never thought of.</Product>
 		<ProductVersion>$(PackageVersion)</ProductVersion>
 		<Company>© MDCDI1315. $(PackageProjectUrl)</Company>
 		<Copyright>© MDCDI1315 (2024). All work is licensed under the MIT License.</Copyright>

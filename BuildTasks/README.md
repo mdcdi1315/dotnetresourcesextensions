@@ -16,8 +16,8 @@ instead to use directly your own build of this project , **consider** using a [*
 The project provides: 
 - A resource generator that can generate to a single file multiple resources.
 - A strongly typed resource class that instead uses the `DotNetResourcesExtensions` API.
-- Automated creation , output and usage of the resource file without additional hassle
-- The resulting resources may be embedded in an assembly and retrieved from there using the 
+- Automated creation , output and usage of resource files without additional hassle
+- The resulting resources may be embedded in an assembly and retrieved from there using a
 strongly typed resource class.
 - Provides the ability to read and write to all the diverse formats provided by the `DotNetResourcesExtensions` project
 

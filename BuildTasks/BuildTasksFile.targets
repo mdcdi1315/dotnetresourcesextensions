@@ -9,28 +9,24 @@
 		<!-- Determine the BuildTasks assembly to use -->
 		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`net7.0`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
 		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`net8.0`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
+		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`net9.0`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
 		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`netstandard`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
 		<DNRS_TFIdentifier Condition="'$(TargetFramework.StartsWith(`net4`))' == 'true'">net472</DNRS_TFIdentifier>
 		<!-- This will load the net472 one if: 1. This is a .NET Core project , 2. The project is a Windows project and 3. We are building for desktop MSBuild. -->
 		<DNRS_TFIdentifier Condition="'$(DNRS_TFIdentifier)' == 'netstandard2.0' AND '$(TargetFramework.Contains(`windows`))' == 'true' AND '$(MSBuildRuntimeType)' != 'Core'">net472</DNRS_TFIdentifier>
 		<!-- Ultimately fallback to net472 if no target framework can be computed -->
 		<DNRS_TFIdentifier Condition="'$(DNRS_TFIdentifier)' == ''">net472</DNRS_TFIdentifier>
+		<!-- Compute final build path -->
 		<DNRSPath>$(MSBuildThisFileDirectory)../tools/$(DNRS_TFIdentifier)/DotNetResourcesExtensions.BuildTasks.dll</DNRSPath>
 		<!-- [PUBLIC PROPERTY] Enable or disable the dependencies resolve mechanism. This is used by BuildTasks because NuGet cannot provide them to it at run-time. -->
 		<DotNetResourcesExtensions_EnableDepResolve>True</DotNetResourcesExtensions_EnableDepResolve>
 		<!-- [PUBLIC PROPERTY] Returns the currently used BuildTasks assembly path. Prefer to use this property if you want to do programmatical operations that involve this assembly. -->
 		<DotNetResourcesExtensionsBuildTasksPath>$(DNRSPath)</DotNetResourcesExtensionsBuildTasksPath>
-		<!-- [PUBLIC PROPERTY] Defines the output resource file. By default it is a file that is generated on the project cache folders -->
-		<DotNetResourcesExtensions_OutputResFile Condition="'$(DotNetResourcesExtensions_OutputResFile)' == ''">$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)/Generated.resources</DotNetResourcesExtensions_OutputResFile>
-		<!-- [PUBLIC PROPERTY] Specifies the output type of the resulting resource file. Current allowed values: Resources , CustomBinary , JSON -->
-		<DotNetResourcesExtensions_OutputType Condition="'$(DotNetResourcesExtensions_OutputType)' == ''">Resources</DotNetResourcesExtensions_OutputType>
-		<!-- [PUBLIC PROPERTY] Specifies that the outputted resource file should be embedded in the resulting assembly. -->
-		<DotNetResourcesExtensions_EmbedResultingFileToBuildResult Condition="'$(DotNetResourcesExtensions_EmbedResultingFileToBuildResult)' == ''">False</DotNetResourcesExtensions_EmbedResultingFileToBuildResult>
 	</PropertyGroup>
 
 	<ItemDefinitionGroup>
 		<!-- [PUBLIC BUILD ITEM] Specifies a resource file that is leveraged by DotNetResourcesExtensions. -->
-		<!-- Then , it is embedded in the final resource file. -->
+		<!-- Then , it is embedded in a resource file specified by OutputResourceFileDef definition. -->
 		<GeneratableResource>
 			<!-- Generate a strongly-typed resource class. -->
 			<GenerateStrClass>False</GenerateStrClass>
@@ -44,7 +40,24 @@
 			<StrOutPath></StrOutPath>
 			<!-- Specifies the strongly-typed resource class visibility. It only accepts Internal and Public. -->
 			<StrClassVisibility>Internal</StrClassVisibility>
+			<!-- 
+				Specifies the base loading directory for file references , upcoming in V2. 
+				Can be also null to indicate that all paths must be always absolute.
+			-->
+			<BaseLoadingDirectory></BaseLoadingDirectory>
 		</GeneratableResource>
+		<!-- [PUBLIC BUILD ITEM] Specifies the target transformed file definition. -->
+		<!-- Through this item you specify from which files the result will be produced , where it will be saved and under which format will be saved. -->
+		<OutputResourceFileDef>
+			<!-- Specifies the format of this resource file. Allowed values: Resources, CustomBinary, JSON. By default it is set to Resources. -->
+			<OutputType>Resources</OutputType>
+			<!-- 
+				  Specifies the input paths which the final file will contain their resources. 
+				  This must contain paths specified in the GeneratableResource item definition.
+				  The paths are seperated by using the semi-colon (;) character.
+			-->
+			<Inputs></Inputs>
+		</OutputResourceFileDef>
 	</ItemDefinitionGroup>
 
 	<!-- Import the MSBuild tasks -->
@@ -53,25 +66,25 @@
 	<UsingTask TaskName="DotNetResourcesExtensions.BuildTasks.DependenciesResolver" AssemblyFile="$(DNRSPath)" />
 
 	<!-- [PUBLIC TARGET] The DotNetResourcesExtensions proposal to GenerateResource task. -->
-	<!-- Private Notes: Disable resource generation when any IDE loads the project this can be a very heavy process. -->
-	<Target Name="DotNetResourcesExtensions_GenerateResource" Condition="'$(DesignTimeBuild)' != 'true'">
-		<Message Importance="normal" Text="Instantiating the Resource Generator." />
+	<!-- Note that the old properties are deprecated and there is no way to mitigate them , so it throws errors if these properties are defined even. -->
+	<!--
+		Private Notes: Disable resource generation when any IDE loads the project this can be a very heavy process. 
+		The task will be called only for generating the strongly-typed class files.
+	-->
+	<Target Name="DotNetResourcesExtensions_GenerateResource">
+		<Message Importance="normal" Condition="'$(DesignTimeBuild)' != 'true'" Text="Instantiating the Resource Generator." />
+		<Error Code="DNTRESEXT0122" Condition="'$(DesignTimeBuild)' != 'true' AND '$(DotNetResourcesExtensions_OutputResFile)' != ''" 
+				 Text="The DotNetResourcesExtensions_OutputResFile property is deprecated, create instead a new OutputResourceFileDef item." />
+		<Error Code="DNTRESEXT0122" Condition="'$(DesignTimeBuild)' != 'true' AND '$(DotNetResourcesExtensions_OutputType)' != ''"
+				 Text="The DotNetResourcesExtensions_OutputType property is deprecated, create instead a new OutputResourceFileDef item." />
+		<Error Code="DNTRESEXT0122" Condition="'$(DesignTimeBuild)' != 'true' AND '$(DotNetResourcesExtensions_EmbedResultingFileToBuildResult)' != ''"
+				 Text="The DotNetResourcesExtensions_EmbedResultingFileToBuildResult property is deprecated, create instead a new OutputResourceFileDef item." />
 		<DotNetResExtGenerator
 				InputFiles="@(GeneratableResource)"
-				OutputFileType="$(DotNetResourcesExtensions_OutputType)"
-				OutputFilePath="$(DotNetResourcesExtensions_OutputResFile)"
+				OutputFiles="@(OutputResourceFileDef)"
+				IsDTBBuild="$(DesignTimeBuild)"
 			/>
-		<Message Importance="normal" Text ="Resource Generator ended successfully." />
-	</Target>
-
-	<!-- Embeds to the output assembly the generated resource file , if requested by the user. -->
-	<!-- Notes to public: You can access the resource stream required for strongly typed resource classes by the full filename and extension. -->
-	<Target Name="I_DotNetResourcesExtensions_EmbedOutputToAssembly" BeforeTargets="BeforeBuild" Condition="'$(DotNetResourcesExtensions_EmbedResultingFileToBuildResult)' == 'True' AND '$(DesignTimeBuild)' != 'true'">
-		<ItemGroup>
-			<EmbeddedResource Include="$(DotNetResourcesExtensions_OutputResFile)">
-				<LogicalName>$([System.IO.Path]::GetFileName(`$(DotNetResourcesExtensions_OutputResFile)`))</LogicalName>
-			</EmbeddedResource>
-		</ItemGroup>
+		<Message Importance="normal" Condition="'$(DesignTimeBuild)' != 'true'" Text ="Resource Generator ended successfully." />
 	</Target>
 
 	<!-- Resolves the dependencies required by the BuildTasks and copies System.Windows.Forms if we are on Windows -->

@@ -80,12 +80,13 @@ namespace DotNetResourcesExtensions.BuildTasks
             ctd.IsStruct = false;
             ctd.Name = GetClassName();
             if (visibilty == ResourceClassVisibilty.Public) {
-                ctd.Attributes = MemberAttributes.Public | MemberAttributes.Static;
+                ctd.TypeAttributes = System.Reflection.TypeAttributes.Public | System.Reflection.TypeAttributes.Class;
             } else if (visibilty == ResourceClassVisibilty.Internal) {
-                ctd.Attributes = MemberAttributes.Assembly | MemberAttributes.Static;
+                ctd.TypeAttributes = System.Reflection.TypeAttributes.NotPublic | System.Reflection.TypeAttributes.Class;
             }
             ctd.Members.Add(CreateInternalLoaderField());
             ctd.Members.Add(CreateUnderlyingStreamField());
+            ctd.Members.Add(CreatePrivateConstructor(ctd.Name));
             ctd.Members.Add(CreateResourceLoaderProperty());
             ctd.Members.Add(CreateDisposeMethod());
             CreateResourcesMembers(ctd);
@@ -275,6 +276,14 @@ namespace DotNetResourcesExtensions.BuildTasks
             return cmf;
         }
     
+        private CodeConstructor CreatePrivateConstructor(System.String cn)
+        {
+            CodeConstructor cct = new();
+            cct.Attributes = MemberAttributes.Private;
+            cct.Name = cn;
+            return cct;
+        }
+
         public System.String ToValidResourceName(System.String name)
         {
             System.String result = System.String.Empty;
