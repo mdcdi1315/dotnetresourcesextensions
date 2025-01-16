@@ -2,7 +2,7 @@
 
 This document describes the current status of the repository.
 
-The repository has reached the version `1.0.8` as a __Stable__ release.
+The repository has reached the version `1.0.9` as a __Stable__ release.
 
 Now , the thought is to start moving to version `2.0.0`.
 
