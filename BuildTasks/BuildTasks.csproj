@@ -7,7 +7,6 @@
 	  <LangVersion>10.0</LangVersion>
 	  <IsPackable>false</IsPackable>
 	  <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
-      <DefineConstants Condition="'$(WinDir)' != ''">$(DefineConstants);WF_AVAILABLE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

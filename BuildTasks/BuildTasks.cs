@@ -249,11 +249,9 @@ namespace DotNetResourcesExtensions.BuildTasks
                         this.ThrowMessage(118);
                         rdr = new HumanReadableFormatReader(streamshared);
                         break;
-#if WF_AVAILABLE
                     case ".resx":
-                        rdr = new System.Resources.ResXResourceReader(streamshared);
+                        rdr = GetResXReader(streamshared);
                         break;
-#endif
                     default:
                         streamshared?.Dispose();
                         streamshared = null;
@@ -267,6 +265,12 @@ namespace DotNetResourcesExtensions.BuildTasks
             }
             return rdr;
         }
+
+        // When compiling from Windows and using it in Unix for example , it could lead to a loading exception of System.Windows.Forms.
+        // For this reason , this was moved to a new method so that GetReaderFromPath can load successfully in build-time.
+        // The only way now to get a loading exception is to just explicitly request the ResX reader itself on non-Windows platforms.
+        private System.Resources.IResourceReader GetResXReader(System.IO.FileStream fs)
+            => new System.Resources.ResXResourceReader(fs);
 
         // Validates an output file based on the given task item.
         // The returned object then specifies the correct data for the output file.
@@ -343,6 +347,12 @@ namespace DotNetResourcesExtensions.BuildTasks
             // Determine whether the user wants to generate a str for this input. If not , just set false to the field.
             // Any string input that matches the letters false should prevent from creating a str.
             idt.GenerateStrClass = item.GetMetadata(expecttofind[0]).ToLower() != "false";
+            idt.FilePath = item.ItemSpec;
+            if (System.IO.File.Exists(idt.FilePath) == false)
+            {
+                this.ThrowMessage(11, idt.FilePath);
+                return;
+            }
             if (idt.GenerateStrClass) // Only validate when a new resource class is requested!
             {
                 // OK. Now we need to validate all input data for the strongly-typed resource class.
@@ -370,12 +380,6 @@ namespace DotNetResourcesExtensions.BuildTasks
                 {
                     this.ThrowMessage(44);
                     item.SetMetadata(expecttofind[5], "Internal");
-                }
-                idt.FilePath = item.ItemSpec;
-                if (System.IO.File.Exists(idt.FilePath) == false)
-                {
-                    this.ThrowMessage(11, idt.FilePath);
-                    return;
                 }
                 idt.ClassLang = item.GetMetadata(expecttofind[1]);
                 idt.ManifestResourceName = item.GetMetadata(expecttofind[3]);
