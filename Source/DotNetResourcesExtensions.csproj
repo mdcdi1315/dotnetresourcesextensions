@@ -34,17 +34,15 @@
 		<IsPackable>True</IsPackable>
 		<PackageReadmeFile>Pkg-Readme.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<PackageVersion>1.0.9</PackageVersion>
+		<PackageVersion>1.0.9.2</PackageVersion>
 		<PackageTags>resources</PackageTags>
 		<PackageIcon>ProjectImage.png</PackageIcon>
 		<Description>$(_ProjName): A project that defines extensions and other stuff for .NET Resource API's!</Description>
 		<PackageProjectUrl>http://github.com/mdcdi1315/dotnetresourcesextensions</PackageProjectUrl>
 		<PackageReleaseNotes>v$(PackageVersion) release of DotNetResourcesExtensions package.
 For more additional details , visit $(PackageProjectUrl) .
-The BuildTasks project was changed in order to accept multiple resource files and to output them to multiple files.
-Additionally , the release does some stability fixes on the project code in general and fixes some issues with the 
-strongly-typed resource class generation.
-Additionally, make the BuildTasks have support for .NET 9 targets.
+The BuildTasks did not correctly load input files when those were not generating strongly-typed resource classes.
+This release fixes that issue.
 </PackageReleaseNotes>
 		<Authors>mdcdi1315</Authors>
 		<AssemblyName>$(_ProjName)</AssemblyName>
