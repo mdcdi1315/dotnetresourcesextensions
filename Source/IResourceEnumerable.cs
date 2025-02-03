@@ -635,27 +635,6 @@ namespace DotNetResourcesExtensions
             catch (System.Exception e) { throw new AggregateException("One or more errors were occured during the action execution.", e); }
             finally { en?.Dispose(); en = null; }
         }
-
-        /// <summary>
-        /// Executes the specified breakable action for each resource for the specified resource enumerable.
-        /// </summary>
-        /// <param name="ire">The resource enumerable to enumerate all the resources from.</param>
-        /// <param name="action">The action to execute for each resource.</param>
-        /// <exception cref="AggregateException">One or more errors have been retrieved from <paramref name="action"/>.</exception>
-        public static void ForEachBreakable(this IResourceEnumerable ire, Collections.BreakableActionExtended<IResourceEntry> action)
-        {
-            var en = ire.GetEnumerator();
-            try {
-                Collections.EnumerationContinuationAction act;
-                while (en.MoveNext()) {
-                    act = action(en.ResourceEntry);
-                    if (act == Collections.EnumerationContinuationAction.Continue) { continue; }
-                    if (act == Collections.EnumerationContinuationAction.Break) { break; }
-                }
-            } catch (System.Exception e)
-            { throw new AggregateException("One or more errors were occured during the action execution.", e); }
-            finally { en?.Dispose(); en = null; }
-        }
     }
 
 }
