@@ -1,105 +1,14 @@
-﻿using DotNetResourcesExtensions.Internal;
+﻿
+using DotNetResourcesExtensions.Internal;
+
 
 namespace DotNetResourcesExtensions
 {
-    /// <summary>
-    /// Represents an abstract version of a file reference inside a resource data stream. <br />
-    /// Any users of this interface must know that any implementation that will use this interface must
-    /// support code for these cases. <br />
-    /// Unlike the original ResX classes , these file references are expected their resulting type to be given
-    /// when these are read out by any reader , and not returning the original read file reference. <br />
-    /// To implement and use the <see cref="IFileReference"/> to your own resource reader , you should consult the Docs first.
-    /// </summary>
-    public interface IFileReference
-    {
-        /// <summary>
-        /// Gets the filename of this reference. The filename can be a relative path too.
-        /// </summary>
-        public System.String FileName { get; }
-
-        /// <summary>
-        /// The final resource type that it will be represented when this reference will be read.
-        /// </summary>
-        public System.Type SavingType { get; }
-
-        /// <summary>
-        /// Gets the encoding which this file has been written at.
-        /// </summary>
-        public FileReferenceEncoding Encoding { get; }
-    }
-
-    /// <summary>
-    /// Defines common constants for file encodings for a given <see cref="IFileReference"/>. 
-    /// </summary>
-    public enum FileReferenceEncoding : System.Byte
-    {
-        /// <summary>
-        /// A special value that indicates that user has not defined the file encoding. <br />
-        /// When any writer encounters this value , it must treat it as it was the <see cref="Binary"/> constant.
-        /// </summary>
-        Undefined,
-        /// <summary>
-        /// Defines that the file does not have any specific encoding (That is a file that contains binary data).
-        /// </summary>
-        Binary,
-        /// <summary>
-        /// The file has used the UTF-8 encoding.
-        /// </summary>
-        UTF8,
-        /// <summary>
-        /// The file has used the little-endian UTF-16 encoding.
-        /// </summary>
-        UTF16LE,
-        /// <summary>
-        /// The file has used the big-endian UTF-16 encoding.
-        /// </summary>
-        UTF16BE,
-        /// <summary>
-        /// The file has used the little-endian UTF-32 encoding.
-        /// </summary>
-        UTF32LE,
-        /// <summary>
-        /// The file has used the big-endian UTF-16 encoding.
-        /// </summary>
-        UTF32BE
-    }
-
     /// <summary>
     /// Defines common extensions for <see cref="IFileReference"/> instances.
     /// </summary>
     public static class IFileReferenceExtensions
     {
-        [System.Diagnostics.DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
-        private sealed class TypedFileReference : IFileReference
-        {
-            private System.String filename;
-            private System.Type type;
-            private FileReferenceEncoding encoding;
-            private System.Boolean iscloned;
-
-            private TypedFileReference() { iscloned = false; }
-
-            public static TypedFileReference Clone(IFileReference reference)
-                => new() { iscloned = true, encoding = reference.Encoding , filename = reference.FileName , type = reference.SavingType };
-
-#if WINDOWS10_0_19041_0_OR_GREATER || NET472_OR_GREATER
-            public static TypedFileReference FromResXFileReference(System.Resources.ResXFileRef fr)
-               => new() { 
-                   encoding = fr.TextFileEncoding is null ? FileReferenceEncoding.Undefined : fr.TextFileEncoding.AsFileEncoding(),
-                   filename = fr.FileName, type = System.Type.GetType(fr.TypeName, false, true) };
-#endif
-
-            public System.Boolean IsCloned => iscloned;
-
-            public System.String FileName => filename;
-
-            public System.Type SavingType => type;
-
-            public FileReferenceEncoding Encoding => encoding;
-
-            private string GetDebuggerDisplay() => this.ToSerializedString();
-        }
-
         /// <summary>
         /// Defines a simple encoding for binary files. This is meant to be returned by the extension methods only.
         /// </summary>
@@ -109,14 +18,16 @@ namespace DotNetResourcesExtensions
 
             public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex)
             {
-                System.Int32 bi = byteIndex , wb = 0;
-                try {
+                System.Int32 bi = byteIndex, wb = 0;
+                try
+                {
                     for (System.Int32 I = charIndex; I < charCount + charIndex; I++, bi++)
                     {
                         bytes[bi] = chars[I].ToByte();
                         wb++;
                     }
-                } catch { }
+                }
+                catch { }
                 return wb - 1;
             }
 
@@ -132,12 +43,14 @@ namespace DotNetResourcesExtensions
             public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
             {
                 System.Int32 J = byteIndex;
-                try {
+                try
+                {
                     for (System.Int32 I = charIndex; I < chars.Length && J < byteIndex + byteCount; I++, J++)
                     {
-                        chars[I] = bytes[J].ToChar(); 
+                        chars[I] = bytes[J].ToChar();
                     }
-                } catch { }
+                }
+                catch { }
                 return J - 1;
             }
 
@@ -147,17 +60,127 @@ namespace DotNetResourcesExtensions
         }
 
         /// <summary>
-        /// If the <see cref="IFileReference.FileName"/> represents a relative path , this method returns an absolute path to the represented file.
+        /// Returns a default alias resolver that provides basic default alias mappings for critical .NET types.
+        /// </summary>
+        public static IFileReferenceTypeAliasResolver DefaultResolver => new BasicFileReferenceTypeAliasResolver();
+
+        /// <summary>
+        /// If the <see cref="IFileReference.FileName"/> represents a relative path , 
+        /// this method returns an absolute path to the represented file. <br />
+        /// If the path contains variables , these are expanded.
         /// </summary>
         /// <param name="reference">The file reference to get the file name.</param>
-        /// <returns>The <see cref="IFileReference.FileName"/> , but represented as a fully qualified path.</returns>
+        /// <returns>The <see cref="IFileReference.FileName"/> , but represented as a fully qualified path , if possible.</returns>
         public static System.String AsFullPath(this IFileReference reference)
         {
             System.String ret = System.String.Empty;
             if (System.String.IsNullOrEmpty(reference.FileName)) { return ret; }
-            if (reference.FileName.Length == 0) { return ret; }
-            ret = Internal.ParserHelpers.RemoveQuotes(reference.FileName);
+            ret = ParserHelpers.RemoveQuotes(reference.FileName);
+            if (reference is InternalFileReference ifr)
+            {
+                ret = DecodeVarsFromIFR(ifr);
+            }
             return System.IO.Path.GetFullPath(ret);
+        }
+
+        private enum DecodeStateFlags : System.Byte
+        {
+            None = 0x00,
+            DetectedDollarSign = 0x01,
+            SaveVariable = 0x02
+        }
+
+        private static System.String DecodeVarsFromIFR(InternalFileReference reference)
+        {
+            // IFR reference variables will be decoded as follows:
+            // $(Your-Reference-Variable) , so an MSBuild-like syntax.
+            // To include the literal dollar sign , make sure to not use any opening parenthesis after the sign,
+            // or include a double dollar sign if you need the next character to be a parenthesis anyways.
+            System.Text.StringBuilder sb = new(reference.FileName.Length); // Initial capacity.
+            DecodeStateFlags dsf = DecodeStateFlags.None;
+            System.String tmpvar = System.String.Empty;
+            foreach (var c in reference.FileName)
+            {
+                if (dsf.HasFlag(DecodeStateFlags.DetectedDollarSign))
+                {
+                    if (c == '$') {
+                        sb.Append(c);
+                        dsf = DecodeStateFlags.None;
+                        continue;
+                    } else if (c != '(') {
+                        dsf = DecodeStateFlags.None;
+                        sb.Append('$');
+                        sb.Append(c);
+                        continue;
+                    } else {
+                        dsf |= DecodeStateFlags.SaveVariable;
+                        continue;
+                    }
+                }
+                if (dsf.HasFlag(DecodeStateFlags.SaveVariable)) 
+                {
+                    if (c == ')') {
+                        sb.Append(reference.PropertyStore.GetVariable(tmpvar));
+                        tmpvar = null;
+                        dsf = DecodeStateFlags.None;
+                        continue;
+                    }
+                    tmpvar += c;
+                } else if (c == '$') {
+                    dsf |= DecodeStateFlags.DetectedDollarSign;
+                } else {
+                    sb.Append(c);
+                }
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Gets a fully resolved file reference saved type , from the given alias.
+        /// </summary>
+        /// <param name="reference">The file reference for the alias to be resolved.</param>
+        /// <param name="alias">The type alias to be resolved against.</param>
+        /// <returns>The fully qualified type that <paramref name="alias"/> represents.</returns>
+        /// <exception cref="System.InvalidOperationException">The final type alias resolver was not valid.</exception>
+        /// <exception cref="System.ArgumentNullException"><paramref name="alias"/> was null or empty.</exception>
+        public static System.Type GetFullyResolvedType(this IFileReference reference , System.String alias)
+        {
+            if (reference is null) { throw new System.NullReferenceException("Attempted to dereference a null file reference."); }
+            if (System.String.IsNullOrEmpty(alias)) { throw new System.ArgumentNullException(nameof(alias)); }
+            IFileReferenceTypeAliasResolver resolver;
+            if (reference is IDynamicFileReference dfr) {
+                resolver = dfr.TypeAliasResolver;
+            } else {
+                resolver = DefaultResolver;
+            }
+            if (resolver is null) { throw new System.InvalidOperationException("Cannot invoke the type alias resolver because it is null."); }
+            return resolver.ResolveAlias(alias);
+        }
+
+        /// <summary>
+        /// Gets the fully qualified type of a given type string to be set dynamically to a new file reference. <br />
+        /// The type string is also tested if it is an alias , if loading fails.
+        /// </summary>
+        /// <param name="reference">The file reference that acts as a resolving base if an alias string is detected.</param>
+        /// <param name="typestring">The type string or type alias to resolve.</param>
+        /// <returns>The fully qualified type that <paramref name="typestring"/> represents.</returns>
+        /// <exception cref="System.ArgumentNullException"><paramref name="typestring"/> was null or empty.</exception>
+        /// <exception cref="System.TypeLoadException">The type cannot be found , it is unresolvable.</exception>
+        public static System.Type ResolveSavingTypeString(this IFileReference reference , System.String typestring)
+        {
+            if (reference is null) { throw new System.NullReferenceException("Attempted to dereference a null file reference."); }
+            if (System.String.IsNullOrEmpty(typestring)) { throw new System.ArgumentNullException(nameof(typestring)); }
+            System.Type type = null;
+            try {
+                type = System.Type.GetType(typestring, true, true);
+            } catch (System.TypeLoadException tle) {
+                try {
+                    type = reference.GetFullyResolvedType(typestring);
+                } catch {
+                    throw new System.TypeLoadException($"The given type with name \'{typestring}\' cannot be identified , either as a fully qualified type string or as a type alias." , tle);
+                }
+            }
+            return type;
         }
 
         /// <summary>
@@ -166,9 +189,10 @@ namespace DotNetResourcesExtensions
         /// <param name="reference">The file reference to use.</param>
         /// <returns>The opened read-only file stream.</returns>
         /// <exception cref="System.IO.FileNotFoundException">The file name specified in this reference was not found.</exception>
-        public static System.IO.FileStream OpenStreamToFile(this IFileReference reference) {
+        public static System.IO.FileStream OpenStreamToFile(this IFileReference reference)
+        {
             System.IO.FileInfo info = GetFileNameInfo(reference);
-            if (info.Exists == false) { throw new System.IO.FileNotFoundException(System.String.Format(Properties.Resources.DNTRESEXT_FILEREFEXT_OPENFILE_FILENOTFOUND , info.Name) , reference.FileName); }
+            if (info.Exists == false) { throw new System.IO.FileNotFoundException(System.String.Format(Properties.Resources.DNTRESEXT_FILEREFEXT_OPENFILE_FILENOTFOUND, info.Name), reference.FileName); }
             return info.OpenRead();
         }
 
@@ -195,16 +219,17 @@ namespace DotNetResourcesExtensions
         /// <returns>The equivalent instance that can represent the <paramref name="encoding"/> parameter.</returns>
         /// <exception cref="System.ArgumentOutOfRangeException">The <paramref name="encoding"/> parameter was out of the range of the currently defined constants.</exception>
         public static System.Text.Encoding AsEncoding(this FileReferenceEncoding encoding)
-          => encoding switch {
-                FileReferenceEncoding.Undefined => new BinaryEncoding(),
-                FileReferenceEncoding.Binary => new BinaryEncoding(),
-                FileReferenceEncoding.UTF8 => System.Text.Encoding.UTF8,
-                FileReferenceEncoding.UTF16LE => new System.Text.UnicodeEncoding(false, false),
-                FileReferenceEncoding.UTF16BE => new System.Text.UnicodeEncoding(true, false),
-                FileReferenceEncoding.UTF32LE => new System.Text.UTF32Encoding(false, false),
-                FileReferenceEncoding.UTF32BE => new System.Text.UTF32Encoding(true, false),
-                _ => throw new System.ArgumentOutOfRangeException(nameof(encoding) , Properties.Resources.DNTRESEXT_FILEREFENC_OOR)
-        };
+          => encoding switch
+          {
+              FileReferenceEncoding.Undefined => new BinaryEncoding(),
+              FileReferenceEncoding.Binary => new BinaryEncoding(),
+              FileReferenceEncoding.UTF8 => System.Text.Encoding.UTF8,
+              FileReferenceEncoding.UTF16LE => new System.Text.UnicodeEncoding(false, false),
+              FileReferenceEncoding.UTF16BE => new System.Text.UnicodeEncoding(true, false),
+              FileReferenceEncoding.UTF32LE => new System.Text.UTF32Encoding(false, false),
+              FileReferenceEncoding.UTF32BE => new System.Text.UTF32Encoding(true, false),
+              _ => throw new System.ArgumentOutOfRangeException(nameof(encoding), Properties.Resources.DNTRESEXT_FILEREFENC_OOR)
+          };
 
         /// <summary>
         /// If the <see cref="IFileReference.FileName"/> property contains a valid HTTP URI , it returns <see langword="true"/>.
@@ -223,9 +248,7 @@ namespace DotNetResourcesExtensions
         {
             System.String result = System.String.Empty;
             try {
-                if (FileNameIsHttpUri(reference)) { 
-                    result = reference.FileName;
-                } else { result = $"\"{AsFullPath(reference)}\""; }
+                if (FileNameIsHttpUri(reference)) { result = reference.FileName; } else { result = $"\"{reference.FileName}\""; }
                 result += $";{reference.SavingType.AssemblyQualifiedName};{(reference.Encoding == FileReferenceEncoding.Undefined ? FileReferenceEncoding.Binary : reference.Encoding)}";
             } catch (System.Exception e) {
                 throw new System.AggregateException(Properties.Resources.DNTRESEXT_FILEREFEXT_SERSTRING_FAILED, e);
@@ -255,7 +278,7 @@ namespace DotNetResourcesExtensions
                 case System.Text.UTF32Encoding en:
                     if (en.CodePage == 12001) { return FileReferenceEncoding.UTF32BE; } else { return FileReferenceEncoding.UTF32LE; }
                 default:
-                    throw new System.ArgumentException(System.String.Format(Properties.Resources.DNTRESEXT_FILEREFENC_INVALIDENC , encoding.EncodingName));
+                    throw new System.ArgumentException(System.String.Format(Properties.Resources.DNTRESEXT_FILEREFENC_INVALIDENC, encoding.EncodingName));
             }
         }
 
@@ -264,14 +287,14 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="reference">The file reference to clone.</param>
         /// <returns>The cloned file reference.</returns>
-        public static IFileReference Clone(this IFileReference reference) => TypedFileReference.Clone(reference);
+        public static IFileReference Clone(this IFileReference reference) => InternalFileReference.Clone(reference);
 
         /// <summary>
         /// Gets a value whether the current file reference is a cloned reference.
         /// </summary>
         /// <param name="reference">The file reference to test.</param>
         /// <returns><see langword="true"/> if this file reference is a cloned instance; otherwise , <see langword="false"/>.</returns>
-        public static System.Boolean IsCloned(this IFileReference reference) => reference is TypedFileReference dt && dt.IsCloned;
+        public static System.Boolean IsCloned(this IFileReference reference) => reference is InternalFileReference dt && dt.IsCloned;
 
 #if WINDOWS10_0_19041_0_OR_GREATER || NET472_OR_GREATER
         /// <summary>
@@ -279,7 +302,8 @@ namespace DotNetResourcesExtensions
         /// </summary>
         /// <param name="reference">The ResX file reference to reinterpret.</param>
         /// <returns>An equivalent <see cref="IFileReference"/> instance.</returns>
-        public static IFileReference AsFileReference(this System.Resources.ResXFileRef reference) => TypedFileReference.FromResXFileReference(reference);
+        public static IFileReference AsFileReference(this System.Resources.ResXFileRef reference) => InternalFileReference.FromResXFileReference(reference);
 #endif
     }
+
 }

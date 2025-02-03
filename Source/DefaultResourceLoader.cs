@@ -116,6 +116,7 @@ namespace DotNetResourcesExtensions
             read?.Close();
             read?.Dispose();
             read = null;
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>

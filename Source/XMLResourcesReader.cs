@@ -1,11 +1,11 @@
 ﻿
 using System;
 using System.Linq;
+using System.Collections;
 
 namespace DotNetResourcesExtensions
 {
     using Internal;
-    using System.Collections;
     using Internal.CustomFormatter;
 
     /// <summary>
@@ -21,32 +21,6 @@ namespace DotNetResourcesExtensions
         private System.Int64 elementcount;
         private System.Int64 currentindex;
         private System.Boolean readresource;
-
-        private sealed class XMLTypedFileReference : IFileReference
-        {
-            private readonly System.String name;
-            private readonly System.Type type;
-            private readonly FileReferenceEncoding encoding;
-
-            public XMLTypedFileReference(string name, Type type, FileReferenceEncoding encoding)
-            {
-                this.name = name;
-                this.type = type;
-                this.encoding = encoding;
-            }
-
-            public static XMLTypedFileReference ParseFromSerializedString(System.String dat)
-            {
-                System.String[] strings = dat.Split(';');
-                return new(ParserHelpers.RemoveQuotes(strings[0]),
-                    System.Type.GetType(strings[1], true, true),
-                    ParserHelpers.ParseEnumerationConstant<FileReferenceEncoding>(strings[2]));
-            }
-
-            public string FileName => name;
-            public FileReferenceEncoding Encoding => encoding;
-            public System.Type SavingType => type;
-        }
 
         private XMLResourcesEnumerator() { readresource = false; current = default; resources = null; elementcount = 0; currentindex = -1; }
 
@@ -102,6 +76,9 @@ namespace DotNetResourcesExtensions
                     result = GetV1Resource();
                     break;
                 case 2:
+                case 3: 
+                    // Nothing special changed in V3 , but only adds the file reference aliases.
+                    // We can add easily such support from the V2 method instead.
                     result = GetV2Resource();
                     break;
                 // We do not need the default case anymore
@@ -162,7 +139,7 @@ namespace DotNetResourcesExtensions
                     }
                     break;
                 case XMLRESResourceType.FileReference:
-                    XMLTypedFileReference tfr = XMLTypedFileReference.ParseFromSerializedString(GetChildElement("Value").Value);
+                    var tfr = InternalFileReference.ParseFromSerializedString(GetChildElement("Value").Value , reader.fraliasresolver);
                     System.IO.FileStream FS = null;
                     try {
                         FS = tfr.OpenStreamToFile();
@@ -255,6 +232,7 @@ namespace DotNetResourcesExtensions
         internal System.UInt16 supportedheaderversion , versionread;
         internal ExtensibleFormatter exf;
         internal System.Xml.Linq.XElement baseresnode;
+        internal IFileReferenceTypeAliasResolver fraliasresolver;
         private System.Xml.Linq.XDocument xdoc;
         
         private XMLResourcesReader() 
@@ -265,6 +243,7 @@ namespace DotNetResourcesExtensions
             isstreamowner = false; 
             mgmt = StreamMixedClassManagement.None; 
             supportedformatsmask = XMLRESResourceType.String;
+            fraliasresolver = new BasicFileReferenceTypeAliasResolver();
             versionread = supportedheaderversion = 0;
         }
 
@@ -307,32 +286,36 @@ namespace DotNetResourcesExtensions
                 {
                     foreach (System.Xml.Linq.XNode node in d.Nodes())
                     {
-                        if (node.GetType() == typeof(System.Xml.Linq.XElement))
+                        System.Xml.Linq.XElement el = node as System.Xml.Linq.XElement;
+                        if (el is null) { continue; }
+                        switch (el.Name.LocalName)
                         {
-                            System.Xml.Linq.XElement el = (System.Xml.Linq.XElement)node;
-                            switch (el.Name.LocalName)
-                            {
-                                case "Version":
-                                    if ((versionread = ((System.UInt32)el).ToUInt16()) > XMLResourcesConstants.Version)
-                                    { throw new XMLFormatException(XMLResourcesConstants.DefaultExceptionMsg , 
-                                        System.String.Format(Properties.Resources.DNTRESEXT_XMLFMT_VER_MISMATCH , el.Value) 
-                                        , ParserErrorType.Header); }
-                                    break;
-                                case "Magic":
-                                    if (el.Value != XMLResourcesConstants.Magic)
-                                    {
-                                        throw new XMLFormatException(XMLResourcesConstants.DefaultExceptionMsg,
-                                        Properties.Resources.DNTRESEXT_XMLFMT_INVALID_MAGIC, ParserErrorType.Header);
-                                    }
-                                    break;
-                                case "SupportedFormatsMask":
-                                    supportedformatsmask = (XMLRESResourceType)(System.Int32)el;
-                                    break;
-                                case "CurrentHeaderVersion":
-                                    // Although that this field is still read , it does not effectively be used in version >= 2.
-                                    supportedheaderversion = ((System.UInt32)el).ToUInt16();
-                                    break;
-                            }
+                            case "Version":
+                                if ((versionread = ((System.UInt32)el).ToUInt16()) > XMLResourcesConstants.Version)
+                                {
+                                    throw new XMLFormatException(XMLResourcesConstants.DefaultExceptionMsg,
+                                    System.String.Format(Properties.Resources.DNTRESEXT_XMLFMT_VER_MISMATCH, el.Value)
+                                    , ParserErrorType.Header);
+                                }
+                                break;
+                            case "Magic":
+                                if (el.Value != XMLResourcesConstants.Magic)
+                                {
+                                    throw new XMLFormatException(XMLResourcesConstants.DefaultExceptionMsg,
+                                    Properties.Resources.DNTRESEXT_XMLFMT_INVALID_MAGIC, ParserErrorType.Header);
+                                }
+                                break;
+                            case "SupportedFormatsMask":
+                                supportedformatsmask = (XMLRESResourceType)(System.Int32)el;
+                                break;
+                            case "CurrentHeaderVersion":
+                                // Although that this field is still read , it does not effectively be used in version >= 2.
+                                supportedheaderversion = ((System.UInt32)el).ToUInt16();
+                                break;
+                            case "FileReferenceTypeAliases":
+                                if (versionread < 3) { break; }
+                                GetAliases(el);
+                                break;
                         }
                     }
                     baseresnode = d.Parent.Element(System.Xml.Linq.XName.Get(XMLResourcesConstants.DataObjectName));
@@ -343,6 +326,26 @@ namespace DotNetResourcesExtensions
             if (found == false) {
                 throw new XMLFormatException(XMLResourcesConstants.DefaultExceptionMsg,
                 Properties.Resources.DNTRESEXT_XMLFMT_NO_CXML_HEADER_FOUND, ParserErrorType.Header);
+            }
+        }
+
+        private void GetAliases(System.Xml.Linq.XElement baseelement)
+        {
+            // In XML will be defined as follows:
+            // <FileReferenceTypeAliases>
+            //      <Alias>
+            //          <Name>SystemFunction</Name>
+            //          <QualifiedType>System.Func`1, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e</QualifiedType>
+            //      </Alias>
+            // </FileReferenceTypeAliases>
+            System.String aliasname;
+            System.Type qualifiedtype;
+            foreach (var el in baseelement.Elements()) 
+            {
+                if (el.Name != "Alias") { continue; }
+                aliasname = el.Element("Name").Value;
+                qualifiedtype = System.Type.GetType(el.Element("QualifiedType").Value , true , true);
+                fraliasresolver.RegisterAlias(aliasname, qualifiedtype);
             }
         }
 

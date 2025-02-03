@@ -33,87 +33,17 @@ namespace DotNetResourcesExtensions
     }
 
     /// <summary>
-    /// Specifies that a resource was not found because the requested culture for the resource
-    /// is not available (reader not found error).
+    /// This class type is thrown when the user invalidly attempts to generate localized resources without 
+    /// prespecifying their language written into.
     /// </summary>
-    public sealed class LocalizedReaderNotFoundException : ResourceNotFoundException
+    public sealed class LocalizationUndefinedException : DotNetResourcesException
     {
-        private readonly string resname;
-        private readonly CultureInfo info;
-
         /// <summary>
-        /// Creates a new instance of the <see cref="LocalizedReaderNotFoundException"/> class with the causing resource
-        /// name and culture.
+        /// Creates a default instance of the <see cref="LocalizationUndefinedException"/> class.
         /// </summary>
-        /// <param name="ResName">The resource name that causes this exception.</param>
-        /// <param name="info">The resource culture that causes this exception.</param>
-        public LocalizedReaderNotFoundException(System.String ResName, CultureInfo info) : base(ResName)
-        {
-            this.info = info;
-            resname = ResName;
-        }
-
-        /// <inheritdoc />
-        public override string Message => $"The resource \'{resname}\' was not found because a localized reader with culture \'{info}\' was not found.";
+        public LocalizationUndefinedException() : base("A localization was not registered before generating the final resource file.") { }
     }
 
-    /// <summary>
-    /// Exception class that is thrown when a localized reader has an invalid layout , as
-    /// such not having some expected resources , or the resources that contains are invalid.
-    /// </summary>
-    public sealed class InvalidLocalizedReaderLayoutException : DotNetResourcesException
-    {
-        private readonly string readername;
 
-        /// <summary>
-        /// Initializes a new instance of the class that had an invalid layout.
-        /// </summary>
-        /// <param name="readername">The reader type name that was invalid.</param>
-        public InvalidLocalizedReaderLayoutException(string readername)
-        {
-            this.readername = readername;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the class that had an invalid layout.
-        /// </summary>
-        /// <param name="readertype">The reader type that was invalid.</param>
-        public InvalidLocalizedReaderLayoutException(System.Type readertype)
-        {
-            readername = readertype is null ? "<Error>" : readertype.FullName;
-        }
-
-        /// <summary>
-        /// Gets the reader name that was invalid.
-        /// </summary>
-        public System.String Name => readername;
-
-        /// <inheritdoc />
-        public sealed override string Message => $"The reader \'{readername}\' had an invalid layout and cannot be used as any localized reader.";
-    }
-
-    /// <summary>
-    /// Exception class that is thrown when a localization index reader has an invalid layout.
-    /// </summary>
-    public sealed class InvalidLocalizationIndexReaderLayout : DotNetResourcesException
-    {
-        private readonly System.Type rdtype;
-        private readonly System.String reason;
-
-        /// <summary>
-        /// Creates a new instance of <see cref="InvalidLocalizationIndexReaderLayout"/> class with the specified 
-        /// reader type that causes the exception and the parser message that is the root cause of this exception.
-        /// </summary>
-        /// <param name="rdtype">The reader type.</param>
-        /// <param name="message">The reason that the reader has an invalid layout.</param>
-        public InvalidLocalizationIndexReaderLayout(System.Type rdtype , System.String message)
-        {
-            this.rdtype = rdtype;
-            reason = message;
-        }
-
-        /// <inheritdoc />
-        public override string Message => $"The localized reader {rdtype.FullName} failed to comply with the localization index file rules because {reason}.";
-    }
 
 }

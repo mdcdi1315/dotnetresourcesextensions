@@ -240,12 +240,13 @@ namespace DotNetResourcesExtensions
         /// <param name="ldr">The resource loader instance.</param>
         /// <param name="Name">The formatted string resource</param>
         /// <param name="obj1">The format object to replace before the format string is returned.</param>
+		/// <param name="obj2">The second format object to replace before the format string is returned.</param>
         /// <returns>A formatted string whose the object <paramref name="obj1"/> has been used in the format arguments.</returns>
         /// <exception cref="ResourceNotFoundException">The specified resource name was not found.</exception>
         /// <exception cref="ResourceTypeMismatchException">The resource was not a <see cref="System.String"/>.</exception>
         /// <exception cref="FormatException">The string has not the proper format.</exception>
-        /// <exception cref="ArgumentNullException"><paramref name="obj1"/> was null.</exception>
-        public static System.String GetFormattedStringResource(this IResourceLoader ldr, System.String Name, System.Object obj1)
-            => System.String.Format(ldr.GetStringResource(Name), obj1);
+        /// <exception cref="ArgumentNullException"><paramref name="obj1"/> , and/or <paramref name="obj2"/> were null.</exception>
+        public static System.String GetFormattedStringResource(this IResourceLoader ldr, System.String Name, System.Object obj1 , System.Object obj2)
+            => System.String.Format(ldr.GetStringResource(Name), obj1 , obj2);
     }
 }

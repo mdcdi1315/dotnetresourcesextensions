@@ -3,7 +3,7 @@
 namespace DotNetResourcesExtensions.Localization
 {
     /// <summary>
-    /// This is a resource entry implementation that has been already localized.
+    /// Defines resource entry implementations that contain a resource that has been already localized.
     /// </summary>
     public interface ILocalizedResourceEntry : IResourceEntry
     {

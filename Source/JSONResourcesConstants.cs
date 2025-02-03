@@ -6,7 +6,7 @@ namespace DotNetResourcesExtensions.Internal
 
     internal static class JSONRESOURCESCONSTANTS
     {
-        public const System.UInt16 Version = 1;
+        public const System.UInt16 Version = 2;
         public const System.UInt16 HeaderVersion = 3 , UsedHeaderVersion = 3;
         public const System.String Magic = "mdcdi1315.JRT.RESOURCE.NET";
         public const System.String JSONHeader = "MDCDI1315-JSON-RESOURCE-TABLE";

@@ -1,4 +1,4 @@
-# The `DotNetResourcesExtensions` Project <img src="./Global/ProjectImage.png" />
+# The <strong><code>DotNetResourcesExtensions</code></strong> Project <img src="./Global/ProjectImage.png" />
 
 -> What is it?
 
@@ -11,7 +11,8 @@ That is it.
 This project aims to find new alternatives and ways of reading , getting , writing and loading .NET 
 resources on a managed application.
 
-The result of this are the `IResourceLoader` and `IResourceTransferer` interfaces , and their accompanying classes.
+The result of this are many interface abstractions , others inspired by how .NET ResX classes create resources , 
+and others having a higher level of manipulation , such as a resource loader.
 
 But it does not stop here. It defines also diverse classes for reading and writing resources:
 

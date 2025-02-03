@@ -34,32 +34,6 @@ namespace DotNetResourcesExtensions
             public override string ToString() => $"\'{_name}\': {_value}";
         }
 
-        private sealed class TypedFileRef : IFileReference
-        {
-            private readonly System.String name;
-            private readonly System.Type type;
-            private readonly FileReferenceEncoding encoding;
-
-            public TypedFileRef(string name, Type type, FileReferenceEncoding encoding)
-            {
-                this.name = name;
-                this.type = type;
-                this.encoding = encoding;
-            }
-
-            public static TypedFileRef ParseFromSerializedString(System.String dat)
-            {
-                System.String[] strings = dat.Split(';');
-                return new(ParserHelpers.RemoveQuotes(strings[0]),
-                    System.Type.GetType(strings[1] , true , true),
-                    ParserHelpers.ParseEnumerationConstant<FileReferenceEncoding>(strings[2]));
-            }
-
-            public string FileName => name;
-            public FileReferenceEncoding Encoding => encoding;
-            public System.Type SavingType => type;
-        }
-
         private HumanReadableFormatReader reader;
         private TypedResEntry entry;
         
@@ -123,7 +97,7 @@ namespace DotNetResourcesExtensions
                             break;
                         case "filereference":
                             // We have the file reference string , let's parse it.
-                            TypedFileRef fr = TypedFileRef.ParseFromSerializedString(ReadStringValue(props));
+                            var fr = InternalFileReference.ParseFromSerializedString(ReadStringValue(props));
                             if (fr.FileNameIsHttpUri()) {
                                 throw new HumanReadableFormatException(Properties.Resources.DNTRESEXT_HRFMT_FILEREF_DOWNLOAD_UNSUPPORTED, ParserErrorType.Deserialization);
                             }

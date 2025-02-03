@@ -21,8 +21,7 @@ namespace DotNetResourcesExtensions
         private JSONResourceEntry cachedresource;
         private System.Boolean resourceread;
 
-        // In the future it will support the V2 IResourceEntryWithComment , but we can now include that support safely in our implementation of course.
-        private sealed class JSONResourceEntry : IResourceEntry
+        private sealed class JSONResourceEntry : IResourceEntryWithComment
         {
             private System.String name , cmt;
             private System.Object value;
@@ -180,7 +179,14 @@ namespace DotNetResourcesExtensions
                         FS = new System.IO.FileStream(GetFullPath(fileref[0].GetString()) , System.IO.FileMode.Open);
                         System.Byte[] temp = ParserHelpers.ReadBuffered(FS, FS.Length);
                         FS.Close();
-                        System.Type underlying = System.Type.GetType(fileref[1].GetString(), true, false);
+                        System.Type underlying;
+                        try {
+                            underlying = System.Type.GetType(fileref[1].GetString(), true, false);
+                        } catch (System.TypeLoadException tle) {
+                            try {
+                                underlying = reader.fraliasresolver.ResolveAlias(fileref[1].GetString());
+                            } catch (System.ArgumentException) { throw tle; }
+                        }
                         result.Value = underlying.FullName switch
                         {
                             // This applies for strings.
@@ -358,6 +364,7 @@ namespace DotNetResourcesExtensions
         internal ExtensibleFormatter exf;
         internal System.Text.Json.JsonElement JE;
         internal JSONRESResourceType CurrentActiveMask;
+        internal IFileReferenceTypeAliasResolver fraliasresolver;
         internal System.UInt16 CurrentHeaderVersion;
 
         private JSONResourcesReader()
@@ -365,6 +372,7 @@ namespace DotNetResourcesExtensions
             exf = new();
             CurrentActiveMask = 0;
             CurrentHeaderVersion = 0;
+            fraliasresolver = new BasicFileReferenceTypeAliasResolver();
             JDT = null;
         }
 
@@ -398,10 +406,10 @@ namespace DotNetResourcesExtensions
             try
             {
                 var header = JE.GetProperty(JSONRESOURCESCONSTANTS.JSONHeader);
-                System.UInt16 placeholder;
-                if ((placeholder = header.GetProperty("Version").GetUInt16()) < JSONRESOURCESCONSTANTS.Version)
+                System.UInt16 version;
+                if ((version = header.GetProperty("Version").GetUInt16()) < JSONRESOURCESCONSTANTS.Version)
                 {
-                    g = new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_VERMISMATCH, ParserErrorType.Header);
+                    g = new JSONFormatException(System.String.Format(Properties.Resources.DNTRESEXT_JSONFMT_VERMISMATCH , version), ParserErrorType.Header);
                     goto g_639;
                 }
                 CurrentActiveMask = (JSONRESResourceType)header.GetProperty("SupportedFormatsMask").GetUInt16();
@@ -411,11 +419,26 @@ namespace DotNetResourcesExtensions
                     goto g_639;
                 }
                 CurrentHeaderVersion = header.GetProperty("CurrentHeaderVersion").GetUInt16();
-            }
-            catch (KeyNotFoundException DD1) { g = DD1; goto g_639; }
+                if (version == 2 && header.TryGetProperty("FileReferenceTypeAliases" , out var aliases))
+                {
+                    foreach (var alias in aliases.EnumerateArray())
+                    {
+                        // The object array format is as in the following example:
+                        // "FileReferenceTypeAliases": [
+                        //      {
+                        //          "alias": "SystemFunction",
+                        //          "type": "System.Func`1, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e"
+                        //      }
+                        //      // We may have more aliases here too..
+                        // ]
+                        fraliasresolver.RegisterAlias(alias.GetProperty("alias").GetString(),
+                            System.Type.GetType(alias.GetProperty("type").GetString() , true , true));
+                    }
+                }
+            } catch (KeyNotFoundException DD1) { g = DD1; goto g_639; }
             return;
         g_639:
-            if (g != null) { throw new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_MSG_GENERIC, g.Message , ParserErrorType.Header); }
+            if (g is not null) { throw new JSONFormatException(Properties.Resources.DNTRESEXT_JSONFMT_MSG_GENERIC, g.Message , ParserErrorType.Header); }
         }
 
         /// <inheritdoc />

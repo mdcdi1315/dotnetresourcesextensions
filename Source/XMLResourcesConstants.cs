@@ -3,7 +3,7 @@ namespace DotNetResourcesExtensions.Internal
 {
     internal static class XMLResourcesConstants
     {
-        public const System.UInt16 Version = 2;
+        public const System.UInt16 Version = 3;
         /// <summary>
         /// Note: Header Version for custom XML is deprecated.
         /// Just keep this constant for V1 compat

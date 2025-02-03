@@ -67,32 +67,6 @@ namespace DotNetResourcesExtensions
         private System.Int32 idx, idx2;
         private System.Int32 count;
 
-        private sealed class TypedFileReference : IFileReference
-        {
-            private readonly System.String name;
-            private readonly System.Type type;
-            private readonly FileReferenceEncoding encoding;
-
-            public TypedFileReference(string name, Type type, FileReferenceEncoding encoding)
-            {
-                this.name = name;
-                this.type = type;
-                this.encoding = encoding;
-            }
-
-            public static TypedFileReference ParseFromSerializedString(System.String dat)
-            {
-                System.String[] strings = dat.Split(';');
-                return new(ParserHelpers.RemoveQuotes(strings[0]),
-                    System.Type.GetType(strings[1], true, true),
-                    ParserHelpers.ParseEnumerationConstant<FileReferenceEncoding>(strings[2]));
-            }
-
-            public string FileName => name;
-            public FileReferenceEncoding Encoding => encoding;
-            public System.Type SavingType => type;
-        }
-
         internal MsIniResourcesEnumerator(System.String[,] entitydata , Internal.CustomFormatter.ICustomFormatter inst)
         {
             fmt = inst;
@@ -154,7 +128,7 @@ namespace DotNetResourcesExtensions
                 } else if (typestr == MsIniConstants.SpecialIFileReferenceTypeStr && ent.Length != -3) {
                     // Oh. we have bumped into an encoded IFileReference.
                     // Decode the reference , then.
-                    TypedFileReference tfr = TypedFileReference.ParseFromSerializedString(MsIniStringsEncoder.Decode(entdata[idx + 3, 1]));
+                    var tfr = InternalFileReference.ParseFromSerializedString(MsIniStringsEncoder.Decode(entdata[idx + 3, 1]));
                     System.IO.FileStream FS = null;
                     try {
                         FS = tfr.OpenStreamToFile();
