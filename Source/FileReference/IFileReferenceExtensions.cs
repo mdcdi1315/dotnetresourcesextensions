@@ -83,6 +83,7 @@ namespace DotNetResourcesExtensions
             return System.IO.Path.GetFullPath(ret);
         }
 
+        [System.Flags]
         private enum DecodeStateFlags : System.Byte
         {
             None = 0x00,

@@ -240,7 +240,10 @@ namespace DotNetResourcesExtensions.BuildTasks
                         rdr = new XMLResourcesReader(streamshared);
                         break;
                     case ".resi":
+                        this.ThrowMessage(119, "MS-INI");
+#pragma warning disable 0618 // MsIniResourcesReader is obsolete
                         rdr = new MsIniResourcesReader(streamshared);
+#pragma warning restore 0618
                         break;
                     case ".txt":
                         rdr = new KVPResourcesReader(streamshared);

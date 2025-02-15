@@ -43,102 +43,126 @@ namespace DotNetResourcesExtensions
             entry = null;
         }
 
+        private System.String ReadStringValue(Dictionary<System.String, System.Object> props)
+        {
+            System.Int32 length = props.TryGetValue("length", out object? value) ? HumanReadableFormatConstants.ReadInt32OrFail(value) : 0;
+            System.String result = System.String.Empty, str;
+            reader.fr.SkipInitialTabsOrSpaces();
+            if (length > 0)
+            {
+                result = reader.fr.ReadExactlyAndConvertToString(length);
+                reader.fr.Position++; // Required so as to avoid the not-read \n and to help ReadLine read the next line successfully.
+                if (reader.fr.ReadLine() != "end value")
+                {
+                    throw new FormatException(Properties.Resources.DNTRESEXT_HRFMT_INVALID_RESOURCEVAL_LAYOUT);
+                }
+            }
+            else
+            {
+                List<System.String> data = new();
+                while ((str = reader.fr.ReadLiteralLine()) is not null)
+                {
+                    if (str.EqualsWithoutLeadingWhiteSpace("end value")) { break; }
+                    data.Add(str);
+                }
+                for (System.Int32 I = 0; I < (data.Count - 1); I++) { result += $"{data[I]}\n"; }
+                result += data[data.Count - 1];
+                data.Clear();
+                data = null;
+            }
+            return result;
+        }
+
+        private System.Byte[] ReadDataArray(Dictionary<System.String, System.Object> properties)
+        {
+            System.Int32 size = 0, alignment = 0, chunks = 0;
+            try {
+                size = HumanReadableFormatConstants.Property.GetProperty(properties, "size").Int32Value;
+                alignment = HumanReadableFormatConstants.Property.GetProperty(properties, "alignment").Int32Value;
+                chunks = HumanReadableFormatConstants.Property.GetProperty(properties, "chunks").Int32Value;
+            } catch (System.ArgumentException) {
+                return null;
+            }
+            return reader.fr.ReadBase64ChunksValue(size, alignment, chunks);
+        }
+
+        private TypedResEntry ReadUnsafe(Dictionary<System.String, System.Object> props)
+        {
+            TypedResEntry entry = null;
+            System.Byte[] bt;
+            switch (props["type"])
+            {
+                case "string":
+                    entry = new(props["name"].ToString(), ReadStringValue(props));
+                    break;
+                case "filereference":
+                    // We have the file reference string , let's parse it.
+                    var fr = InternalFileReference.ParseFromSerializedString(ReadStringValue(props));
+                    if (fr.FileNameIsHttpUri())
+                    {
+                        throw new HumanReadableFormatException(Properties.Resources.DNTRESEXT_HRFMT_FILEREF_DOWNLOAD_UNSUPPORTED, ParserErrorType.Deserialization);
+                    }
+                    // OK. Now read the file and get the object.
+                    System.IO.FileStream FS = null;
+                    try {
+                        FS = fr.OpenStreamToFile();
+                        bt = new System.Byte[FS.Length];
+                        System.Int32 rb = FS.Read(bt, 0, bt.Length);
+                        switch (fr.SavingType.FullName)
+                        {
+                            case "System.String":
+                                entry = new(props["name"].ToString(), fr.Encoding.AsEncoding().GetString(bt, 0, rb));
+                                break;
+                            case "System.Byte[]":
+                                entry = new(props["name"].ToString(), bt);
+                                break;
+                            default:
+                                entry = new(props["name"].ToString(), reader.formatter.GetObjectFromBytes(bt, fr.SavingType));
+                                break;
+                        }
+                    } finally {
+                        FS?.Dispose();
+                        fr = null;
+                    }
+                    break;
+                case "bytearray":
+                    entry = new(props["name"].ToString(), ReadDataArray(props));
+                    break;
+                case "serobject":
+                    bt = ReadDataArray(props);
+                    entry = new(props["name"].ToString(), reader.formatter.GetObjectFromBytes(bt,
+                        System.Type.GetType(ParserHelpers.RemoveQuotes(props["dotnettype"].ToString()), true, false)));
+                    bt = null;
+                    break;
+            }
+            return entry;
+        }
+
         private TypedResEntry ReadNext()
         {
-            System.Byte[] ReadDataArray(Dictionary<System.String , System.Object> properties) {
-                System.Int32 size = 0, alignment = 0, chunks = 0;
-                try {
-                    size = HumanReadableFormatConstants.Property.GetProperty(properties, "size").Int32Value;
-                    alignment = HumanReadableFormatConstants.Property.GetProperty(properties, "alignment").Int32Value;
-                    chunks = HumanReadableFormatConstants.Property.GetProperty(properties, "chunks").Int32Value;
-                } catch (System.ArgumentException) {
-                    return null;
-                }
-                return reader.fr.ReadBase64ChunksValue(size , alignment , chunks);
-            }
-            System.String ReadStringValue(Dictionary<System.String , System.Object> props) 
-            {
-                System.Int32 length = props.TryGetValue("length", out object? value) ? HumanReadableFormatConstants.ReadInt32OrFail(value) : 0;
-                System.String result = System.String.Empty , str;
-                reader.fr.SkipInitialTabsOrSpaces();
-                if (length > 0) {
-                    result = reader.fr.ReadExactlyAndConvertToString(length);
-                    reader.fr.Position++; // Required so as to avoid the not-read \n and to help ReadLine read the next line successfully.
-                    if (reader.fr.ReadLine() != "end value") {
-                        throw new FormatException(Properties.Resources.DNTRESEXT_HRFMT_INVALID_RESOURCEVAL_LAYOUT);
-                    }
-                } else {
-                    List<System.String> data = new();
-                    while ((str = reader.fr.ReadLiteralLine()) is not null)
-                    {
-                        if (str.EqualsWithoutLeadingWhiteSpace("end value")) { break; }
-                        data.Add(str);
-                    }
-                    for (System.Int32 I = 0; I < (data.Count-1); I++) { result += $"{data[I]}\n"; }
-                    result += data[data.Count-1];
-                    data.Clear();
-                    data = null;
-                }
-                return result;
-            }
             System.String str;
             System.Boolean closed = false;
             TypedResEntry entry = null;
-            System.Byte[] bt;
+            System.Exception captured = null;
             Dictionary<System.String, System.Object> props = new();
             while ((str = reader.fr.ReadLine()) is not null) {
                 if (str.Equals("begin resource")) { continue; }
                 if (str.Equals("end resource")) { closed = true; break; }
                 if (!str.Equals("begin value")) { HumanReadableFormatConstants.AddProperty(props, str); }
                 else {
-                    switch (props["type"]) {
-                        case "string":
-                            entry = new(props["name"].ToString(), ReadStringValue(props));
-                            break;
-                        case "filereference":
-                            // We have the file reference string , let's parse it.
-                            var fr = InternalFileReference.ParseFromSerializedString(ReadStringValue(props));
-                            if (fr.FileNameIsHttpUri()) {
-                                throw new HumanReadableFormatException(Properties.Resources.DNTRESEXT_HRFMT_FILEREF_DOWNLOAD_UNSUPPORTED, ParserErrorType.Deserialization);
-                            }
-                            // OK. Now read the file and get the object.
-                            System.IO.FileStream FS = null;
-                            try {
-                                FS = fr.OpenStreamToFile();
-                                bt = new System.Byte[FS.Length];
-                                System.Int32 rb = FS.Read(bt, 0, bt.Length);
-                                switch (fr.SavingType.FullName) {
-                                    case "System.String":
-                                        entry = new(props["name"].ToString(), fr.Encoding.AsEncoding().GetString(bt, 0, rb));
-                                        break;
-                                    case "System.Byte[]":
-                                        entry = new(props["name"].ToString(), bt);
-                                        break;
-                                    default:
-                                        entry = new(props["name"].ToString(), reader.formatter.GetObjectFromBytes(bt , fr.SavingType));
-                                        break;
-                                }
-                            } finally {
-                                FS?.Dispose();
-                                fr = null;
-                            }
-                            break;
-                        case "bytearray":
-                            entry = new(props["name"].ToString(), ReadDataArray(props));
-                            break;
-                        case "serobject":
-                            bt = ReadDataArray(props);
-                            entry = new(props["name"].ToString(), reader.formatter.GetObjectFromBytes(bt,
-                                System.Type.GetType(ParserHelpers.RemoveQuotes(props["dotnettype"].ToString()), true, false)));
-                            bt = null;
-                            break;
-                    }
+                    // If an exception was thrown here the resource read would terminate immediately.
+                    // Instead , when an exception is thrown , capture it , try to close the resource
+                    // and then throw it to the caller.
+                    try {
+                        entry = ReadUnsafe(props);
+                    } catch (System.Exception e) { captured = e; }
                     continue;
                 }
             }
             if (closed == false) { return null; }
             props.Clear();
             props = null;
+            if (captured is not null) { throw captured; }
             return entry;
         }
 
@@ -170,13 +194,13 @@ namespace DotNetResourcesExtensions
     /// <summary>
     /// The Human Readable format is a enough fast method for saving any resources to a way that is
     /// enough understandable by humans. <br />
-    /// The reader is adequately fast and can handle adequately fast ~200 KB of data per resource. <br />
+    /// The reader can handle adequately fast ~200 KB of data per resource. <br />
     /// This is the reader counterpart.
     /// </summary>
     public sealed class HumanReadableFormatReader : IDotNetResourcesExtensionsReader , Collections.IResourceEntryImplementable
     {
         private System.IO.Stream underlying;
-        internal System.IO.StringableStream fr;
+        internal StringableStream fr;
         private System.Boolean strmown;
         internal ExtensibleFormatter formatter;
         internal System.Int64 pos;

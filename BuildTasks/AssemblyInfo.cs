@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("© MDCDI1315. http://github.com/mdcdi1315/dotnetresourcesextensions")]
 [assembly: AssemblyProduct("Resource generation tasks for MSBuild")]
-[assembly: AssemblyCopyright("Copyright © mdcdi1315 2024")]
+[assembly: AssemblyCopyright("Copyright © mdcdi1315 2025")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

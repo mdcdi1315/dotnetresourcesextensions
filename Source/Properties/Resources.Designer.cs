@@ -412,6 +412,15 @@ namespace DotNetResourcesExtensions.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The stream was unseekable. The current implementation of DeserializingResourceReader class requires that all seeking functions are also implemented..
+        /// </summary>
+        internal static string DNTRESEXT_DNTRESFMT_STREAMUNSEEKABLE {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_DNTRESFMT_STREAMUNSEEKABLE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The FileReferenceEncoding enumeration does not support or honor the usage of &apos;{0}&apos; as a file encoding..
         /// </summary>
         internal static string DNTRESEXT_FILEREFENC_INVALIDENC {
@@ -660,6 +669,33 @@ namespace DotNetResourcesExtensions.Properties {
         internal static string DNTRESEXT_MSINIFMT_VER_MISMATCH {
             get {
                 return ResourceManager.GetString("DNTRESEXT_MSINIFMT_VER_MISMATCH", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The buffered mode requires more than 3 characters in order to operate effciently..
+        /// </summary>
+        internal static string DNTRESEXT_SSM_FINDOP_BUFCHARS_INV {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_SSM_FINDOP_BUFCHARS_INV", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The end of stream has been occured prematurely..
+        /// </summary>
+        internal static string DNTRESEXT_SSM_FINDOP_UEND {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_SSM_FINDOP_UEND", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stringable streams must be seekable..
+        /// </summary>
+        internal static string DNTRESEXT_SSM_UNDERLYING_UNSEEKABLE {
+            get {
+                return ResourceManager.GetString("DNTRESEXT_SSM_UNDERLYING_UNSEEKABLE", resourceCulture);
             }
         }
         

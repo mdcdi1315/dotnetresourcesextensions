@@ -12,6 +12,7 @@ namespace DotNetResourcesExtensions
     /// It uses valid (As most as possible) MS-INI syntax semantics , and writes out all the required information for later retrieving the resources. <br />
     /// It works very well and fast with small input , such as string or small object resources.
     /// </summary>
+    [System.Obsolete(Obsoletions.MsIniResourcesDeprecated, false)]
     public sealed class MsIniResourcesWriter : IDotNetResourcesExtensionsWriter
     {
         private System.IO.Stream stream;

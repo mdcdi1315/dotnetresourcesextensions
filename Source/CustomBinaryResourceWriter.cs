@@ -60,7 +60,7 @@ namespace DotNetResourcesExtensions
             blob.DataPositions = representations.ToArray();
             CBH.WriteHeader(0, blob);
             temporary.Position = 0;
-            ParserHelpers.BlockCopy(temporary, targetstream);
+            temporary.DirectCopyToStream(targetstream);
             generated = true;
         }
 

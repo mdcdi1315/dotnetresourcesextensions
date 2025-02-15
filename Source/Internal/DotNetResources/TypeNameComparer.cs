@@ -1,6 +1,5 @@
 using System;
 using System.Reflection;
-using System.Numerics.Hashing;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
@@ -11,7 +10,6 @@ internal sealed class TypeNameComparer : IEqualityComparer<string>
 	private static readonly char[] s_whiteSpaceChars = new char[4] { ' ', '\n', '\r', '\t' };
 
 	public static TypeNameComparer Instance { get; } = new TypeNameComparer();
-
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static System.ReadOnlySpan<char> ReadTypeName(System.ReadOnlySpan<char> assemblyQualifiedTypeName)
@@ -101,7 +99,17 @@ internal sealed class TypeNameComparer : IEqualityComparer<string>
 		return MemoryExtensions.SequenceEqual<byte>(MemoryExtensions.AsSpan<byte>(publicKeyToken), publicKeyToken2);
 	}
 
-	public unsafe int GetHashCode(string assemblyQualifiedTypeName)
+	// Obtained from System.Numerics.HashHelpers class.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static System.Int32 HashCombine(System.Int32 h1, System.Int32 h2)
+    {
+        // RyuJIT optimizes this to use the ROL instruction
+        // Related GitHub pull request: dotnet/coreclr#1830
+        System.UInt32 rol5 = ((System.UInt32)h1 << 5) | ((System.UInt32)h1 >> 27);
+        return ((System.Int32)rol5 + h1) ^ h2;
+    }
+
+    public unsafe int GetHashCode(string assemblyQualifiedTypeName)
 	{
 		System.ReadOnlySpan<char> assemblyQualifiedTypeName2 = MemoryExtensions.TrimStart(MemoryExtensions.AsSpan(assemblyQualifiedTypeName), s_whiteSpaceChars);
 		System.ReadOnlySpan<char> readOnlySpan = ReadTypeName(assemblyQualifiedTypeName2);
@@ -110,7 +118,7 @@ internal sealed class TypeNameComparer : IEqualityComparer<string>
 		{
 			int h = num;
 			char c = readOnlySpan[i];
-			num = HashHelpers.Combine(h, c.GetHashCode());
+			num = HashCombine(h, c.GetHashCode());
 		}
 		return num;
 	}

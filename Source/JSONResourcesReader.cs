@@ -177,7 +177,7 @@ namespace DotNetResourcesExtensions
                     System.IO.FileStream FS = null;
                     try {
                         FS = new System.IO.FileStream(GetFullPath(fileref[0].GetString()) , System.IO.FileMode.Open);
-                        System.Byte[] temp = ParserHelpers.ReadBuffered(FS, FS.Length);
+                        System.Byte[] temp = FS.ReadBytes(FS.Length);
                         FS.Close();
                         System.Type underlying;
                         try {

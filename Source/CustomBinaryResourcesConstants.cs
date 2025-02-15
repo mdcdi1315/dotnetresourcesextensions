@@ -70,13 +70,6 @@ namespace DotNetResourcesExtensions.Internal
 
         private void WriteValueStart() => rwstream.WriteByte(CustomBinaryResourcesConstants.ValueStart);
 
-        private void WriteNumericValue(System.Int64 val)
-        {
-            System.Byte[] f = val.GetBytes();
-            rwstream.Write(f , 0 , f.Length);
-            f = null;
-        }
-
         public System.Int64 WriteResource(BinResourceBlob blob , CustomFormatter.ICustomFormatter fmt)
         {
             if (rwstream.CanWrite == false) { throw new ArgumentException(Properties.Resources.DNTRESEXT_StreamUnwriteable); }
@@ -86,7 +79,7 @@ namespace DotNetResourcesExtensions.Internal
             WriteEndHeaderValue();
             WriteString(CustomBinaryResourcesConstants.HeaderVersion);
             WriteValueStart();
-            WriteNumericValue(CustomBinaryResourcesConstants.CurrentHeaderVersion);
+            rwstream.WriteInt64(CustomBinaryResourcesConstants.CurrentHeaderVersion);
             WriteEndHeaderValue();
             WriteString(CustomBinaryResourcesConstants.DotNetType);
             WriteValueStart();
@@ -106,7 +99,7 @@ namespace DotNetResourcesExtensions.Internal
             }
             WriteString(CustomBinaryResourcesConstants.ResourceType);
             WriteValueStart();
-            WriteNumericValue((System.Int64)bres);
+            rwstream.WriteInt64((System.Int64)bres);
             WriteEndHeaderValue();
             System.Byte[] data = null;
             switch (bres)
@@ -123,11 +116,11 @@ namespace DotNetResourcesExtensions.Internal
             }
             WriteString(CustomBinaryResourcesConstants.ResourceSize);
             WriteValueStart();
-            WriteNumericValue(data.LongLength);
+            rwstream.WriteInt64(data.LongLength);
             WriteEndHeaderValue();
             WriteString(CustomBinaryResourcesConstants.ResourceValue);
             WriteValueStart();
-            ParserHelpers.WriteBuffered(rwstream, data);
+            rwstream.WriteBytes(data);
             WriteEndHeaderValue();
             // Easy to compute here how many bytes were written.
             return rwstream.Position - sposition;
@@ -252,7 +245,7 @@ namespace DotNetResourcesExtensions.Internal
                 throw new CustomBinaryFormatException(Properties.Resources.DNTRESEXT_BINFMT_NO_VALUE_HEADER, ParserErrorType.Deserialization);
             }
             // Read it with classic buffered method.
-            System.Byte[] arb = ParserHelpers.ReadBuffered(rwstream, v);
+            System.Byte[] arb = rwstream.ReadBytes(v);
             // Ensure correct header value termination.
             if (EnsureHeaderEnd() == false) { throw new CustomBinaryFormatException(Properties.Resources.DNTRESEXT_BINFMT_CORRUPTED, ParserErrorType.Deserialization); }
             // switch through binary resource types
@@ -336,16 +329,9 @@ namespace DotNetResourcesExtensions.Internal
 
         private void WriteValueStart() => rwstream.WriteByte(CustomBinaryResourcesConstants.ValueStart);
 
-        private void WriteNumericValue(System.Int64 val)
-        {
-            System.Byte[] f = val.GetBytes();
-            rwstream.Write(f, 0, f.Length);
-            f = null;
-        }
-
         private System.Int64 ReadNextNumericValue()
         {
-            System.Byte[] d = new System.Byte[8];
+            System.Byte[] d = new System.Byte[sizeof(System.Int64)];
             rwstream.Read(d, 0, d.Length);
             if (EnsureHeaderEnd() == false) { throw new CustomBinaryFormatException(Properties.Resources.DNTRESEXT_BINFMT_RESHEADER_CORRUPTED, ParserErrorType.Deserialization); }
             return d.ToInt64(0);
@@ -386,27 +372,27 @@ namespace DotNetResourcesExtensions.Internal
             WriteEndHeaderValue();
             WriteString(CustomBinaryResourcesConstants.Version);
             WriteValueStart();
-            WriteNumericValue(blob.Version);
+            rwstream.WriteInt64(blob.Version);
             WriteEndHeaderValue();
             WriteString(CustomBinaryResourcesConstants.SupportedFormatsMask);
             WriteValueStart();
-            WriteNumericValue((System.Int64)blob.CurrentFormatsMask);
+            rwstream.WriteInt64((System.Int64)blob.CurrentFormatsMask);
             WriteEndHeaderValue();
             WriteString(CustomBinaryResourcesConstants.SupportedHeaderVersion);
             WriteValueStart();
-            WriteNumericValue(blob.SupportedHeaderVersion);
+            rwstream.WriteInt64(blob.SupportedHeaderVersion);
             WriteEndHeaderValue();
             WriteString(CustomBinaryResourcesConstants.DataAlignmentHeader);
             WriteValueStart();
-            WriteNumericValue(blob.DataPositionsAlignment);
+            rwstream.WriteInt64(blob.DataPositionsAlignment);
             WriteEndHeaderValue();
             WriteString(CustomBinaryResourcesConstants.DataPositionsCount);
             WriteValueStart();
-            WriteNumericValue(blob.DataPositions.LongLength);
+            rwstream.WriteInt64(blob.DataPositions.LongLength);
             WriteEndHeaderValue();
             WriteString(CustomBinaryResourcesConstants.NextDataPositions);
             WriteValueStart();
-            foreach (System.Int64 value in blob.DataPositions) { WriteNumericValue(value); }
+            foreach (System.Int64 value in blob.DataPositions) { rwstream.WriteInt64(value); }
             WriteEndHeaderValue();
             // DONE WRITING HEADER BLOB
             return rwstream.Position - position;
@@ -508,7 +494,7 @@ namespace DotNetResourcesExtensions.Internal
                 {
                     throw new CustomBinaryFormatException(Properties.Resources.DNTRESEXT_BINFMT_NO_DATAPOSITIONS_HEADER, ParserErrorType.Deserialization);
                 }
-                System.Byte[] temp = ParserHelpers.ReadBuffered(rwstream, ret.DataPositionsAlignment * v);
+                System.Byte[] temp = rwstream.ReadBytes(ret.DataPositionsAlignment * v);
                 System.Int64[] dps = new System.Int64[v]; // we know the exact resource count , just create the array directly.
                 for (System.Int32 I = 0; I < dps.Length; I++) // with this algorithm , set all data positions.
                 {

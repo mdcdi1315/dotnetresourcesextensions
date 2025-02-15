@@ -149,7 +149,7 @@ namespace DotNetResourcesExtensions.Internal.CustomFormatter.Converters
                 if (stream.CanRead == false) { throw new ArgumentException("The stream must be a readable stream." , nameof(stream)); }
                 if (stream.Length > MAXARRAYLENGTH) { throw new ArgumentException(
                     $"The stream length cannot be more than {MAXARRAYLENGTH} bytes ." , nameof(stream)); }
-                return ParserHelpers.ReadBuffered(stream, stream.Length);
+                return stream.ReadBytes(stream.Length);
             }
             return Method;
         }

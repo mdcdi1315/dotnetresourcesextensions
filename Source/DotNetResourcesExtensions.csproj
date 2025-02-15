@@ -10,7 +10,7 @@
 	  <PackageReference Include="System.Text.Json" Version="8.0.4" />
 	  <!-- Be noted that System.Drawing.Primitives is considered global although that is only useful for .NET Core only and .NET Standard targets. -->
 	  <PackageReference Include="System.Drawing.Primitives" Version="4.3.0" Condition="'$(TargetFramework)' == '$(NetCoreIdentifier)' OR '$(TargetFramework)' == 'netstandard2.0'" />
-	  <FrameworkReference Remove="Microsoft.Windows.SDK.NET.Ref" />
+	  <FrameworkReference Remove="Microsoft.Windows.SDK.NET.Ref.Windows" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework.Contains(`$(NetCoreIdentifier)`))' != 'true'">
@@ -62,14 +62,15 @@ Additionally , it defines new types for doing resource serializations never thou
 
   <ItemGroup>
 	<Compile Include="Properties\AssemblyInfo.cs" />
-	<Compile Include="$(MSBuildThisFileDirectory)\*.cs" />
-	<Compile Include="$(MSBuildThisFileDirectory)\Internal\*.cs" />
-	<Compile Include="$(MSBuildThisFileDirectory)\Collections\*.cs" />
-	<Compile Include="$(MSBuildThisFileDirectory)\Localization\*.cs" />
-	<Compile Include="$(MSBuildThisFileDirectory)\FileReference\*.cs" />
-	<Compile Include="$(MSBuildThisFileDirectory)\Internal\CustomResX\*.cs" />
+	<Compile Include="*.cs" />
+	<Compile Include="Internal\*.cs" />
+	<Compile Include="Collections\*.cs" />
+	<Compile Include="Localization\*.cs" />	
+	<Compile Include="FileReference\*.cs" />
+	<Compile Include="Internal\Formatter\*.cs" />
+	<Compile Include="Internal\CustomResX\*.cs" />
 	<!-- The System.Resources.Extensions code is built for all platforms and is hosted in a DotNetResourcesExtensions namespace. -->
-	<Compile Include="$(MSBuildThisFileDirectory)\Internal\DotNetResourcesrw\*.cs" />
+	<Compile Include="Internal\DotNetResources\*.cs" />
 	<None Include="Pkg-Readme.md" Pack="true" PackagePath="/" />
 	<None Include="$(MSBuildThisFileDirectory)/../BuildTasks/bin/Release/net472/DotNetResourcesExtensions.targets" Pack="true" PackagePath="/buildTransitive/" />
     <None Include="$(MSBuildThisFileDirectory)/../BuildTasks/bin/Release/net472/DotNetResourcesExtensions*.dll" Pack="true" PackagePath="/tools/net472/" />
@@ -82,6 +83,14 @@ Additionally , it defines new types for doing resource serializations never thou
 
 	<PropertyGroup Condition="'$(TargetFramework)' == '$(NetCoreWindowsIdentifier)'">
 		<UseWindowsForms>true</UseWindowsForms>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net472|AnyCPU'">
+	  <WarningLevel>5</WarningLevel>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net472|AnyCPU'">
+	  <WarningLevel>5</WarningLevel>
 	</PropertyGroup>
 
 	<ItemGroup>

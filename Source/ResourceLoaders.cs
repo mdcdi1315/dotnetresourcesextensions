@@ -251,6 +251,7 @@ namespace DotNetResourcesExtensions
     /// <summary>
     /// The <see cref="CustomMsIniResourcesLoader"/> loads resources written using the <see cref="MsIniResourcesWriter"/> class.
     /// </summary>
+    [System.Obsolete(Obsoletions.MsIniResourcesDeprecated, false)]
     public sealed class CustomMsIniResourcesLoader : OptimizedResourceLoader
     {
         /// <summary>

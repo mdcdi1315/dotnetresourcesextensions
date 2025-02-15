@@ -1,5 +1,7 @@
 ﻿
 using System;
+using System.IO;
+using System.Runtime.InteropServices;
 using DotNetResourcesExtensions.Internal.CustomFormatter;
 
 namespace DotNetResourcesExtensions.Internal
@@ -186,4 +188,37 @@ namespace DotNetResourcesExtensions.Internal
             return dec.ToString();
         }
     }
+
+    internal sealed class PinnedBufferMemoryStream : UnmanagedMemoryStream
+    {
+        private readonly byte[] _array;
+
+        private GCHandle _pinningHandle;
+
+        public unsafe PinnedBufferMemoryStream(System.Byte[] array)
+        {
+            _array = array;
+            _pinningHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
+            int num = array.Length;
+            fixed (byte* pointer = &MemoryMarshal.GetReference<System.Byte>(array))
+            {
+                Initialize(pointer, num, num, FileAccess.Read);
+            }
+        }
+
+        ~PinnedBufferMemoryStream()
+        {
+            Dispose(disposing: false);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (_pinningHandle.IsAllocated)
+            {
+                _pinningHandle.Free();
+            }
+            base.Dispose(disposing);
+        }
+    }
+
 }

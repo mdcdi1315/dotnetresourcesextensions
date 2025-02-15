@@ -14,7 +14,7 @@ using DotNetResourcesExtensions.Internal.CustomFormatter;
 namespace DotNetResourcesExtensions.Internal.DotNetResources;
 
 /// <summary>
-/// Provides APIs similar to <see cref="System.Resources.ResourceReader" /> that can read and deserialize resource data written by either <see cref="System.Resources.ResourceWriter" /> or <see cref="T:System.Resources.Extensions.PreserializedResourceWriter" />. <br />
+/// Provides an API similar to <see cref="System.Resources.ResourceReader" /> that can read and deserialize resource data written by either <see cref="System.Resources.ResourceWriter" /> or <see cref="T:System.Resources.Extensions.PreserializedResourceWriter" />. <br />
 /// MDCDI1315 NOTE: This class has been modified for the needs of <see cref="DotNetResourcesExtensions"/> project. See the docs for more information.
 /// </summary>
 public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsReader , IEnumerable
@@ -46,7 +46,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				{
 					throw new InvalidOperationException(DotNetResourcesExtensions.Properties.Resources.InvalidOperation_EnumNotStarted);
 				}
-				if (_reader._resCache == null)
+				if (_reader._resCache is null)
 				{
 					throw new InvalidOperationException(DotNetResourcesExtensions.Properties.Resources.ResourceReaderIsClosed);
 				}
@@ -70,7 +70,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				{
 					throw new InvalidOperationException(DotNetResourcesExtensions.Properties.Resources.InvalidOperation_EnumNotStarted);
 				}
-				if (_reader._resCache == null)
+				if (_reader._resCache is null)
 				{
 					throw new InvalidOperationException(DotNetResourcesExtensions.Properties.Resources.ResourceReaderIsClosed);
 				}
@@ -83,7 +83,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 						obj = value.Value;
 					}
 				}
-				if (obj == null)
+				if (obj is null)
 				{
 					obj = ((_dataPosition != -1) ? _reader.LoadObject(_dataPosition) : _reader.GetValueForNameIndex(_currentName));
 				}
@@ -103,7 +103,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				{
 					throw new InvalidOperationException(DotNetResourcesExtensions.Properties.Resources.InvalidOperation_EnumNotStarted);
 				}
-				if (_reader._resCache == null)
+				if (_reader._resCache is null)
 				{
 					throw new InvalidOperationException(DotNetResourcesExtensions.Properties.Resources.ResourceReaderIsClosed);
 				}
@@ -133,7 +133,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 
 		public void Reset()
 		{
-			if (_reader._resCache == null)
+			if (_reader._resCache is null)
 			{
 				throw new InvalidOperationException(DotNetResourcesExtensions.Properties.Resources.ResourceReaderIsClosed);
 			}
@@ -142,51 +142,13 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		}
 	}
 
-	internal sealed class UndoTruncatedTypeNameSerializationBinder : SerializationBinder
-	{
-		public override Type BindToType(string assemblyName, string typeName)
-		{
-			Type result = null;
-			if (typeName != null && assemblyName != null && !AreBracketsBalanced(typeName))
-			{
-				typeName = typeName + ", " + assemblyName;
-				result = Type.GetType(typeName, throwOnError: false, ignoreCase: false);
-			}
-			return result;
-		}
-
-		private static bool AreBracketsBalanced(string typeName)
-		{
-			int num = typeName.IndexOf('[');
-			if (num == -1)
-			{
-				return true;
-			}
-			int num2 = 1;
-			for (int i = num + 1; i < typeName.Length; i++)
-			{
-				if (typeName[i] == '[')
-				{
-					num2++;
-				}
-				else if (typeName[i] == ']')
-				{
-					num2--;
-					if (num2 < 0)
-					{
-						break;
-					}
-				}
-			}
-			return num2 == 0;
-		}
-	}
-
-	System.Boolean IStreamOwnerBase.IsStreamOwner { get; set; }
-
 	private const int DefaultFileStreamBufferSize = 4096;
 
-	private BinaryReader _store;
+	private System.Boolean strmown;
+
+	private System.IO.Stream _store;
+
+	private Encoding encoding;
 
 	internal Dictionary<string, ResourceLocator> _resCache;
 
@@ -217,18 +179,27 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 	internal static bool AllowCustomResourceTypes = !AppContext.TryGetSwitch("DotNetResourcesExtensions.AllowCustomResourceTypes", out var isEnabled) || isEnabled;
 
     /// <inheritdoc />
-    public void RegisterTypeResolver(ITypeResolver resolver)
-    {
-        formatter.RegisterTypeResolver(resolver);
+    public void RegisterTypeResolver(ITypeResolver resolver) => formatter.RegisterTypeResolver(resolver);
+
+	/// <summary>
+	/// Gets or sets a value whether the <see cref="DeserializingResourceReader"/> class controls the lifetime of the underlying stream.
+	/// </summary>
+	public System.Boolean IsStreamOwner { get => strmown; set => strmown = value; }
+
+    private DeserializingResourceReader() 
+	{
+		// Shared objects initialization.
+        _resCache = new Dictionary<string, ResourceLocator>(FastResourceComparer.Default);
+        formatter = new ExtensibleFormatter();
+		encoding = Encoding.UTF8;
+		strmown = false;
     }
 
     /// <summary>Initializes a new instance of the <see cref="DeserializingResourceReader" /> class that reads the specified named resource file.</summary>
-    /// <param name="fileName">The path and name of the resource file to be read.</param>
-    public DeserializingResourceReader(string fileName)
+    /// <param name="FileName">The path and name of the resource file to be read.</param>
+    public DeserializingResourceReader(System.String FileName) : this()
 	{
-		_resCache = new Dictionary<string, ResourceLocator>(FastResourceComparer.Default);
-		_store = new BinaryReader(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultFileStreamBufferSize, FileOptions.RandomAccess), Encoding.UTF8);
-		formatter = new ExtensibleFormatter();
+		_store = new FileStream(FileName, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultFileStreamBufferSize, FileOptions.RandomAccess);
 		try {
 			ReadResources();
 		} catch {
@@ -236,7 +207,8 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 			formatter?.Dispose();
 			throw;
 		}
-	}
+        strmown = true;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeserializingResourceReader" /> class that reads the specified named resource file , and using
@@ -244,11 +216,9 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
     /// </summary>
     /// <param name="FileName">The path and name of the resource file to be read.</param>
     /// <param name="BufferSize">The size of the temporary buffer.</param>
-    public DeserializingResourceReader(System.String FileName , System.Int32 BufferSize)
+    public DeserializingResourceReader(System.String FileName , System.Int32 BufferSize) : this()
 	{
-        _resCache = new Dictionary<string, ResourceLocator>(FastResourceComparer.Default);
-        _store = new BinaryReader(new FileStream(FileName, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, FileOptions.RandomAccess), Encoding.UTF8);
-        formatter = new ExtensibleFormatter();
+        _store = new FileStream(FileName, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, FileOptions.RandomAccess);
         try {
             ReadResources();
         } catch {
@@ -256,46 +226,37 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
             formatter?.Dispose();
             throw;
         }
+        strmown = true;
     }
 
 	/// <summary>Initializes a new instance of the <see cref="DeserializingResourceReader" /> class that reads the specified resources stream.</summary>
 	/// <param name="stream">The input stream.</param>
-	public DeserializingResourceReader(Stream stream)
+	public DeserializingResourceReader(Stream stream) : this()
 	{
-		if (stream == null) { throw new ArgumentNullException(nameof(stream)); }
+		if (stream is null) { throw new ArgumentNullException(nameof(stream)); }
 		if (!stream.CanRead) {
 			throw new ArgumentException(Properties.Resources.Argument_StreamNotReadable);
 		}
-		_resCache = new Dictionary<string, ResourceLocator>(FastResourceComparer.Default);
-		_store = new BinaryReader(stream, Encoding.UTF8);
+		if (stream.CanSeek == false) {
+			throw new ArgumentException(Properties.Resources.DNTRESEXT_DNTRESFMT_STREAMUNSEEKABLE);
+		}
+		_store = stream;
 		_ums = stream as UnmanagedMemoryStream;
-        formatter = new ExtensibleFormatter();
         ReadResources();
 	}
 
-	/// <summary>Releases all operating system resources associated with this <see cref="T:System.Resources.Extensions.DeserializingResourceReader" /> object.</summary>
-	public void Close()
-	{
-		Dispose(disposing: true);
-	}
+	/// <summary>Releases all operating system resources associated with this <see cref="DeserializingResourceReader" /> object.</summary>
+	public void Close() => Dispose(true);
 
-	/// <summary>Releases the resources used by the <see cref="T:System.Resources.Extensions.DeserializingResourceReader" />.</summary>
-	public void Dispose()
-	{
-		Close();
-	}
+	/// <summary>Releases the resources used by the <see cref="DeserializingResourceReader" />.</summary>
+	public void Dispose() => Close();
 
 	private unsafe void Dispose(bool disposing)
 	{
-		if (_store != null)
+		if (_store is not null)
 		{
 			_resCache = null;
-			if (disposing)
-			{
-				BinaryReader store = _store;
-				_store = null;
-				store?.Close();
-			}
+			if (disposing && strmown) { _store.Dispose(); }
 			_store = null;
 			_namePositions = null;
 			_nameHashes = null;
@@ -303,23 +264,21 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 			_namePositionsPtr = null;
 			_nameHashesPtr = null;
 		}
+		encoding = null;
 		formatter?.Dispose();
 		formatter = null;
 	}
 
-	private unsafe static int ReadUnalignedI4(int* p)
-	{
-		return BinaryPrimitives.ReadInt32LittleEndian(new System.ReadOnlySpan<byte>(p, 4));
-	}
+	private unsafe static int ReadUnalignedI4(int* p) => BinaryPrimitives.ReadInt32LittleEndian(new System.ReadOnlySpan<byte>(p, 4));
 
-	private void SkipString()
+    private void SkipString()
 	{
 		int num = _store.Read7BitEncodedInt();
 		if (num < 0)
 		{
 			throw new BadImageFormatException(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_NegativeStringLength);
 		}
-		_store.BaseStream.Seek(num, SeekOrigin.Current);
+		_store.Seek(num, SeekOrigin.Current);
 	}
 
 	private unsafe int GetNameHash(int index)
@@ -341,27 +300,24 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		return num;
 	}
 
-	/// <summary>Returns an enumerator for this <see cref="T:System.Resources.Extensions.DeserializingResourceReader" /> object.</summary>
-	/// <returns>An enumerator for this <see cref="T:System.Resources.Extensions.DeserializingResourceReader" /> object.</returns>
+	/// <summary>Returns an enumerator for this <see cref="DeserializingResourceReader" /> object.</summary>
+	/// <returns>An enumerator for this <see cref="DeserializingResourceReader" /> object.</returns>
 	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    /// <summary>Returns an enumerator for this <see cref="T:System.Resources.Extensions.DeserializingResourceReader" /> object.</summary>
-    /// <returns>An enumerator for this <see cref="T:System.Resources.Extensions.DeserializingResourceReader" /> object.</returns>
+    /// <summary>Returns an enumerator for this <see cref="DeserializingResourceReader" /> object.</summary>
+    /// <returns>An enumerator for this <see cref="DeserializingResourceReader" /> object.</returns>
     public IDictionaryEnumerator GetEnumerator()
 	{
 		if (_resCache is null)
 		{
 			throw new InvalidOperationException(DotNetResourcesExtensions.Properties.Resources.ResourceReaderIsClosed);
 		}
-		return new ResourceEnumerator(this);
+		return GetEnumeratorInternal();
 	}
 
-	internal ResourceEnumerator GetEnumeratorInternal()
-	{
-		return new ResourceEnumerator(this);
-	}
+	internal ResourceEnumerator GetEnumeratorInternal() => new(this);
 
-	internal int FindPosForResource(string name)
+    internal int FindPosForResource(string name)
 	{
 		int num = FastResourceComparer.HashFunction(name);
 		int num2 = 0;
@@ -409,11 +365,11 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		{
 			for (int j = num2; j <= i; j++)
 			{
-				_store.BaseStream.Seek(_nameSectionOffset + GetNamePosition(j), SeekOrigin.Begin);
+				_store.Seek(_nameSectionOffset + GetNamePosition(j), SeekOrigin.Begin);
 				if (CompareStringEqualsName(name))
 				{
 					int num5 = _store.ReadInt32();
-					if (num5 < 0 || num5 >= _store.BaseStream.Length - _dataSectionOffset)
+					if (num5 < 0 || num5 >= _store.Length - _dataSectionOffset)
 					{
 						throw new FormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourcesDataInvalidOffset, num5));
 					}
@@ -462,7 +418,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		byte[] array2;
 		lock (this)
 		{
-			_store.BaseStream.Seek(num + _nameSectionOffset, SeekOrigin.Begin);
+			_store.Seek(num + _nameSectionOffset, SeekOrigin.Begin);
 			num2 = _store.Read7BitEncodedInt();
 			if (num2 < 0)
 			{
@@ -491,7 +447,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				}
 				_ums.Position += num2;
 				dataOffset = _store.ReadInt32();
-				if (dataOffset < 0 || dataOffset >= _store.BaseStream.Length - _dataSectionOffset)
+				if (dataOffset < 0 || dataOffset >= _store.Length - _dataSectionOffset)
 				{
 					throw new FormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourcesDataInvalidOffset, dataOffset));
 				}
@@ -509,7 +465,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				num3 -= num4;
 			}
 			dataOffset = _store.ReadInt32();
-			if (dataOffset < 0 || dataOffset >= _store.BaseStream.Length - _dataSectionOffset)
+			if (dataOffset < 0 || dataOffset >= _store.Length - _dataSectionOffset)
 			{
 				throw new FormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourcesDataInvalidOffset, dataOffset));
 			}
@@ -522,10 +478,10 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		long num = GetNamePosition(index);
 		lock (this)
 		{
-			_store.BaseStream.Seek(num + _nameSectionOffset, SeekOrigin.Begin);
+			_store.Seek(num + _nameSectionOffset, SeekOrigin.Begin);
 			SkipString();
 			int num2 = _store.ReadInt32();
-			if (num2 < 0 || num2 >= _store.BaseStream.Length - _dataSectionOffset)
+			if (num2 < 0 || num2 >= _store.Length - _dataSectionOffset)
 			{
 				throw new FormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourcesDataInvalidOffset, num2));
 			}
@@ -542,7 +498,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 	{
 		lock (this)
 		{
-			_store.BaseStream.Seek(_dataSectionOffset + pos, SeekOrigin.Begin);
+			_store.Seek(_dataSectionOffset + pos, SeekOrigin.Begin);
 			string result = null;
 			int num = _store.Read7BitEncodedInt();
 			if (_version == 1)
@@ -555,7 +511,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				{
 					throw new InvalidOperationException(String.Format(DotNetResourcesExtensions.Properties.Resources.InvalidOperation_ResourceNotString_Type, FindType(num).FullName));
 				}
-				result = _store.ReadString();
+				result = _store.ReadFixedLengthString(encoding);
 			}
 			else
 			{
@@ -566,7 +522,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				}
 				if (resourceTypeCode ==	ResourceTypeCode.String)
 				{
-					result = _store.ReadString();
+					result = _store.ReadFixedLengthString(encoding);
 				}
 			}
 			return result;
@@ -614,7 +570,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 
 	private object _LoadObjectV1(int pos)
 	{
-		_store.BaseStream.Seek(_dataSectionOffset + pos, SeekOrigin.Begin);
+		_store.Seek(_dataSectionOffset + pos, SeekOrigin.Begin);
 		int num = _store.Read7BitEncodedInt();
 		if (num == -1)
 		{
@@ -623,7 +579,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		Type type = FindType(num);
 		if (type == typeof(string))
 		{
-			return _store.ReadString();
+			return _store.ReadFixedLengthString(encoding);
 		}
 		if (type == typeof(int))
 		{
@@ -703,18 +659,18 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 
 	private unsafe object _LoadObjectV2(int pos, out ResourceTypeCode typeCode)
 	{
-		_store.BaseStream.Seek(_dataSectionOffset + pos, SeekOrigin.Begin);
+		_store.Seek(_dataSectionOffset + pos, SeekOrigin.Begin);
 		typeCode = (ResourceTypeCode)_store.Read7BitEncodedInt();
 		switch (typeCode)
 		{
 			case ResourceTypeCode.Null:
 				return null;
 			case ResourceTypeCode.String:
-				return _store.ReadString();
+				return _store.ReadFixedLengthString(encoding);
 			case ResourceTypeCode.Boolean:
 				return _store.ReadBoolean();
 			case ResourceTypeCode.Char:
-				return (char)_store.ReadUInt16();
+				return _store.ReadUInt16().ToChar();
 			case ResourceTypeCode.Byte:
 				return _store.ReadByte();
 			case ResourceTypeCode.SByte:
@@ -738,16 +694,10 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 			case ResourceTypeCode.Decimal:
 				return _store.ReadDecimal();
 			case ResourceTypeCode.DateTime:
-			{
-				long dateData = _store.ReadInt64();
-				return DateTime.FromBinary(dateData);
-			}
-			case ResourceTypeCode.TimeSpan:
-			{
-				long ticks = _store.ReadInt64();
-				return new TimeSpan(ticks);
-			}
-			case ResourceTypeCode.ByteArray:
+                return DateTime.FromBinary(_store.ReadInt64());
+            case ResourceTypeCode.TimeSpan:
+                return new TimeSpan(_store.ReadInt64());
+            case ResourceTypeCode.ByteArray:
 			{
 				int num2 = _store.ReadInt32();
 				if (num2 < 0)
@@ -756,7 +706,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				}
 				if (_ums is null)
 				{
-					if (num2 > _store.BaseStream.Length)
+					if (num2 > _store.Length)
 					{
 						throw new BadImageFormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourceDataLengthInvalid, num2));
 					}
@@ -780,7 +730,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				if (_ums is null)
 				{
 					byte[] array = _store.ReadBytes(num);
-					return new System.IO.PinnedBufferMemoryStream(array);
+					return new PinnedBufferMemoryStream(array);
 				}
 				if (num > _ums.Length - _ums.Position)
 				{
@@ -796,18 +746,18 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
                 }
                 if (_ums is null)
                 {
-                    if (len > _store.BaseStream.Length)
+                    if (len > _store.Length)
                     {
                         throw new BadImageFormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourceDataLengthInvalid, len));
                     }
-                    return _store.ReadBytes(len);
+                    return ResourceInterchargeFormat.GetFromBytes(formatter , _store.ReadBytes(len));
                 }
                 if (len > _ums.Length - _ums.Position)
                 {
                     throw new BadImageFormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourceDataLengthInvalid, len));
                 }
                 byte[] tempdata = new byte[len];
-                int br = _ums.Read(tempdata, 0, len);
+                _ums.Read(tempdata, 0, len);
 				// Until here the code remains the same because the RIF is saved in just a byte array.
 				// Then the GetFromBytes method is called and gets the original object defined in tempdata.
 				return ResourceInterchargeFormat.GetFromBytes(formatter, tempdata);
@@ -816,14 +766,13 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				{
 					throw new BadImageFormatException(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_TypeMismatch);
 				}
-				int typeIndex = (int)(typeCode - 64);
-				return DeserializeObject(typeIndex);
+				return DeserializeObject(typeCode - ResourceTypeCode.StartOfUserTypes);
 			}
 		}
 	}
 
-	[MemberNotNull("_typeTable")]
-	[MemberNotNull("_typeNamePositions")]
+	[MemberNotNull(nameof(_typeTable))]
+	[MemberNotNull(nameof(_typeNamePositions))]
 	private void ReadResources()
 	{
 		try
@@ -840,12 +789,11 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		}
 	}
 
-	[MemberNotNull("_typeTable")]
-	[MemberNotNull("_typeNamePositions")]
+	[MemberNotNull(nameof(_typeTable))]
+	[MemberNotNull(nameof(_typeNamePositions))]
 	private unsafe void _ReadResources()
 	{
-		int num = _store.ReadInt32();
-		if (num != ResourceManager.MagicNumber)
+		if (_store.ReadInt32() != ResourceManager.MagicNumber)
 		{
 			throw new ArgumentException(DotNetResourcesExtensions.Properties.Resources.Resources_StreamNotValid);
 		}
@@ -857,11 +805,11 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		}
 		if (num2 > 1)
 		{
-			_store.BaseStream.Seek(num3, SeekOrigin.Current);
+			_store.Seek(num3, SeekOrigin.Current);
 		}
 		else
 		{
-			string text = _store.ReadString();
+			string text = _store.ReadFixedLengthString(encoding);
 			if (!ValidateReaderType(text))
 			{
 				throw new NotSupportedException(String.Format(DotNetResourcesExtensions.Properties.Resources.NotSupported_WrongResourceReader_Type, text));
@@ -888,14 +836,13 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		_typeNamePositions = new int[num5];
 		for (int i = 0; i < num5; i++)
 		{
-			_typeNamePositions[i] = (int)_store.BaseStream.Position;
+			_typeNamePositions[i] = (int)_store.Position;
 			SkipString();
 		}
-		long position = _store.BaseStream.Position;
-		int num6 = (int)position & 7;
-		if (num6 != 0)
+		int pads = (int)_store.Position & 7;
+		if (pads != 0)
 		{
-			for (int j = 0; j < 8 - num6; j++)
+			for (int j = 0; j < 8 - pads; j++)
 			{
 				_store.ReadByte();
 			}
@@ -948,7 +895,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		{
 			throw new BadImageFormatException(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourcesHeaderCorrupted);
 		}
-		_nameSectionOffset = _store.BaseStream.Position;
+		_nameSectionOffset = _store.Position;
 		if (_dataSectionOffset < _nameSectionOffset)
 		{
 			throw new BadImageFormatException(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourcesHeaderCorrupted);
@@ -972,11 +919,11 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 	[RequiresUnreferencedCode("The CustomResourceTypesSupport feature switch has been enabled for this app which is being trimmed. Custom readers as well as custom objects on the resources file are not observable by the trimmer and so required assemblies, types and members may be removed.")]
 	private Type UseReflectionToGetType(int typeIndex)
 	{
-		long position = _store.BaseStream.Position;
+		long position = _store.Position;
 		try
 		{
-			_store.BaseStream.Position = _typeNamePositions[typeIndex];
-			string typeName = _store.ReadString();
+			_store.Position = _typeNamePositions[typeIndex];
+			string typeName = _store.ReadFixedLengthString(encoding);
 			if (typeName == ResourceTypeCode.SerializedWithCustomFormatter.ToString())
 			{
 				// HACK: The ResourceInterchargeFormat provides for us the object type , finding the type is not required.
@@ -988,7 +935,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 		}
 		finally
 		{
-			_store.BaseStream.Position = position;
+			_store.Position = position;
 		}
 	}
 
@@ -999,15 +946,15 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 			return "ResourceTypeCode." + typeCode;
 		}
 		int num = (int)(typeCode - 64);
-		long position = _store.BaseStream.Position;
+		long position = _store.Position;
 		try
 		{
-			_store.BaseStream.Position = _typeNamePositions[num];
-			return _store.ReadString();
+			_store.Position = _typeNamePositions[num];
+			return _store.ReadFixedLengthString(encoding);
 		}
 		finally
 		{
-			_store.BaseStream.Position = position;
+			_store.Position = position;
 		}
 	}
 
@@ -1048,7 +995,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 				}
 				byte[] value = _store.ReadBytes(num2);
 				TypeConverter converter = TypeDescriptor.GetConverter(type);
-				if (converter == null)
+				if (converter is null)
 				{
 					throw new TypeLoadException(String.Format(Properties.Resources.TypeLoadException_CannotLoadConverter, type));
 				}
@@ -1057,9 +1004,9 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 			}
 			case SerializationFormat.TypeConverterString:
 			{
-				string text = _store.ReadString();
+				string text = _store.ReadFixedLengthString(encoding);
 				TypeConverter converter2 = TypeDescriptor.GetConverter(type);
-				if (converter2 == null)
+				if (converter2 is null)
 				{
 					throw new TypeLoadException(String.Format(DotNetResourcesExtensions.Properties.Resources.TypeLoadException_CannotLoadConverter, type));
 				}
@@ -1074,7 +1021,7 @@ public sealed class DeserializingResourceReader : IDotNetResourcesExtensionsRead
 					throw new BadImageFormatException(String.Format(DotNetResourcesExtensions.Properties.Resources.BadImageFormat_ResourceDataLengthInvalid, num));
 				}
 				Stream stream;
-				if (_store.BaseStream is UnmanagedMemoryStream unmanagedMemoryStream)
+				if (_store is UnmanagedMemoryStream unmanagedMemoryStream)
 				{
 					stream = new UnmanagedMemoryStream(unmanagedMemoryStream.PositionPointer, num, num, FileAccess.Read);
 				}

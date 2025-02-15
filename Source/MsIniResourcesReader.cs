@@ -60,6 +60,7 @@ namespace DotNetResourcesExtensions
     /// This is the enumerator implementation that the <see cref="MsIniResourcesReader"/> currently uses. <br />
     /// You cannot create an instance of this class; Instead , use the <see cref="MsIniResourcesReader.GetEnumerator"/> method.
     /// </summary>
+    [System.Obsolete(Obsoletions.MsIniResourcesDeprecated, false)]
     public sealed class MsIniResourcesEnumerator : Collections.AbstractDualResourceEntryEnumerator
     {
         private Internal.CustomFormatter.ICustomFormatter fmt;
@@ -132,7 +133,7 @@ namespace DotNetResourcesExtensions
                     System.IO.FileStream FS = null;
                     try {
                         FS = tfr.OpenStreamToFile();
-                        System.Byte[] data = ParserHelpers.ReadBuffered(FS, FS.Length);
+                        System.Byte[] data = FS.ReadBytes(FS.Length);
                         ent.Data = tfr.SavingType.FullName switch
                         {
                             "System.String" => tfr.AsEncoding().GetString(data),
@@ -191,9 +192,10 @@ namespace DotNetResourcesExtensions
     /// <see cref="MsIniResourcesWriter"/> class. <br /> Note that the file format is specific for 
     /// the current class , so any second thoughts about not being the defined format will be immediately caught.
     /// </summary>
+    [System.Obsolete(Obsoletions.MsIniResourcesDeprecated , false)]
     public sealed class MsIniResourcesReader : IDotNetResourcesExtensionsReader
     {
-        private System.IO.StringableStream stream;
+        private StringableStream stream;
         private System.Text.Encoding encoding;
         private System.Int32 ver, sppmask;
         private System.Boolean isfile;

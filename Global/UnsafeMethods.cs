@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 // The below warning is disabled because all calls that evolve it are sizeof's which only get sizes of unmanaged types.
@@ -108,6 +109,72 @@ namespace DotNetResourcesExtensions.Internal
         }
 
         /// <summary>
+        /// Copies bytes from the current array to the target array. <br />
+        /// The copy is performed using unsafe schemes.
+        /// </summary>
+        /// <param name="src">The source array to copy from.</param>
+        /// <param name="srcidx">The index inside <paramref name="src"/> to start copying from.</param>
+        /// <param name="dest">The array that will recieve the data from <paramref name="src"/>.</param>
+        /// <param name="destidx">The index inside <paramref name="dest"/> to start writing from.</param>
+        /// <param name="count">The number of bytes to copy.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="src"/> and/or <paramref name="dest"/> were null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="destidx"/> , <paramref name="count"/> or <paramref name="srcidx"/> were out of their array bounds.</exception>
+        /// <exception cref="ArgumentException"><paramref name="destidx"/> and/or <paramref name="srcidx"/> were not into their array bounds.</exception>
+        public static void Copy(this System.Byte[] src, System.Int32 srcidx,
+            System.Byte[] dest, System.Int32 destidx, System.UInt32 count)
+        {
+            if (src is null) { throw new ArgumentNullException(nameof(src)); }
+            if (dest is null) { throw new ArgumentNullException(nameof(dest)); }
+            if (srcidx < 0 || destidx < 0) { throw new ArgumentOutOfRangeException(nameof(src), "srcidx and destidx must be greater than or equal to zero."); }
+            if (srcidx >= src.Length)
+            {
+                throw new ArgumentException("srcidx must be less than the array length.");
+            }
+            if (destidx >= dest.Length)
+            {
+                throw new ArgumentException("destidx must be less than the array length.");
+            }
+            if (src.Length - srcidx < count || dest.Length - destidx < count)
+            {
+                throw new ArgumentOutOfRangeException("The number of elements to be copied are not available. Either change start index or enlarge the arrays.");
+            }
+            Unsafe.CopyBlockUnaligned(ref dest[destidx], ref src[srcidx], count);
+        }
+
+        /// <summary>
+        /// Copies bytes from the current array to the target array. <br />
+        /// The copy is performed using unsafe schemes.
+        /// </summary>
+        /// <param name="src">The source array to copy from.</param>
+        /// <param name="srcidx">The index inside <paramref name="src"/> to start copying from.</param>
+        /// <param name="dest">The array that will recieve the data from <paramref name="src"/>.</param>
+        /// <param name="destidx">The index inside <paramref name="dest"/> to start writing from.</param>
+        /// <param name="count">The number of bytes to copy.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="src"/> and/or <paramref name="dest"/> were null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="destidx"/> , <paramref name="count"/> or <paramref name="srcidx"/> were out of their array bounds.</exception>
+        /// <exception cref="ArgumentException"><paramref name="destidx"/> and/or <paramref name="srcidx"/> were not into their array bounds.</exception>
+        public static void Copy(this System.Byte[] src , System.Int64 srcidx , 
+            System.Byte[] dest , System.Int64 destidx , System.UInt32 count)
+        {
+            if (src is null) { throw new ArgumentNullException(nameof(src)); }
+            if (dest is null) { throw new ArgumentNullException(nameof(dest)); }
+            if (srcidx < 0 || destidx < 0) { throw new ArgumentOutOfRangeException(nameof(src), "srcidx and destidx must be greater than or equal to zero."); }
+            if (srcidx >= src.Length)
+            {
+                throw new ArgumentException("srcidx must be less than the array length.");
+            }
+            if (destidx >= dest.Length)
+            {
+                throw new ArgumentException("destidx must be less than the array length.");
+            }
+            if (src.Length - srcidx < count || dest.Length - destidx < count)
+            {
+                throw new ArgumentOutOfRangeException("", "The number of elements to be copied are not available. Either change start index or enlarge the arrays.");
+            }
+            Unsafe.CopyBlockUnaligned(ref dest[destidx], ref src[srcidx], count);
+        }
+
+        /// <summary>
         /// Reads a managed array or native memory from the <paramref name="input"/> managed pointer and copies the 
         /// result to a new managed array.
         /// </summary>
@@ -191,6 +258,57 @@ namespace DotNetResourcesExtensions.Internal
                 first = ref Unsafe.Add(ref first, 1);
                 last = ref Unsafe.Subtract(ref last, 1);
             } while (Unsafe.IsAddressLessThan(ref first, ref last));
+        }
+
+        // ReadStructure and WriteStructure methods are safer alternatives to Unsafe.ReadUnaligned and Unsafe.WriteUnaligned.
+
+        /// <summary>
+        /// Reads a structure of type <typeparamref name="T"/> from the specified byte array.
+        /// </summary>
+        /// <typeparam name="T">The structure type to read.</typeparam>
+        /// <param name="data">The byte array to read the structure from.</param>
+        /// <param name="startindex">The starting index to read from.</param>
+        /// <returns>The read structure , returned as <typeparamref name="T"/>.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="startindex"/> was negative , or it's current value is not enough to read a structure of type <typeparamref name="T"/>.</exception>
+        public static T ReadStructure<T>(this System.Byte[] data, System.Int32 startindex) where T : struct
+        {
+            T ret = new();
+            System.Int32 ssize = sizeof(T);
+            if (startindex < 0) { throw new ArgumentOutOfRangeException(nameof(startindex)); }
+            if (data.Length - startindex < ssize) { throw new ArgumentOutOfRangeException(nameof(startindex), $"The array is not large enough in order to read a structure of type {typeof(T).FullName}."); }
+            fixed (System.Byte* src = &data[startindex])
+            {
+                // A GCHandle must be declared because the object might be moved , so keep it in a fixed address , 
+                // so that we can copy safely. The pinned handle returned by GCHandle , however , is read-only , 
+                // so we will use Unsafe.AsPointer to get a read-write reference to it.
+                GCHandle tempstructhand = GCHandle.Alloc(ret, GCHandleType.Pinned);
+                Unsafe.CopyBlockUnaligned(Unsafe.AsPointer(ref ret), src, ssize.ToUInt32());
+                tempstructhand.Free();
+            }
+            return ret;
+        }
+
+        /// <summary>
+        /// Writes a structure of type <typeparamref name="T"/> to the specified byte array.
+        /// </summary>
+        /// <typeparam name="T">The structure type to write.</typeparam>
+        /// <param name="data">The byte array to read the structure to.</param>
+        /// <param name="startindex">The starting index to start writing from.</param>
+        /// <param name="structure">The structure to write.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="startindex"/> was negative , or it's current value is not enough to write a structure of type <typeparamref name="T"/>.</exception>
+        public static void WriteStructure<T>(this System.Byte[] data, System.Int32 startindex, T structure) where T : struct
+        {
+            System.Int32 ssize = sizeof(T);
+            if (startindex < 0) { throw new ArgumentOutOfRangeException(nameof(startindex)); }
+            if (data.Length - startindex < ssize) { throw new ArgumentOutOfRangeException(nameof(startindex), $"The array is not large enough in order to write a structure of type {typeof(T).FullName}."); }
+            fixed (System.Byte* dst = &data[startindex])
+            {
+                // A GCHandle must be declared because the object might be moved , so keep it in a fixed address , 
+                // so that we can copy safely.
+                GCHandle tempstructhand = GCHandle.Alloc(structure, GCHandleType.Pinned);
+                Unsafe.CopyBlockUnaligned(dst, tempstructhand.AddrOfPinnedObject().ToPointer(), ssize.ToUInt32());
+                tempstructhand.Free();
+            }
         }
 
         #region Conversions to Int64
@@ -348,6 +466,13 @@ namespace DotNetResourcesExtensions.Internal
         /// </summary>
         /// <param name="number">The number to convert.</param>
         public static System.Int16 ToInt16(this System.Int32 number) => NarrowingConversion<System.Int32, System.Int16>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Char"/> to a <see cref="System.Int16"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="character">The character to convert.</param>
+        public static System.Int16 ToInt16(this System.Char character) => LinearConversion<System.Char , System.Int16>(character);
         #endregion
 
         #region Conversions to UInt16
@@ -415,6 +540,13 @@ namespace DotNetResourcesExtensions.Internal
         /// </summary>
         /// <param name="number">The number to convert.</param>
         public static System.Byte ToByte(this System.UInt32 number) => NarrowingConversion<System.UInt32, System.Byte>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.SByte"/> to a <see cref="System.Byte"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.Byte ToByte(this System.SByte number) => NarrowingConversion<System.SByte , System.Byte>(number);
         #endregion
 
         #region Conversions to Char
@@ -459,6 +591,22 @@ namespace DotNetResourcesExtensions.Internal
         /// </summary>
         /// <param name="number">The number to convert.</param>
         public static System.Char ToChar(this System.Byte number) => WideningConversion<System.Byte , System.Char>(number);
+        #endregion
+
+        #region Conversions to SByte
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Byte"/> to a <see cref="System.SByte"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.SByte ToSByte(this System.Byte number) => LinearConversion<System.Byte, System.SByte>(number);
+
+        /// <summary>
+        /// Uses unsafe schemes to convert a <see cref="System.Int32"/> to a <see cref="System.SByte"/>. 
+        /// The conversion is only performed with less checks during runtime.
+        /// </summary>
+        /// <param name="number">The number to convert.</param>
+        public static System.SByte ToSByte(this System.Int32 number) => NarrowingConversion<System.Int32 , System.SByte>(number);
         #endregion
 
         #region Get Bytes from numeric types
@@ -541,22 +689,6 @@ namespace DotNetResourcesExtensions.Internal
         /// <param name="ch">The number to convert.</param>
         /// <returns>The equivalent array representation of <paramref name="ch"/>.</returns>
         public static System.Byte[] GetBytes(this System.Char ch) => GetBytesTemplate(ch);
-        #endregion
-
-        #region Convert to numeric types from bytes
-        /// <summary>
-        /// Converts the double-precision floating <paramref name="number"/> given to it's equivalent 64 bits , stored in a <see cref="System.Int64"/>. 
-        /// </summary>
-        /// <param name="number">The double-precision floating <paramref name="number"/> to convert.</param>
-        /// <returns>The equivalent 64 bits returned as a <see cref="System.Int64"/>.</returns>
-        public static System.Int64 ToInt64Bits(this System.Double number) => LinearConversion<System.Double , System.Int64>(number);
-
-        /// <summary>
-        /// Converts the single-precision floating <paramref name="number"/> given to it's equivalent 32 bits , stored in a <see cref="System.Int32"/>. 
-        /// </summary>
-        /// <param name="number">The single-precision floating <paramref name="number"/> to convert.</param>
-        /// <returns>The equivalent 32 bits returned as a <see cref="System.Int32"/>.</returns>
-        public static System.Int32 ToInt32Bits(this System.Single number) => LinearConversion<System.Single , System.Int32>(number);
 
         /// <summary>
         /// Gets a <see cref="System.Single"/> from a byte array returned from <c>GetBytes</c> method.
@@ -655,6 +787,37 @@ namespace DotNetResourcesExtensions.Internal
 
         #endregion
 
+        #region Floating-point precision conversions
+        /// <summary>
+        /// Converts the double-precision floating <paramref name="number"/> given to it's equivalent 64 bits , stored in a <see cref="System.Int64"/>. 
+        /// </summary>
+        /// <param name="number">The double-precision floating <paramref name="number"/> to convert.</param>
+        /// <returns>The equivalent 64 bits returned as a <see cref="System.Int64"/>.</returns>
+        public static System.Int64 ToInt64Bits(this System.Double number) => LinearConversion<System.Double, System.Int64>(number);
+
+        /// <summary>
+        /// Converts the single-precision floating <paramref name="number"/> given to it's equivalent 32 bits , stored in a <see cref="System.Int32"/>. 
+        /// </summary>
+        /// <param name="number">The single-precision floating <paramref name="number"/> to convert.</param>
+        /// <returns>The equivalent 32 bits returned as a <see cref="System.Int32"/>.</returns>
+        public static System.Int32 ToInt32Bits(this System.Single number) => LinearConversion<System.Single, System.Int32>(number);
+
+        /// <summary>
+        /// Converts the given <paramref name="number"/> bits back to it's equivalent single-precision floating point value.
+        /// </summary>
+        /// <param name="number">The converted number bits acquired from <see cref="ToInt32Bits(float)"/>.</param>
+        /// <returns>The original single-precision floating point value.</returns>
+        public static System.Single FromInt32Bits(this System.Int32 number) => LinearConversion<System.Int32 , System.Single>(number);
+
+        /// <summary>
+        /// Converts the given <paramref name="number"/> bits back to it's equivalent double-precision floating-point value.
+        /// </summary>
+        /// <param name="number">The converted number bits acquired from <see cref="ToInt32Bits(float)"/>.</param>
+        /// <returns>The original double-precision floating-point value.</returns>
+        public static System.Double FromInt64Bits(this System.Int64 number) => LinearConversion<System.Int64, System.Double>(number);
+        #endregion
+
+        #region Bit Manipulations
         // Parts of bit conversion code also belong from referencesource.microsoft.com/en-us !.
         private static System.Byte GetBitValue(System.Int32 bitidx) => (1 << (bitidx & 7)).ToByte();
 
@@ -704,7 +867,7 @@ namespace DotNetResourcesExtensions.Internal
         /// <returns>It's binary representation.</returns>
         public static System.Boolean[] ToBinary(this System.Byte bt)
         {
-            // Create a Boolean array that it's size is equal to a byte.
+            // Create a Boolean array that it's number of elements are equal to the bitsize size of a byte.
             System.Boolean[] result = new System.Boolean[8];
             for (System.Int32 I = 0; I < 8; I++)
             {
@@ -733,6 +896,6 @@ namespace DotNetResourcesExtensions.Internal
             }
             return result;
         }
-
+        #endregion
     }
 }

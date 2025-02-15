@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Resources;
 using System.Collections;
-using System.Globalization;
 using DotNetResourcesExtensions.Internal.CustomFormatter;
 
 namespace DotNetResourcesExtensions.Localization
@@ -22,9 +21,10 @@ namespace DotNetResourcesExtensions.Localization
         protected LocalizedResourceReader() { strmown = false; }
 
         /// <summary>
-        /// Defines the culture that the resources are defined in.
+        /// Defines the loading behavior of this reader , when a
+        /// resource loader loads this instance into the localization pool.
         /// </summary>
-        public abstract CultureInfo Culture { get; }
+        public abstract LocalizationEntry LocalizationEntryData { get; }
         
         /// <inheritdoc />
         public bool IsStreamOwner { get => strmown; set => strmown = value; }
@@ -66,9 +66,10 @@ namespace DotNetResourcesExtensions.Localization
         protected LocalizedResourceWriter() { strmown = false; }
 
         /// <summary>
-        /// Defines the culture that the resources must be defined in.
+        /// Defines the loading behavior of this writer. This is used when a
+        /// resource loader loads the reader into the localization pool.
         /// </summary>
-        public abstract CultureInfo Culture { get; set; }
+        public abstract LocalizationEntry LocalizationEntryData { get; set; }
 
         /// <inheritdoc />
         public bool IsStreamOwner { get => strmown; set => strmown = value; }

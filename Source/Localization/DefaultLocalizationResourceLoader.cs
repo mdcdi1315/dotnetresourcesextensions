@@ -38,7 +38,7 @@ namespace DotNetResourcesExtensions.Localization
         /// </summary>
         /// <param name="readers">The localized readers to initiate the loader from.</param>
         /// <exception cref="System.ArgumentException">No readers were registered.</exception>
-        protected DefaultLocalizationResourceLoader(IEnumerable<LocalizedResourceReader> readers)
+        protected DefaultLocalizationResourceLoader(IEnumerable<LocalizedResourceReader> readers) : this()
         {
             Initialize(readers);
         }
@@ -46,7 +46,10 @@ namespace DotNetResourcesExtensions.Localization
         /// <summary>
         /// Creates a default instance of the <see cref="DefaultLocalizationResourceLoader"/> class.
         /// </summary>
-        protected DefaultLocalizationResourceLoader() { }
+        protected DefaultLocalizationResourceLoader() {
+            readers = null;
+            ic = null;
+        }
 
         /// <summary>
         /// Initializes a default instance of the <see cref="DefaultLocalizationResourceLoader"/> class from the specified localized readers. <br />
@@ -59,7 +62,15 @@ namespace DotNetResourcesExtensions.Localization
         {
             this.readers = new(readers);
             if (this.readers.Count == 0) { throw new System.ArgumentException("No localized readers were registered at all!"); }
-            ic = this.readers[0].Culture;
+            foreach (var reader in this.readers) 
+            {
+                if (reader.LocalizationEntryData.Flags.HasFlag(LocalizationSpecialTypeFlags.IsFallbackCulture))
+                {
+                    ic = reader.LocalizationEntryData.Culture;
+                    break;
+                }
+            }
+            ic ??= this.readers[0].LocalizationEntryData.Culture;
         }
 
         /// <inheritdoc />
@@ -81,7 +92,7 @@ namespace DotNetResourcesExtensions.Localization
             get {
                 foreach (var rdr in readers)
                 {
-                    yield return rdr.Culture;
+                    yield return rdr.LocalizationEntryData.Culture;
                 }
             }
         }
@@ -94,7 +105,7 @@ namespace DotNetResourcesExtensions.Localization
             get {
                 foreach (var sp in readers)
                 {
-                    if (sp.Culture.LCID == ic.LCID)
+                    if (sp.LocalizationEntryData.Culture.LCID == ic.LCID)
                     {
                         return sp;
                     }
@@ -153,7 +164,7 @@ namespace DotNetResourcesExtensions.Localization
             if (culture is null) { throw new ArgumentNullException(nameof(culture)); }
             foreach (var sp in readers)
             {
-                if (sp.Culture.LCID == culture.LCID)
+                if (sp.LocalizationEntryData.Culture.LCID == culture.LCID)
                 {
                     // Culture was found , try to return the localized resource.
                     foreach (DictionaryEntry retent in sp)
@@ -175,7 +186,7 @@ namespace DotNetResourcesExtensions.Localization
         {
             foreach (var sp in readers) 
             {
-                if (sp.Culture.LCID == culture.LCID)
+                if (sp.LocalizationEntryData.Culture.LCID == culture.LCID)
                 {
                     return sp.GetEnumerator();
                 }

@@ -27,7 +27,7 @@ namespace DotNetResourcesExtensions.Collections
     /// <summary>
     /// Defines the default and recommended comparer for comparing two <see cref="IResourceEntryWithComment"/> instances.
     /// </summary>
-    public class ResourceEntryWithCommentComparer : Comparer<IResourceEntryWithComment>
+    public sealed class ResourceEntryWithCommentComparer : Comparer<IResourceEntryWithComment>
     {
         /// <summary>
         /// Compares two <see cref="IResourceEntryWithComment"/> instances.
@@ -42,5 +42,6 @@ namespace DotNetResourcesExtensions.Collections
         /// </summary>
         public ResourceEntryWithCommentComparer() : base() { }
     }
+
 
 }

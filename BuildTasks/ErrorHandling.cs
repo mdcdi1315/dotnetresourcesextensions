@@ -69,6 +69,7 @@ namespace DotNetResourcesExtensions.BuildTasks
                 new(43 , "The strongly typed-class .NET name was not specified. Presuming that it is the manifest name: \"{0}\"" , MessageType.Warning),
                 new(44 , "The resource class visibility was set to an invalid value. Presuming that it's value is 'Internal'." , MessageType.Warning),
                 new(118 , "The specified reader is still on a test phase. Do not trust this reader for saving critical resources." , MessageType.Warning),
+                new(119 , "The {0} resource reader has been deprecated and will be removed in a subsequent release. Move to a more stable reader to save your resources." , MessageType.Warning),
                 new(213 , "Could not find a resource reader for the file {0}. Resource generation for this item will be skipped. This may cause compilation or run-time errors." , MessageType.Warning),
                 new(263 , "An internal exception has been detected in one of the BuildTasks task code. See the next error for more information." , MessageType.Critical)
             };

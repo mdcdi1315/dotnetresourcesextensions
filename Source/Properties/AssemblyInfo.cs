@@ -29,4 +29,7 @@ internal static class Obsoletions
 
     public const System.String EnumeratorNotSupported = "These enumerator implementations were meant to support the internal infrastracture " +
         "and are now not useful. Please move to the new and recommended design instead.";
+
+    public const System.String MsIniResourcesDeprecated = "The MS-INI Resource enumerator implementation is deprecated. " +
+        "If for a reason you want to still read MS-INI resources (as i.e. to migrate resources) , use the V1 version of this assembly.";
 }

@@ -456,4 +456,16 @@ Resource Name: {3}</value>
   <data name="DNTRESEXT_XMLFMT_CANNOT_PARSE_TYPE" xml:space="preserve">
     <value>Could not parse the type defined in the 'type' attribute. Value was invalid.</value>
   </data>
+  <data name="DNTRESEXT_DNTRESFMT_STREAMUNSEEKABLE" xml:space="preserve">
+    <value>The stream was unseekable. The current implementation of DeserializingResourceReader class requires that all seeking functions are also implemented.</value>
+  </data>
+  <data name="DNTRESEXT_SSM_FINDOP_UEND" xml:space="preserve">
+    <value>The end of stream has been occured prematurely.</value>
+  </data>
+  <data name="DNTRESEXT_SSM_FINDOP_BUFCHARS_INV" xml:space="preserve">
+    <value>The buffered mode requires more than 3 characters in order to operate effciently.</value>
+  </data>
+  <data name="DNTRESEXT_SSM_UNDERLYING_UNSEEKABLE" xml:space="preserve">
+    <value>Stringable streams must be seekable.</value>
+  </data>
 </root>

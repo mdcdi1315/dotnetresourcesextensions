@@ -10,7 +10,6 @@ namespace DotNetResourcesExtensions.Internal
     // Parser helpers.
     internal static class ParserHelpers
     {
-        private const System.Int32 BUFSIZE = 4096;
         public const System.String InvalidNameCharacters = "!@#$%^&*()`~,./?\\|\"\';:{}[]+=©§¥¢ž®¯";
         public const System.String InvalidFirstCharacterNameCharacters = "1234567890!@#$%^&*()`~,./?\\|\"';:{}[]+=-_©§¥¢ž®¯";
 
@@ -21,11 +20,11 @@ namespace DotNetResourcesExtensions.Internal
             System.Int32 start = 0;
             System.Boolean negative = value[0] == '-';
             if (negative) { start = 1; }
-            System.Int64 result = 0, prg = 1;
+            System.Int64 result = 0, shift = 1;
             for (System.Int32 I = value.Length - 1; I >= start; I--)
             {
-                result += (value[I].ToInt64() - 48) * prg;
-                prg *= 10;
+                result += (value[I].ToInt64() - 48) * shift;
+                shift *= 10;
             }
             if (negative) { result = -result; }
             return result;
@@ -38,13 +37,13 @@ namespace DotNetResourcesExtensions.Internal
             System.Int64 copy = value;
             if (value < 0) { copy = -copy; }
             List<System.Char> chars = new();
-            System.Int64 prg = 1 , rt;
+            System.Int64 shift = 1 , rt;
             System.Byte I = 19 , end = (value < 0 ? 1 : 0).ToByte();
             do {
                 I--;
-                rt = (copy / prg) % 10;
+                rt = (copy / shift) % 10;
                 chars.Add((rt + 48).ToChar());
-                prg *= 10;
+                shift *= 10;
             } while (I > end);
             // So as to perform negation
             if (value < 0) { chars.Add('-'); }
@@ -90,69 +89,6 @@ namespace DotNetResourcesExtensions.Internal
                         throw new ArgumentException($"A resource name must not have all the following characters: {InvalidNameCharacters}.", nameof(Name));
                     }
                 }
-            }
-        }
-
-        public static System.Byte[] ReadBuffered(System.IO.Stream Stream, System.Int64 RequestedBytes)
-        {
-            // Check for null conditions or whether we can read from this stream
-            if (Stream is null) { return null; }
-            if (Stream.CanRead == false) { return null; }
-            // Create a new byte array with the requested size.
-            System.Byte[] Contents = new System.Byte[RequestedBytes];
-            if (RequestedBytes <= BUFSIZE)
-            {
-                // Read all bytes directly , if the requested bytes are less than the buffer limit.
-                // Otherwise we don't care here; we do not read thousands or millions of bytes.
-                Stream.Read(Contents, 0, Contents.Length);
-            }
-            else
-            {
-                System.Int32 Count;
-                System.Int32 Offset = 0;
-                // Read all bytes with buffered mode.
-                do
-                {
-                    Count = Stream.Read(Contents, Offset, BUFSIZE);
-                    Offset += BUFSIZE;
-                    // Condition specifies that the loop will continue to run when the read bytes are
-                    // more or equal than the buffer limit , plus make sure that the next read will not
-                    // surpass the bytes that the final array can hold.
-                } while ((Count >= BUFSIZE) && (Offset + BUFSIZE <= Contents.Length));
-                // In case that the bytes were surpassed in the above condition , pass all the rest bytes again normally.
-                if (Contents.Length - Offset > 0) { Stream.Read(Contents, Offset, Contents.Length - Offset); }
-            }
-            return Contents;
-        }
-
-        public static void WriteBuffered(System.IO.Stream stream, System.Byte[] data)
-        {
-            // Abstract: Writes bytes to a stream with a 'buffered' method.
-            // Calculate the blocks that will be raw-copied. 
-            // Also , calculate the remaining data that will be plainly passed.
-            System.Int64 blocks = data.LongLength / BUFSIZE,
-                c = data.LongLength % BUFSIZE;
-            System.Int32 pos = 0;
-            // Copy all data to the stream
-            while (blocks > 0)
-            {
-                stream.Write(data, pos, BUFSIZE);
-                pos += BUFSIZE;
-                blocks--;
-            }
-            // If the input array size is not exactly a multiple of BUFSIZE , the rest data will be copied as-it-is.
-            // This even works for cases that data.LongLength < BUFSIZE because the while loop
-            // will never be entered.
-            if (c > 0) { stream.Write(data, pos, c.ToInt32()); }
-        }
-
-        public static void BlockCopy(System.IO.Stream input, System.IO.Stream output)
-        {
-            System.Byte[] buffer = new System.Byte[BUFSIZE];
-            System.Int32 readin = 0;
-            while ((readin = input.Read(buffer, 0, BUFSIZE)) > 0)
-            {
-                output.Write(buffer, 0, readin);
             }
         }
 
@@ -213,25 +149,6 @@ namespace DotNetResourcesExtensions.Internal
             return true;
         }
 #pragma warning restore 0618
-
-        public static void Copy(this System.Byte[] src , System.Int32 srcidx , 
-        System.Byte[] dest , System.Int32 destidx , System.UInt32 count)
-        {
-            if (src is null) { throw new ArgumentNullException(nameof(src)); }
-            if (dest is null) { throw new ArgumentNullException(nameof(dest)); }
-            if (srcidx < 0 || destidx < 0) { throw new ArgumentOutOfRangeException(nameof(src) , "srcidx and destidx must be greater than or equal to zero."); }
-            if (srcidx >= src.Length) {
-                throw new ArgumentException("srcidx must be less than the array length.");
-            }
-            if (destidx >= dest.Length) {
-                throw new ArgumentException("destidx must be less than the array length.");
-            }
-            if (src.Length - srcidx + 1 > count || dest.Length - destidx + 1 > count)
-            {
-                throw new ArgumentOutOfRangeException("The number of elements to be copied are not available. Either change start index or enlarge the arrays.");
-            }
-            Unsafe.CopyBlockUnaligned(ref dest[destidx] , ref src[srcidx] , count);
-        }
 
         public static System.Byte[] GetBytes(System.Byte[] bytes, System.Int64 idx, System.Int64 count)
         {

@@ -8,12 +8,12 @@ namespace DotNetResourcesExtensions
     [System.Diagnostics.DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
     internal sealed class InternalFileReference : IDynamicFileReference
     {
-        private System.String filename;
         private System.Type type;
+        private System.String filename;
+        private System.Boolean iscloned;
         private FileReferenceEncoding encoding;
         private IFileReferenceVariablePropertyStore ps;
         private IFileReferenceTypeAliasResolver resolver;
-        private System.Boolean iscloned;
 
         internal InternalFileReference()
         {

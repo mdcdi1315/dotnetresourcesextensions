@@ -1,118 +1,16 @@
-﻿using System;
-using System.IO;
-using System.Collections.Generic;
+﻿
 using DotNetResourcesExtensions.Internal;
 using DotNetResourcesExtensions.Internal.CustomFormatter;
 
 namespace DotNetResourcesExtensions
 {
-
-    namespace Internal 
-    {
-        internal static class HumanReadableFormatConstants
-        {
-            public sealed record class Property
-            {
-                private readonly string name;
-                private readonly object value;
-
-                public Property(System.String name, object value) 
-                {
-                    this.name = name;
-                    this.value = value;
-                }
-
-                public static Property GetProperty(IDictionary<System.String , System.Object> data , System.String Name)
-                {
-                    if (data is null) { throw new ArgumentNullException(nameof(data)); }
-                    if (Name is null) { throw new ArgumentNullException(nameof(Name)); }
-
-                    if (!data.TryGetValue(Name, out System.Object? value)) { throw new ArgumentException($"The {Name} property does not exist in the dictionary."); }
-
-                    return new Property(Name , value);
-                }
-
-                public System.String Name { get => name; }
-
-                public System.String StringValue => value?.ToString();
-
-                public System.Int64 Int64Value => ReadInt64OrFail(value);
-
-                public System.Int32 Int32Value => ReadInt32OrFail(value);
-
-                public void WriteToStreamAsTabbed(System.IO.StringableStream stream , System.Byte tabs)
-                {
-                    stream.WriteTabbedStringLine(tabs , $"{name} = {value}");
-                }
-
-                public override int GetHashCode() => base.GetHashCode();
-
-                public System.Boolean Equals(Property other) => name == other.name;
-
-                public System.Boolean ValueEquals(Property other) => value.Equals(other.value);
-
-                public override string ToString() => $"Property: {{ Name: {name} Value: {value} }}";
-            }
-
-            static HumanReadableFormatConstants() {
-                Version = new("version", (System.Int64)1);
-                SchemaName = new("schema" , "mdcdi1315.HRFMT");
-                TypeIsString = new("type" , "string");
-                TypeIsByteArray = new("type", "bytearray");
-                TypeIsFileRef = new("type", "filereference");
-                TypeIsSerObj = new("type", "serobject");
-            }
-
-            public static readonly Property Version , SchemaName , TypeIsString , TypeIsSerObj , TypeIsByteArray , TypeIsFileRef;
-
-            public static System.Int64 ReadInt64OrFail(System.Object data)
-            {
-                if (data is System.Int64 value) { return value; }
-                throw new FormatException("The value is not a numeric value.");
-            }
-
-            public static System.Int32 ReadInt32OrFail(System.Object data) => ReadInt64OrFail(data).ToInt32();
-
-            internal static System.Boolean StringsMatch(System.String one, System.String two) => one.Equals(two, StringComparison.InvariantCultureIgnoreCase);
-
-            internal static void AddProperty(IDictionary<System.String, System.Object> properties, System.String value)
-            {
-                static System.Boolean GetNumber(System.String data, out System.Int64 num)
-                {
-                    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-                    static System.Boolean IsDigit(System.Char ch) => (System.UInt32)(ch - '0') <= ('9' - '0');
-                    if (data.Length > 0 && IsDigit(data[0]))
-                    {
-                        num = ParserHelpers.ToNumber(data);
-                        return true;
-                    }
-                    num = 0;
-                    return false;
-                }
-                System.Int32 eqindex = value.IndexOf('=');
-                if (eqindex > -1)
-                {
-                    System.String name = value.Remove(eqindex - 1);
-                    if (properties.ContainsKey(name)) { return; }
-                    System.Object propval = null;
-                    System.String data = value.Substring(eqindex + 2);
-                    if (GetNumber(data, out System.Int64 number)) { propval = number; } else { propval = data; }
-                    data = null;
-                    properties.Add(name, propval);
-                    propval = null;
-                    name = null;
-                }
-            }
-        }
-    }
-
     /// <summary>
     /// Defines a writer for human-readable resource format. <br />
     /// This format will be even closer to human understanding and reading by defining some simple constructs.
     /// </summary>
     public sealed class HumanReadableFormatWriter : IDotNetResourcesExtensionsWriter
     {
-        private System.IO.StringableStream fw;
+        private StringableStream fw;
         private System.IO.Stream stream;
         private System.Text.Encoding encoding;
         private ExtensibleFormatter formatter;
@@ -202,7 +100,7 @@ namespace DotNetResourcesExtensions
             fw.WriteTabbedStringLine(1, "begin value");
             fw.WriteTabs(2);
             fw.Write(bt , 0 , bt.Length);
-            fw.WriteNewLine();
+            fw.WriteMacNewLine();
             fw.WriteTabbedStringLine(1, "end value");
             EndResource();
         }

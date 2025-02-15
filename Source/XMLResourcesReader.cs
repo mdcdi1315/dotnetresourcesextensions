@@ -143,7 +143,7 @@ namespace DotNetResourcesExtensions
                     System.IO.FileStream FS = null;
                     try {
                         FS = tfr.OpenStreamToFile();
-                        System.Byte[] data = ParserHelpers.ReadBuffered(FS , FS.Length);
+                        System.Byte[] data = FS.ReadBytes(FS.Length);
                         result.Value = tfr.SavingType.FullName switch
                         {
                             "System.String" => tfr.AsEncoding().GetString(data),

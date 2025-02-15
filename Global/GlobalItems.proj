@@ -14,6 +14,7 @@
 	<ItemGroup>
 		<Compile Include="$(_GlobalItemsBaseDir)DotNetCoreImports.cs" />
 		<Compile Include="$(_GlobalItemsBaseDir)UnsafeMethods.cs" />
+		<Compile Include="$(_GlobalItemsBaseDir)StreamMethods.cs" />
 		<Compile Include="$(_GlobalItemsBaseDir)UnsafeMethods.SpanSupport.cs" Condition="'$(DNTRESEXT_INCLUDESPANSUPPORT)' == 'true'" />
 		<None Include="$(_GlobalItemsBaseDir)/../LICENSE.txt" Pack="true" PackagePath="/" />
 		<None Include="$(_GlobalItemsBaseDir)ProjectImage.png" Pack="true" PackagePath="/" />
