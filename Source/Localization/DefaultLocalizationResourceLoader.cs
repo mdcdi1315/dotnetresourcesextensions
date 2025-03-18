@@ -47,7 +47,7 @@ namespace DotNetResourcesExtensions.Localization
         /// Creates a default instance of the <see cref="DefaultLocalizationResourceLoader"/> class.
         /// </summary>
         protected DefaultLocalizationResourceLoader() {
-            readers = null;
+            readers = new(5);
             ic = null;
         }
 
@@ -117,6 +117,9 @@ namespace DotNetResourcesExtensions.Localization
         /// <summary>
         /// Disposes any data held and allocated by the <see cref="DefaultLocalizationResourceLoader"/> class.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", 
+            "CA1816:Dispose methods should call SuppressFinalize", 
+            Justification = "The explicit IDisposable implementation calls this one, so it is OK to do this.")]
         public void Dispose()
         {
             if (readers is not null)
@@ -158,7 +161,7 @@ namespace DotNetResourcesExtensions.Localization
         public IDualResourceEntryEnumerator GetEnumerator() => new LocalDualResourceEntryEnumerator(InvariantReader.GetEnumerator());
 
         /// <inheritdoc />
-        public T GetLocalizedResource<T>(string Name, CultureInfo culture) where T : notnull
+        public virtual T GetLocalizedResource<T>(string Name, CultureInfo culture) where T : notnull
         {
             if (System.String.IsNullOrEmpty(Name)) { throw new ArgumentNullException(nameof(Name)); }
             if (culture is null) { throw new ArgumentNullException(nameof(culture)); }
@@ -224,6 +227,9 @@ namespace DotNetResourcesExtensions.Localization
         /// <summary>
         /// Default implementation to call Dispose when the instance is casted to an IDisposable.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", 
+            "CA1816:Dispose methods should call SuppressFinalize", 
+            Justification = "SuppressFinalize is already called by the public Dispose method , that this one calls.")]
         void IDisposable.Dispose() => Dispose();
 
         /// <summary>

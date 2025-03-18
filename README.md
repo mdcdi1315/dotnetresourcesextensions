@@ -22,8 +22,6 @@ But it does not stop here. It defines also diverse classes for reading and writi
 
 - Custom XML resources. Writes and reads out custom XML (**NOT** `Resx`) using the `System.Xml` namespace.
 
-- Custom MS-INI resources. Although that sounds weird , those classes depend on a pseudo-syntax of the usual INI files to write and read resources.
-
 - Custom ResX resources. These are modified copies of the ResX classes defined in the [Windows Forms Project](https://github.com/dotnet/winforms). 
 The Windows Forms ResX reader cannot read the results produced from them , because they are modified to accomondate some changes in order to make them cross-compatible.
 Additionally the Custom ResX reader can now read all ResX formats , old and new , effectively.
@@ -32,8 +30,8 @@ Additionally the Custom ResX reader can now read all ResX formats , old and new 
 	alternative to it. The result was a custom formatter that is allowed to serialize only specific objects.
 		- You can also use it and extend it too!
 
-Also this project includes a build target and infrastracture to use for MSBuild projects for resource generation
-through the `DotNetResourcesExtensions` project. See the [`BuildTasks`](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/BuildTasks) project for more info.
+Also this project includes a build target and infrastracture to use for MSBuild projects for resource generation.
+See the [`BuildTasks`](https://github.com/mdcdi1315/dotnetresourcesextensions/blob/master/BuildTasks) project for more info.
 
 You may also find useful the new Windows Native Resources Reader plugin. You can see more information about it and how-to-use in the docs.
 

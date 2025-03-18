@@ -32,7 +32,9 @@ namespace DotNetResourcesExtensions.Localization
         /// <inheritdoc />
         public abstract void Close();
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Disposes this <see cref="LocalizedResourceReader"/> class instance.
+        /// </summary>
         public abstract void Dispose();
 
         /// <summary>

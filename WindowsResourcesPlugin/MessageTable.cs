@@ -16,27 +16,6 @@ namespace DotNetResourcesExtensions
         [StructLayout(LayoutKind.Explicit , Size = 12)]
         private unsafe struct MessageTableBlock
         {
-            public static MessageTableBlock Read(System.Byte[] data , System.Int32 startindex)
-            {
-                System.Int32 size = sizeof(MessageTableBlock);
-                if (size > data.Length - startindex)
-                {
-                    throw new ArgumentException("There are not enough bytes in order to initialize the Message Table Block.");
-                }
-                MessageTableBlock block = new();
-                fixed (System.Byte* src = &data[startindex]) 
-                {
-                    fixed (System.Byte* dst = &Unsafe.AsRef(block.pin))
-                    {
-                        Unsafe.CopyBlockUnaligned(dst, src, size.ToUInt32());
-                    }
-                }
-                return block;
-            }
-
-            [FieldOffset(0)]
-            private System.Byte pin;
-
             // The first message ID defined in this block.
             [FieldOffset(0)]
             public System.UInt32 LowID;
@@ -75,10 +54,11 @@ namespace DotNetResourcesExtensions
             // Create a new array of all the message blocks.
             MessageTableBlock[] blocks = new MessageTableBlock[blkcount];
             // Copy the found message blocks to the array.
+            System.Int32 msgblksize = Unsafe.SizeOf<MessageTableBlock>();
             for (System.Int32 I = 0; I < blkcount; I++)
             {
-                blocks[I] = MessageTableBlock.Read(data, idx);
-                idx += 12;
+                blocks[I] = data.ReadStructure<MessageTableBlock>(idx);
+                idx += msgblksize;
             }
             System.UInt32 id, nentries;
             System.Int32 coffset;

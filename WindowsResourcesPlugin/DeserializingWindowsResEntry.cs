@@ -25,25 +25,9 @@ namespace DotNetResourcesExtensions
             name = entry.Name.ToString();
             switch (entry.NativeType)
             {
-#if NET472_OR_GREATER || WINDOWS10_0_19041_0_OR_GREATER
                 case WindowsResourceEntryType.RT_BITMAP:
-                    SafeDeviceIndependentBitmapHandle SD = null;
-                    try {
-                        SD = new(entry);
-                        value = System.Drawing.Bitmap.FromHbitmap(SD.DangerousGetHandle());
-                    } finally {
-                        SD?.Dispose();
-                        SD = null;
-                    }
+                    value = new BitmapReader(entry);
                     break;
-                case WindowsResourceEntryType.RT_ICON:
-                    SafeIconHandle sih = null;
-                    try {  
-                        sih = new SafeIconHandle(entry);
-                        value = System.Drawing.Icon.FromHandle(sih.DangerousGetHandle());
-                    } finally { sih?.Dispose(); sih = null; }
-                    break;
-#endif
                 // Return RT_MANIFEST as plain array so that XML processors can process it if the user demands it.
                 case WindowsResourceEntryType.RT_MANIFEST:
                 // Animated cursors and HTML files are just files that have been directly saved and they do not require any additional processing.

@@ -51,7 +51,7 @@ namespace DotNetResourcesExtensions.Localization
 
         /// <summary>
         /// Defines the default equality scheme for <see cref="LocalizationEntry"/> types. <br />
-        /// Two <see cref="LocalizationEntry"/> are considered equal if they do reference the same LCID.
+        /// Two <see cref="LocalizationEntry"/> instances are considered equal if they do reference the same LCID.
         /// </summary>
         /// <param name="other">The other culture to test.</param>
         /// <returns>A value that represents their equality.</returns>

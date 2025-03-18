@@ -1,7 +1,6 @@
 ﻿
 using System;
 using System.Collections;
-using System.Threading.Tasks;
 using Microsoft.Build.Framework;
 using System.Collections.Generic;
 using DotNetResourcesExtensions.Internal.ResX;
@@ -419,27 +418,5 @@ namespace DotNetResourcesExtensions.BuildTasks
         /// Gets a value whether the current build that the resource generator runs into is a design-time build.
         /// </summary>
         public System.String IsDTBBuild { get; set; }
-    }
-
-    public enum OutputResourceType : System.Byte
-    {
-        Resources ,
-        CustomBinary,
-        JSON
-    }
-
-    /// <summary>
-    /// Provides a very minimal resource loader. It directly wraps a IResourceReader instance without additional checks.
-    /// </summary>
-    internal sealed class MinimalResourceLoader : OptimizedResourceLoader
-    {
-        public MinimalResourceLoader(System.Resources.IResourceReader rdr) : base() { read = rdr; }
-
-        public override void Dispose() {
-            read = null; // Directly set this so as to avoid of being disposed accidentally by the internal mechanisms.
-            base.Dispose();
-        }
-
-        public override ValueTask DisposeAsync() => new(Task.Run(Dispose));
     }
 }

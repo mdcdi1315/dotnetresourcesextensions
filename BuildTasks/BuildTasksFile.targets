@@ -10,6 +10,7 @@
 		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`net7.0`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
 		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`net8.0`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
 		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`net9.0`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
+		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`net10.0`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
 		<DNRS_TFIdentifier Condition="'$(TargetFramework.Contains(`netstandard`))' == 'true'">netstandard2.0</DNRS_TFIdentifier>
 		<DNRS_TFIdentifier Condition="'$(TargetFramework.StartsWith(`net4`))' == 'true'">net472</DNRS_TFIdentifier>
 		<!-- This will load the net472 one if: 1. This is a .NET Core project , 2. The project is a Windows project and 3. We are building for desktop MSBuild. -->
@@ -19,7 +20,7 @@
 		<!-- Compute final build path -->
 		<DNRSPath>$(MSBuildThisFileDirectory)../tools/$(DNRS_TFIdentifier)/DotNetResourcesExtensions.BuildTasks.dll</DNRSPath>
 		<!-- [PUBLIC PROPERTY] Enable or disable the dependencies resolve mechanism. This is used by BuildTasks because NuGet cannot provide them to it at run-time. -->
-		<DotNetResourcesExtensions_EnableDepResolve>True</DotNetResourcesExtensions_EnableDepResolve>
+		<DotNetResourcesExtensions_EnableDepResolve Condition="'$(DotNetResourcesExtensions_EnableDepResolve)' == ''">True</DotNetResourcesExtensions_EnableDepResolve>
 		<!-- [PUBLIC PROPERTY] Returns the currently used BuildTasks assembly path. Prefer to use this property if you want to do programmatical operations that involve this assembly. -->
 		<DotNetResourcesExtensionsBuildTasksPath>$(DNRSPath)</DotNetResourcesExtensionsBuildTasksPath>
 	</PropertyGroup>
@@ -40,11 +41,6 @@
 			<StrOutPath></StrOutPath>
 			<!-- Specifies the strongly-typed resource class visibility. It only accepts Internal and Public. -->
 			<StrClassVisibility>Internal</StrClassVisibility>
-			<!-- 
-				Specifies the base loading directory for file references , upcoming in V2. 
-				Can be also null to indicate that all paths must be always absolute.
-			-->
-			<BaseLoadingDirectory></BaseLoadingDirectory>
 		</GeneratableResource>
 		<!-- [PUBLIC BUILD ITEM] Specifies the target transformed file definition. -->
 		<!-- Through this item you specify from which files the result will be produced , where it will be saved and under which format will be saved. -->
@@ -107,6 +103,8 @@
 	<Target Name="I_DotNetResourcesExtensions_CheckTF">
 		<Error Condition="'$(TargetFramework.Contains(`net6.0`))' == 'true' OR '$(TargetFramework.Contains(`netcoreapp`))' == 'true' OR '$(TargetFramework.Contains(`net5.0`))' == 'true'"
 			   Code="DNTRESEXT1034" Text="The DotNetResourcesExtensions package is not supported for building apps that use the .NET Core , 5 and 6 versions." />
+		<Warning Condition="'$(TargetFramework.Contains(`net10.0`))' == 'true'" Code="DNTRESEXT1034"
+				 Text="NOTE: You attempt to use the .NET 10 runtime for using this package. %0ANote that support will not be provided running the package under such an environment.%0AAlternatively, use a supported target framework." />
 	</Target>
 
 	<!-- Done! -->

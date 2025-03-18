@@ -4,20 +4,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DotNetResourcesExtensions.Internal;
 
-internal sealed class FastResourceComparer : IComparer, IEqualityComparer, IComparer<string>, IEqualityComparer<string>
+internal sealed class FastResourceComparer : IComparer, IEqualityComparer , IComparer<System.String>, IEqualityComparer<System.String>
 {
-	internal static readonly FastResourceComparer Default = new FastResourceComparer();
+	internal static readonly FastResourceComparer Default = new();
 
-	public int GetHashCode(object key)
-	{
-		string key2 = (string)key;
-		return HashFunction(key2);
-	}
+	public int GetHashCode(object key) => HashFunction((System.String)key);
 
-	public int GetHashCode([DisallowNull] string key)
-	{
-		return HashFunction(key);
-	}
+	public int GetHashCode([DisallowNull] string key) => HashFunction(key);
 
 	internal static int HashFunction(string key)
 	{
@@ -31,34 +24,22 @@ internal sealed class FastResourceComparer : IComparer, IEqualityComparer, IComp
 
 	public int Compare(object a, object b)
 	{
-		if (a == b)
-		{
+		if (a == b) {
 			return 0;
 		}
-		string strA = (string)a;
-		string strB = (string)b;
-		return string.CompareOrdinal(strA, strB);
+		return string.CompareOrdinal((System.String)a, (System.String)b);
 	}
 
-	public int Compare(string a, string b)
-	{
-		return string.CompareOrdinal(a, b);
-	}
+	public int Compare(string a, string b) => string.CompareOrdinal(a, b);
 
-	public bool Equals(string a, string b)
-	{
-		return string.Equals(a, b);
-	}
+    public bool Equals(string a, string b) => string.Equals(a, b);
 
-	public new bool Equals(object a, object b)
+    public new bool Equals(object a, object b)
 	{
-		if (a == b)
-		{
+		if (a == b) {
 			return true;
 		}
-		string a2 = (string)a;
-		string b2 = (string)b;
-		return string.Equals(a2, b2);
+		return string.Equals((string)a, (string)b);
 	}
 
 	public unsafe static int CompareOrdinal(string a, byte[] bytes, int bCharLength)
@@ -88,19 +69,15 @@ internal sealed class FastResourceComparer : IComparer, IEqualityComparer, IComp
 				ptr2 += 2;
 			}
 		}
-		if (num2 != 0)
-		{
+		if (num2 != 0) {
 			return num2;
 		}
 		return a.Length - bCharLength;
 	}
 
-	public static int CompareOrdinal(byte[] bytes, int aCharLength, string b)
-	{
-		return -CompareOrdinal(b, bytes, aCharLength);
-	}
+	public static int CompareOrdinal(byte[] bytes, int aCharLength, string b) => -CompareOrdinal(b, bytes, aCharLength);
 
-	internal unsafe static int CompareOrdinal(byte* a, int byteLen, string b)
+    internal unsafe static int CompareOrdinal(byte* a, int byteLen, string b)
 	{
 		int num = 0;
 		int num2 = 0;

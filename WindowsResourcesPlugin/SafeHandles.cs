@@ -215,8 +215,10 @@ namespace DotNetResourcesExtensions
     /// <summary>
     /// Specifies the class for managing the device-independent bitmap creation and disposal. <br />
     /// Unlike the <see cref="SafeDeviceDependentBitmapHandle"/> class , this handle can be used in System.Drawing.Bitmap.FromHbitmap(System.IntPtr) method. <br />
-    /// This class cannot be inherited.
+    /// This class cannot be inherited. <br />
+    /// Note: This class is anymore deprecated, use the <see cref="BitmapReader"/> class instead.
     /// </summary>
+    [Obsolete("Bitmap reading and saving is now only managed through the BitmapReader class that works everywhere.")]
     public sealed class SafeDeviceIndependentBitmapHandle : SafeHandle , ICloneable
     {
         private SafeDeviceIndependentBitmapHandle() : base(IntPtr.Zero, true) { }
@@ -232,23 +234,7 @@ namespace DotNetResourcesExtensions
         /// <exception cref="ArgumentException">The <see cref="NativeWindowsResourceEntry.NativeType"/> property of <paramref name="entry"/> was not <see cref="WindowsResourceEntryType.RT_BITMAP"/>.</exception>
         public unsafe SafeDeviceIndependentBitmapHandle(NativeWindowsResourceEntry entry) : this()
         {
-            if (Interop.ApisSupported() == false)
-            {
-                throw new PlatformNotSupportedException("The SafeDeviceIndependentBitmapHandle class can be only instantiated from Windows.");
-            }
-            if (entry is null) { throw new ArgumentNullException(nameof(entry)); }
-            if (entry.NativeType != WindowsResourceEntryType.RT_BITMAP)
-            {
-                throw new ArgumentException("The entry's native type must be RT_BITMAP.");
-            }
-            GdiPlusBitmap bm = null;
-            try {
-                bm = new(entry);
-                Interop.GdiPlus.StatusToExceptionMarshaller(Interop.GdiPlus.GetHBITMAPFromGdipBitmap(bm.Handle, out handle));
-            } finally {
-                bm?.Dispose();
-                bm = null;
-            }
+            throw new NotSupportedException("Cannot use this class anymore on V2 , use the BitmapReader class.");
         }
 
         /// <summary>

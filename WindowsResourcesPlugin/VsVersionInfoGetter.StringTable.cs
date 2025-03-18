@@ -27,11 +27,11 @@ namespace DotNetResourcesExtensions
         {
             native = lgid;
             System.Byte[] temp = MinimalHexDecoder.GetBytes(lgid, 0, 4);
-            System.Array.Reverse(temp);
-            langid = System.BitConverter.ToInt16(temp, 0);
+            temp.Reverse();
+            langid = temp.ToInt16(0);
             temp = MinimalHexDecoder.GetBytes(lgid, 4, 4);
-            System.Array.Reverse(temp);
-            codepage = System.BitConverter.ToInt16(temp, 0);
+            temp.Reverse();
+            codepage = temp.ToInt16(0);
             temp = null;
         }
 
